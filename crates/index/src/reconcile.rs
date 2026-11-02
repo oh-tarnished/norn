@@ -51,7 +51,11 @@ pub(crate) fn list_files(dir: &Path) -> Result<Vec<Listed>> {
         let Some(name) = SegmentName::parse(&path) else {
             continue;
         };
-        if let Ok(meta) = entry.metadata() {
+        // `fs::metadata`, not `entry.metadata()`: on Windows the latter is the
+        // size the directory listing cached, which can still read 0 for a
+        // segment another handle has flushed, so a written file looked
+        // header-less and was skipped. Asking the file gives its real length.
+        if let Ok(meta) = fs::metadata(&path) {
             out.push(Listed {
                 name,
                 len: meta.len(),

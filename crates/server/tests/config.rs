@@ -134,7 +134,8 @@ fn help_and_version_do_not_run_the_daemon() {
 
 #[test]
 fn the_configuration_guide_lists_every_key_with_its_true_default() {
-    let readme = include_str!("../../../docs/guides/configuration.md");
+    // A Windows checkout may turn the guide's line endings into CRLF.
+    let readme = include_str!("../../../docs/guides/configuration.md").replace("\r\n", "\n");
     let (_, rest) = readme.split_once("```toml\n").unwrap();
     let (example, _) = rest.split_once("```").unwrap();
     let config = DaemonConfig::from_toml(example).unwrap();

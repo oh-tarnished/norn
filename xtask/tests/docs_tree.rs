@@ -2,7 +2,7 @@
 
 use std::collections::BTreeSet;
 
-use xtask::docs::{self, contents, links, readmes};
+use xtask::docs::{self, contents, emoji, links, readmes};
 use xtask::scan::{self, Findings};
 
 fn tracked(paths: &[&str]) -> BTreeSet<String> {
@@ -93,4 +93,33 @@ fn this_repository_passes_docs_and_examines_something() {
     let f = xtask::run("docs", &root).unwrap();
     assert!(f.examined > 100, "only {} examined", f.examined);
     assert!(f.verdict().is_ok(), "{:?}", f.verdict());
+}
+
+#[test]
+fn a_check_mark_in_the_readme_fails_with_its_line_and_code_point() {
+    let readme = "# N\n\n| Stage | State |\n| 1 | \u{2705} |\n| 2 | Done |\n";
+    let f = emoji::check(Some(readme));
+    assert_eq!(f.examined, 5);
+    let subjects: Vec<_> = f.problems.iter().map(|p| p.subject.as_str()).collect();
+    assert_eq!(subjects, ["README.md:4"]);
+    assert!(details(&f)[0].contains("U+2705"));
+    assert!(f.verdict().is_err());
+}
+
+#[test]
+fn a_construction_sign_and_a_pictograph_with_its_selector_both_fail() {
+    let f = emoji::check(Some("\u{1F6A7} planned\n\u{2714}\u{FE0F} done\n"));
+    assert_eq!(f.problems.len(), 3);
+}
+
+#[test]
+fn typographic_symbols_are_not_pictographs_and_pass() {
+    let readme = "Copyright \u{a9} 2026. 16,000 \u{d7} 1 Hz, 49.5 \u{b5}s, a \u{2192} b \u{2014} c.\n";
+    assert!(emoji::check(Some(readme)).verdict().is_ok());
+}
+
+#[test]
+fn an_empty_or_missing_readme_fails_the_emoji_check() {
+    assert!(emoji::check(Some("")).verdict().is_err());
+    assert!(emoji::check(None).verdict().is_err());
 }

@@ -4,9 +4,11 @@
 //! must not do and may import is the first thing a reader meets. Checks the
 //! library root, or the binary's for a binary-only crate. Beside that:
 //! [`links`] resolve, the README's [`contents`] mirror `docs/`, and only the
-//! root has a README ([`readmes`]).
+//! root has a README ([`readmes`]), and the README holds no pictograph
+//! ([`emoji`]).
 
 pub mod contents;
+pub mod emoji;
 pub mod headings;
 pub mod links;
 pub mod markdown;
@@ -69,6 +71,7 @@ fn tree_checks(root: &Path, tracked: &BTreeSet<String>) -> Vec<Findings> {
     vec![
         links,
         contents::check(readme, tracked),
+        emoji::check(readme),
         readmes::check(tracked),
     ]
 }
