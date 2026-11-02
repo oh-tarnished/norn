@@ -14,7 +14,7 @@ mod segment;
 mod stream;
 
 pub use segment::recover_segment;
-pub use stream::recover_stream;
+pub use stream::{recover_stream, recover_stream_vouched};
 
 use std::path::PathBuf;
 
@@ -146,6 +146,10 @@ pub struct RecoveryReport {
     pub segments: Vec<SegmentSummary>,
     /// Every finding, segment by segment, then stream housekeeping.
     pub events: Vec<RecoveryEvent>,
+    /// Segments whose every chunk was read and checked.
+    pub verified_segments: u64,
+    /// Segments a clean shutdown vouched for, whose chunks were not read.
+    pub vouched_segments: u64,
 }
 
 impl RecoveryReport {

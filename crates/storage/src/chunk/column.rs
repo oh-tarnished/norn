@@ -37,6 +37,17 @@ pub enum Column {
 }
 
 impl Column {
+    /// Bytes of string or byte payload held; zero for fixed-width kinds, whose
+    /// size follows from the sample count.
+    #[must_use]
+    pub fn payload_bytes(&self) -> u64 {
+        match self {
+            Self::String(v) => v.iter().map(|s| s.len() as u64).sum(),
+            Self::Bytes(v) => v.iter().map(|b| b.len() as u64).sum(),
+            _ => 0,
+        }
+    }
+
     /// An empty column of `kind`.
     ///
     /// # Errors

@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, MutexGuard, PoisonError};
 
 use norn_core::StreamId;
+use norn_storage::format::HEADER_LEN;
 use norn_storage::format::frame::ChunkMeta;
 use norn_storage::{CompactionOutcome, SegmentName, SegmentSummary, stream_dir};
 
@@ -105,6 +106,11 @@ impl TemporalIndex {
     /// doubt. Reads only what it does not know. The tail of a file still present
     /// is kept, since only the writer knows it has moved on.
     ///
+    /// A file it does not know that is shorter than a segment header is skipped:
+    /// a writer has created it and its header is still in the writer's buffer, so
+    /// there is nothing to read yet, and that writer publishes it. Runs beside a
+    /// writer, since a reader racing a compaction calls it at any moment.
+    ///
     /// # Errors
     /// [`crate::IndexError::Io`]; [`crate::IndexError::Storage`];
     /// [`crate::IndexError::OverBudget`];
@@ -124,6 +130,7 @@ impl TemporalIndex {
             match known.get(&file.name) {
                 Some(r) if r.file_len == file.len => records.push(**r),
                 _ if tails.iter().any(|t| t.segment == file.name) => {}
+                _ if file.len < HEADER_LEN as u64 => {}
                 _ => unknown.push(file.path.clone()),
             }
         }

@@ -4,6 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::quarantine::remove;
+use super::segment::read_vouched;
 use super::{RecoveryEvent, RecoveryMode, RecoveryReport, recover_segment};
 use crate::error::{Result, StorageError};
 use crate::layout::{SegmentEntry, superseded};
@@ -40,6 +41,24 @@ pub fn recover_stream(
     opts: &StorageOptions,
     mode: RecoveryMode,
 ) -> Result<RecoveryReport> {
+    recover_stream_vouched(dir, opts, mode, &|_, _| false)
+}
+
+/// [`recover_stream`], except that a segment for which `vouched(name, length)`
+/// holds has its chunks taken on trust: only its header and directory are read.
+/// `vouched` is what a [`crate::CleanMarker`] answers: that segment was sealed
+/// and fsynced before a clean shutdown and is immutable, so a crash since cannot
+/// have changed it. If its header or directory does not verify, the whole
+/// segment goes through [`recover_segment`] after all.
+///
+/// # Errors
+/// As [`recover_stream`].
+pub fn recover_stream_vouched(
+    dir: &Path,
+    opts: &StorageOptions,
+    mode: RecoveryMode,
+    vouched: &dyn Fn(SegmentName, u64) -> bool,
+) -> Result<RecoveryReport> {
     let repair = mode == RecoveryMode::Repair;
     let _lock = repair.then(|| StreamLock::acquire(dir)).transpose()?;
     let mut report = RecoveryReport::default();
@@ -55,8 +74,14 @@ pub fn recover_stream(
     }
     segments.sort();
     let mut recovered: Vec<(SegmentSummary, bool)> = Vec::new();
-    for (_, path) in segments {
-        let r = recover_segment(&path, opts, mode)?;
+    for (name, path) in segments {
+        let quick = read_vouched(&path, opts, |len| vouched(name, len))?;
+        report.vouched_segments += u64::from(quick.is_some());
+        report.verified_segments += u64::from(quick.is_none());
+        let r = match quick {
+            Some(found) => found,
+            None => recover_segment(&path, opts, mode)?,
+        };
         let clean = !r.events.iter().any(RecoveryEvent::is_corruption);
         report.events.extend(r.events);
         if let Some(summary) = r.summary {

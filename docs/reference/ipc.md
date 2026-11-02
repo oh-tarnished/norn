@@ -198,6 +198,10 @@ a producer dying mid-frame must be detected). They are deferred until
 measurements show gRPC batching cannot meet the 100 000 samples/s burst
 target (SPEC §17).
 
+Shared memory is out of v0.1, and stage 12 stays planned. A measured comparison of a
+shared-memory plane against this gRPC path exists on a separate branch, kept for
+later; nothing of it is in this tree.
+
 ## Dependencies (SPEC §39)
 
 | Crate | In | Why |
@@ -213,7 +217,9 @@ No crate here links C; `xtask deps` checks it.
 
 ## Windows status
 
-Not yet executed on Windows. `norn-transport`, `norn-ipc`, `norn-runtime`,
-`norn-server` and `norn-cli` type-check for `x86_64-pc-windows-gnu`, tests
-included, from macOS, which links and runs nothing. CI's Windows runner is the
-first execution.
+Named pipes run in CI on `windows-latest` (green at 7526100): the transport's
+owner-only descriptor test opens a pipe as its own user, and `nornctl`'s daemon
+test starts a real daemon on `pipe:\\.\pipe\norn-ctl-…` and drives `status`,
+`version` and the resource commands over it. Which tests stay Unix-only, and why:
+[operations](../guides/operations.md#platforms). Windows performance is not yet
+measured.

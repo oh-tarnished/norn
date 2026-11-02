@@ -131,7 +131,7 @@ async fn a_corrupt_chunk_is_a_typed_error_and_its_samples_leave_the_count() {
     seed(&d.channel, &[("t", ValueType::Double)]).await;
     let list = (0..50).map(|n| double("t", n)).collect();
     append(&d.channel, vec![batch(1, list, Durable)]).await;
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
 
     let stream_dir = std::fs::read_dir(data.join("streams"))
         .unwrap()
@@ -167,6 +167,6 @@ async fn a_corrupt_chunk_is_a_typed_error_and_its_samples_leave_the_count() {
         .into_inner();
     let stats = stream.stats.unwrap();
     assert_eq!((stats.sample_count, stats.corrupt_sample_count), (0, 50));
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     let _ = std::fs::remove_dir_all(data);
 }

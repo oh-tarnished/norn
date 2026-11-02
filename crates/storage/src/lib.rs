@@ -35,6 +35,7 @@
 #![forbid(unsafe_code)]
 
 mod chunk;
+mod clean;
 mod compact;
 mod corruption;
 mod crc32c;
@@ -52,7 +53,10 @@ mod segment;
 mod stream;
 
 pub use chunk::{Chunk, Column, EncodedChunk};
-pub use compact::{CompactionOutcome, compact};
+pub use clean::{CLEAN_FILE, CleanMarker, CleanSegment};
+pub use compact::{
+    CompactionObserver, CompactionOutcome, CompactionPhase, Unobserved, compact, compact_observed,
+};
 pub use crc32c::{crc32c, extend as crc32c_extend};
 pub use error::{Bound, Corruption, CorruptionKind, Result, StorageError, VersionField};
 pub use format::frame::ChunkMeta;
@@ -65,9 +69,9 @@ pub use options::StorageOptions;
 pub use platform::sync_dir;
 pub use recovery::{
     Action, QUARANTINE_DIR, RecoveryEvent, RecoveryMode, RecoveryReport, SegmentRecovery,
-    recover_segment, recover_stream,
+    recover_segment, recover_stream, recover_stream_vouched,
 };
-pub use retention::{segments_before, segments_over_size};
+pub use retention::{remove_segments, segments_before, segments_over_size};
 pub use segment::{
     ChunkFile, SEGMENT_EXT, SegmentName, SegmentReader, SegmentSummary, SegmentWriter,
 };

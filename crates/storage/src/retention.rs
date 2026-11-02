@@ -1,6 +1,7 @@
-//! Retention hooks (SPEC §43): list what a policy *could* delete.
+//! Retention hooks (SPEC §43): list what a policy *could* delete, and delete
+//! what a caller then names.
 //!
-//! Nothing here deletes. Retention is optional and explicit: a caller lists
+//! Nothing here decides. Retention is optional and explicit: a caller lists
 //! candidates, shows or logs them, and deletes deliberately. Only whole sealed
 //! segments are ever listed, because a segment is the unit that can be removed
 //! without rewriting anything. An unsealed segment is never listed (it may be
@@ -14,6 +15,7 @@ use norn_core::Timestamp;
 use crate::error::Result;
 use crate::layout::live_segments;
 use crate::options::StorageOptions;
+use crate::platform::sync_dir;
 use crate::segment::{SegmentReader, SegmentSummary};
 
 /// Summaries of `dir`'s sealed live segments, in sequence order.
@@ -73,4 +75,27 @@ pub fn segments_over_size(
         out.push(s);
     }
     Ok(out)
+}
+
+/// Deletes `paths`, in order, from stream directory `dir`, then fsyncs it.
+///
+/// The caller has decided these go; this crate never does (SPEC §43). Pass them
+/// oldest first: a crash part-way leaves a stream that has lost only its oldest
+/// segments, which is a retention pass that has not finished. A file already
+/// gone counts as deleted, so repeating this is safe.
+///
+/// Concurrency: a reader holding a deleted file open keeps reading it; one that
+/// has not opened it gets `NotFound`, which `norn-query` treats as a race.
+///
+/// # Errors
+/// [`crate::StorageError::Io`]; files before the failure are gone.
+pub fn remove_segments(dir: &Path, paths: &[std::path::PathBuf]) -> Result<()> {
+    for path in paths {
+        match std::fs::remove_file(path) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(crate::StorageError::io("remove", path, e)),
+        }
+    }
+    sync_dir(dir)
 }

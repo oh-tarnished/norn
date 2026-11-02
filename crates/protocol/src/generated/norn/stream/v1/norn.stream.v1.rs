@@ -37,12 +37,13 @@ const PACKAGE: &'static str = "norn.stream.v1";
 fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.Stream".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.Stream".into() }}
 /// When history becomes eligible for removal (SPEC section 43). Retention is
 /// always explicit: a stream without a policy keeps everything, and removal
-/// happens only at whole-chunk granularity once every sample in the chunk
-/// is past the limit, so a policy never removes data it does not cover.
+/// happens only at whole-segment granularity once every sample in the segment
+/// is past the limit, so a policy never removes data it does not cover. The
+/// segment holding the stream's newest sealed samples is never removed.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RetentionPolicy {
     /// The limit. Unset means keep forever.
-    #[prost(oneof="retention_policy::Limit", tags="1, 2")]
+    #[prost(oneof="retention_policy::Limit", tags="1, 2, 3")]
     pub limit: ::core::option::Option<retention_policy::Limit>,
 }
 /// Nested message and enum types in `RetentionPolicy`.
@@ -50,15 +51,20 @@ pub mod retention_policy {
     /// The limit. Unset means keep forever.
     #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Limit {
-        /// Remove chunks whose newest sample is older than this, measured from
+        /// Remove segments whose newest sample is older than this, measured from
         /// the newest sample in the stream rather than the wall clock, so a
         /// stream that stops receiving data does not empty itself.
         #[prost(message, tag="1")]
         MaxAge(::prost_types::Duration),
-        /// Remove the oldest chunks while the stream's stored size exceeds this
+        /// Remove the oldest segments while the stream's stored size exceeds this
         /// many bytes. Must be positive.
         #[prost(int64, tag="2")]
         MaxBytes(i64),
+        /// As `max_age`, in calendar months in UTC: the cutoff is this many months
+        /// before the newest sample, on the same day of the month or the month's
+        /// last day. Must be positive.
+        #[prost(int32, tag="3")]
+        MaxMonths(i32),
     }
 }
 impl ::prost::Name for RetentionPolicy {
@@ -70,7 +76,7 @@ fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.RetentionPoli
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct StreamStats {
     /// Samples a query can return: those stored and those buffered. Samples in
-    /// chunks that failed verification at the daemon's last start are excluded.
+    /// chunks known to be damaged are excluded.
     #[prost(int64, tag="1")]
     pub sample_count: i64,
     /// Bytes on disk, after encoding and compression.
@@ -85,9 +91,9 @@ pub struct StreamStats {
     /// Of `sample_count`, the samples in write buffers and not in a segment yet.
     #[prost(int64, tag="5")]
     pub buffered_sample_count: i64,
-    /// Samples in chunks that failed verification at the daemon's last start. A
-    /// chunk damaged since then is counted here only after the next start, though
-    /// a query reaching it reports it at once.
+    /// Samples in chunks known to be damaged: found by startup verification,
+    /// VerifyStream, or a query reaching them. Damage nothing has read yet is not
+    /// counted; VerifyStream finds it.
     #[prost(int64, tag="6")]
     pub corrupt_sample_count: i64,
 }
@@ -95,6 +101,168 @@ impl ::prost::Name for StreamStats {
 const NAME: &'static str = "StreamStats";
 const PACKAGE: &'static str = "norn.stream.v1";
 fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.StreamStats".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.StreamStats".into() }}
+/// The request for StreamService.VerifyStream.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VerifyStreamRequest {
+    /// The stream, as `streams/{stream}`.
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+}
+impl ::prost::Name for VerifyStreamRequest {
+const NAME: &'static str = "VerifyStreamRequest";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.VerifyStreamRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.VerifyStreamRequest".into() }}
+/// The result of a finished VerifyStream operation. A damaged stream is still a
+/// successful operation: this is the answer the caller asked for.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VerifyStreamResponse {
+    /// Sealed segments read.
+    #[prost(int64, tag="1")]
+    pub segment_count: i64,
+    /// Chunks read.
+    #[prost(int64, tag="2")]
+    pub chunk_count: i64,
+    /// Samples those chunks hold, by their directories.
+    #[prost(int64, tag="3")]
+    pub sample_count: i64,
+    /// Bytes read.
+    #[prost(int64, tag="4")]
+    pub verified_bytes: i64,
+    /// Chunks that failed a check.
+    #[prost(int64, tag="5")]
+    pub damaged_chunk_count: i64,
+    /// Samples those chunks claim to hold.
+    #[prost(int64, tag="6")]
+    pub damaged_sample_count: i64,
+    /// What was found, at most 64 of them; `damaged_chunk_count` covers all.
+    #[prost(message, repeated, tag="7")]
+    pub damaged_chunks: ::prost::alloc::vec::Vec<DamagedChunk>,
+}
+impl ::prost::Name for VerifyStreamResponse {
+const NAME: &'static str = "VerifyStreamResponse";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.VerifyStreamResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.VerifyStreamResponse".into() }}
+/// One region of a segment that failed a check.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DamagedChunk {
+    /// The segment's file name.
+    #[prost(string, tag="1")]
+    pub segment: ::prost::alloc::string::String,
+    /// Where the region starts, in bytes from the start of the file.
+    #[prost(int64, tag="2")]
+    pub offset: i64,
+    /// How long it is, in bytes.
+    #[prost(int64, tag="3")]
+    pub length: i64,
+    /// What was wrong, for people. Never parse it.
+    #[prost(string, tag="4")]
+    pub description: ::prost::alloc::string::String,
+}
+impl ::prost::Name for DamagedChunk {
+const NAME: &'static str = "DamagedChunk";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.DamagedChunk".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.DamagedChunk".into() }}
+/// Progress of a VerifyStream operation.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VerifyStreamMetadata {
+    /// When the operation started.
+    #[prost(message, optional, tag="1")]
+    pub create_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// When the operation finished; unset while it runs.
+    #[prost(message, optional, tag="2")]
+    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// Segments read so far.
+    #[prost(int64, tag="3")]
+    pub segments_done: i64,
+    /// Segments the operation will read in total.
+    #[prost(int64, tag="4")]
+    pub segments_total: i64,
+}
+impl ::prost::Name for VerifyStreamMetadata {
+const NAME: &'static str = "VerifyStreamMetadata";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.VerifyStreamMetadata".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.VerifyStreamMetadata".into() }}
+/// The request for StreamService.ApplyStreamRetention.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ApplyStreamRetentionRequest {
+    /// The stream, as `streams/{stream}`.
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// Work out what the policy would remove, and remove nothing.
+    #[prost(bool, tag="2")]
+    pub validate_only: bool,
+}
+impl ::prost::Name for ApplyStreamRetentionRequest {
+const NAME: &'static str = "ApplyStreamRetentionRequest";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.ApplyStreamRetentionRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.ApplyStreamRetentionRequest".into() }}
+/// The result of a finished ApplyStreamRetention operation.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApplyStreamRetentionResponse {
+    /// Whether anything was removed. False under `validate_only`, whose counts say
+    /// what would have been.
+    #[prost(bool, tag="1")]
+    pub applied: bool,
+    /// Samples older than this were eligible. Unset under a size limit or no policy.
+    #[prost(message, optional, tag="2")]
+    pub cutoff_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// Segments removed.
+    #[prost(int64, tag="3")]
+    pub removed_segment_count: i64,
+    /// Samples they held.
+    #[prost(int64, tag="4")]
+    pub removed_sample_count: i64,
+    /// Bytes they took on disk.
+    #[prost(int64, tag="5")]
+    pub removed_bytes: i64,
+    /// Bytes of sealed segments left.
+    #[prost(int64, tag="6")]
+    pub retained_bytes: i64,
+    /// The segments, oldest first, at most 1000; the counts cover all.
+    #[prost(message, repeated, tag="7")]
+    pub removed_segments: ::prost::alloc::vec::Vec<RemovedSegment>,
+}
+impl ::prost::Name for ApplyStreamRetentionResponse {
+const NAME: &'static str = "ApplyStreamRetentionResponse";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.ApplyStreamRetentionResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.ApplyStreamRetentionResponse".into() }}
+/// One whole segment a retention policy removed or would remove.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RemovedSegment {
+    /// The segment's file name.
+    #[prost(string, tag="1")]
+    pub segment: ::prost::alloc::string::String,
+    /// The earliest sample it held.
+    #[prost(message, optional, tag="2")]
+    pub oldest_sample_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// The latest sample it held; every sample is at or before this.
+    #[prost(message, optional, tag="3")]
+    pub newest_sample_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// Samples it held.
+    #[prost(int64, tag="4")]
+    pub sample_count: i64,
+    /// Bytes it took on disk.
+    #[prost(int64, tag="5")]
+    pub byte_count: i64,
+}
+impl ::prost::Name for RemovedSegment {
+const NAME: &'static str = "RemovedSegment";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.RemovedSegment".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.RemovedSegment".into() }}
+/// Progress of an ApplyStreamRetention operation.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ApplyStreamRetentionMetadata {
+    /// When the operation started.
+    #[prost(message, optional, tag="1")]
+    pub create_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// When the operation finished; unset while it runs.
+    #[prost(message, optional, tag="2")]
+    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+}
+impl ::prost::Name for ApplyStreamRetentionMetadata {
+const NAME: &'static str = "ApplyStreamRetentionMetadata";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.ApplyStreamRetentionMetadata".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.ApplyStreamRetentionMetadata".into() }}
 /// The request for StreamService.CreateStream.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateStreamRequest {
@@ -219,6 +387,10 @@ pub struct CompactStreamResponse {
     /// Stored bytes after compaction.
     #[prost(int64, tag="4")]
     pub compacted_bytes: i64,
+    /// Segments left as they were because a chunk in them is damaged. Compaction
+    /// never rewrites over damage.
+    #[prost(int64, tag="5")]
+    pub skipped_segment_count: i64,
 }
 impl ::prost::Name for CompactStreamResponse {
 const NAME: &'static str = "CompactStreamResponse";

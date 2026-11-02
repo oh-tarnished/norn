@@ -83,7 +83,7 @@ async fn status_and_version_work_and_cancelling_drains_and_removes_the_socket() 
     assert_eq!(health.reached(Health::Serving).await, Health::Serving);
 
     let status = status_when_serving(&wanted);
-    assert!(status.contains("protocol: 1.3"), "{status}");
+    assert!(status.contains("protocol: 1.4"), "{status}");
     assert!(
         status.contains("capabilities: CAPABILITY_APPEND_SAMPLES"),
         "{status}"
@@ -92,8 +92,8 @@ async fn status_and_version_work_and_cancelling_drains_and_removes_the_socket() 
     assert!(status.contains("limits.max_streams: 1024"), "{status}");
 
     let version = stdout(&nornctl(&wanted, "version"));
-    assert!(version.contains("client_protocol: 1.3"), "{version}");
-    assert!(version.contains("agreed_protocol: 1.3"), "{version}");
+    assert!(version.contains("client_protocol: 1.4"), "{version}");
+    assert!(version.contains("agreed_protocol: 1.4"), "{version}");
     assert!(version.contains(norn_server::SERVER_VERSION), "{version}");
 
     stdout(&nornctl(&wanted, "streams create plant"));

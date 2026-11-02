@@ -11,7 +11,7 @@ Implemented: the schema, its lint configuration, the generated Rust in
 [`crates/protocol`](../../crates/protocol) (`norn-protocol`), and in the daemon
 ([`crates/server`](../../crates/server)) `AdminService`, `grpc.health.v1`, the version
 metadata check, `EntityService`, `SignalService`, `StreamService` (without
-`CompactStream` and `ExportStream`), `TelemetryService` (`AppendSamples` and
+`ExportStream`), `google.longrunning.Operations`, `TelemetryService` (`AppendSamples` and
 `SubscribeEvents`), `QueryService.QuerySamples`, `StateService.ComputeState` and
 `ReplayService`. Every
 other method answers `UNIMPLEMENTED` (see "Not yet implemented"), so the semantics
@@ -109,7 +109,7 @@ value alone (AIP-134). Naming an immutable field fails with `INVALID_ARGUMENT`.
 **Delete never deletes history.** Deleting an entity with signals, a signal
 with stored samples, or a stream with samples or signals fails with
 `FAILED_PRECONDITION` and `ERROR_REASON_RESOURCE_NOT_EMPTY`. Removing history
-is the stream's explicit `RetentionPolicy` (SPEC §43), applied at whole-chunk
+is the stream's explicit `RetentionPolicy` (SPEC §43), applied at whole-segment
 granularity; an unset policy keeps everything.
 
 Free-form metadata is `annotations` (`map<string, string>`): source
@@ -311,11 +311,41 @@ the filter language, NaN, infinities and signed zero, and resume tokens.
 
 ## Long-running operations
 
-`StreamService.CompactStream` (`:compact`) and `ExportStream` (`:export`, to
-CSV, Parquet, Arrow IPC or MCAP at a `file://` URI that must not exist) return
-`google.longrunning.Operation` with typed response and metadata. The daemon
-serves `google.longrunning.Operations` to poll them. Compaction is lossless
-and crash-safe, and ingestion continues during it (SPEC §42).
+`StreamService.CompactStream` (`:compact`), `VerifyStream` (`:verify`),
+`ApplyStreamRetention` (`:applyRetention`) and `ExportStream` (`:export`, to CSV,
+Parquet, Arrow IPC or MCAP at a `file://` URI that must not exist) return
+`google.longrunning.Operation` with typed response and metadata. The daemon serves
+`google.longrunning.Operations` to poll them: `GetOperation`, `ListOperations`
+(oldest first, no filter), `WaitOperation` (at most 60 s, then the operation as it
+stands), `CancelOperation` and `DeleteOperation` (`FAILED_PRECONDITION` while it runs).
+
+**ExportStream stays `UNIMPLEMENTED`, by decision.** The formats live in client
+crates (`adapters/`) that the server may not import, by the layer table. Export is
+done client-side instead: `nornctl export`, or `norn_adapter::export`, reads through
+`QuerySamples` in bounded memory and writes the file as the user who asked. Import is
+client-side too, through `AppendSamples`. Serving `ExportStream` would need a layer
+change; see [adapters.md](adapters.md#exportstream-stays-unimplemented).
+
+Compaction is lossless and crash-safe, and ingestion continues during it (SPEC §42).
+`interval` restricts it to segments overlapping that interval. Segments holding known
+damage are left alone and counted in `skipped_segment_count`.
+
+`VerifyStream` reads every chunk of every sealed segment and changes nothing. Finding
+damage is a *successful* operation: the result is the answer asked for.
+
+`ApplyStreamRetention` runs the recorded policy now. `validate_only` removes nothing
+and reports what would go; a dry run and the pass after it list the same segments if
+nothing changed between them. The daemon also applies policies on a schedule.
+
+As implemented: one worker runs one job at a time, and at most 16 wait; past that a
+call fails with `RESOURCE_EXHAUSTED` and `ERROR_REASON_CAPACITY_EXHAUSTED`, and during
+shutdown with `UNAVAILABLE` and `ERROR_REASON_SHUTTING_DOWN`. Operations live in
+memory, at most 256, so a restart gives `NOT_FOUND`. Cancelling stops a compaction
+before its commit and a verification between segments; a retention pass that has begun
+deleting finishes. A cancelled operation ends with `CANCELLED`, and a failed one with
+`INTERNAL` and `ERROR_REASON_STORAGE_UNAVAILABLE`.
+
+[storage.md](storage.md#maintenance) has the design.
 
 ## Error model
 
@@ -364,13 +394,18 @@ package, all versioned in lockstep; it changes only with a new package
 version, which is the only place wire-incompatible changes may happen. `minor`
 counts compatible additions within a major: methods, fields, enum values,
 error reasons, capabilities. `buf breaking` enforces that a minor never breaks
-the wire or JSON form. The current version is 1.3
+the wire or JSON form. The current version is 1.4
 (`norn_protocol::PROTOCOL_VERSION`). 1.1 added error reasons, `Server.recovery` and
 `Server.index` to 1.0. 1.2 added `StreamStats.buffered_sample_count` and
 `corrupt_sample_count`, changed `sample_count` to include buffered samples and
 exclude corrupt ones, and defined `AGGREGATE_FUNCTION_RATE` over counter resets;
 nothing had implemented that function, so no client can have relied on the old text.
-1.3 added `Event.state_sample`, sent after a seek.
+1.3 added `Event.state_sample`, sent after a seek. 1.4 added `VerifyStream`,
+`ApplyStreamRetention`, `RetentionPolicy.max_months`,
+`CompactStreamResponse.skipped_segment_count`, `Server.maintenance`, three
+`RecoveryReport` counts, and `CAPABILITY_RETENTION` and `CAPABILITY_VERIFY`. Under 1.4
+`corrupt_sample_count` counts damage as soon as anything finds it, not at the next
+start, and retention's unit is the segment, as it always had to be.
 
 A client calls `AdminService.NegotiateProtocol` once per connection, before
 anything else, with its version and the capabilities it cannot work without:
@@ -395,17 +430,19 @@ misbehaving halfway through a task.
 Capabilities describe what this daemon's build and configuration offer:
 `APPEND_SAMPLES`, `ACK_PERSISTED`, `ACK_DURABLE`, `LIVE_SUBSCRIPTION`,
 `REPLAY`, `STATE_AT`, `QUERY_RANGE`, `QUERY_AGGREGATES`, `COMPACTION`,
-`EXPORT`, `SHARED_MEMORY`. Clients ignore numbers they do not know.
+`EXPORT`, `SHARED_MEMORY`, `RETENTION`, `VERIFY`. Clients ignore numbers they do not know.
 
-`Server.recovery` says what startup recovery found, and `Server.index` what
-opening the temporal index found ([storage.md](storage.md)).
+`Server.recovery` says what startup recovery found and how much it read,
+`Server.index` what opening the temporal index found ([storage.md](storage.md)), and
+`Server.maintenance` what compaction and retention have done since the start.
 
 `Limits` are published, not discovered by failure: batch size in samples and
 bytes, pending batches per call, streams, replay sessions, subscriptions, and
 the replay idle timeout (SPEC §16, §41).
 
 The daemon offers `APPEND_SAMPLES`, `ACK_PERSISTED`, `QUERY_RANGE`,
-`QUERY_AGGREGATES`, `STATE_AT`, `LIVE_SUBSCRIPTION`, `REPLAY`, and `ACK_DURABLE` unless `[storage] durable_acks = false`. `Limits` are all set and all
+`QUERY_AGGREGATES`, `STATE_AT`, `LIVE_SUBSCRIPTION`, `REPLAY`, `COMPACTION`,
+`RETENTION`, `VERIFY`, and `ACK_DURABLE` unless `[storage] durable_acks = false`. `Limits` are all set and all
 enforced. `max_batch_bytes` is
 the 4 MiB gRPC message limit, lowered to an eighth of `ipc_bytes` if that is
 smaller, so one maximal batch fits the decoding half of the budget twice over.

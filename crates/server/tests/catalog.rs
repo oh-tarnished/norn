@@ -69,7 +69,7 @@ async fn entities_are_created_read_updated_and_deleted_and_survive_a_restart() {
     assert_eq!(stale.code(), Code::Aborted);
     assert_eq!(reason(&stale), "ERROR_REASON_ETAG_MISMATCH");
 
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     let d = start(DaemonConfig::default(), data).await;
     let mut c = EntityServiceClient::new(d.channel.clone());
     let get = GetEntityRequest {

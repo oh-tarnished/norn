@@ -70,7 +70,7 @@ async fn deletes_refuse_anything_holding_children_or_samples() {
     };
     held(&streams.delete_stream(s).await.unwrap_err());
 
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     let d = start(DaemonConfig::default(), data).await;
     let mut signals = SignalServiceClient::new(d.channel.clone());
     let refused = signals
@@ -121,7 +121,7 @@ async fn immutable_fields_cannot_be_masked_and_compaction_is_not_implemented() {
     assert_eq!(e.code(), Code::InvalidArgument);
     let mut streams = StreamServiceClient::new(d.channel.clone());
     let e = streams
-        .compact_stream(CompactStreamRequest::default())
+        .export_stream(ExportStreamRequest::default())
         .await
         .unwrap_err();
     assert_eq!(e.code(), Code::Unimplemented);

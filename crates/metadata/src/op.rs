@@ -146,6 +146,10 @@ fn encode_retention(o: &mut Out, r: Retention) {
             o.u8(2);
             o.u64(n);
         }
+        Retention::MaxMonths(n) => {
+            o.u8(3);
+            o.u64(u64::from(n));
+        }
         _ => o.u8(0),
     }
 }
@@ -155,6 +159,7 @@ fn decode_retention(i: &mut In<'_>) -> Option<Retention> {
         0 => Retention::Forever,
         1 => Retention::MaxAge(Duration::from_nanos(i.u64()?)),
         2 => Retention::MaxBytes(i.u64()?),
+        3 => Retention::MaxMonths(u32::try_from(i.u64()?).ok()?),
         _ => return None,
     })
 }

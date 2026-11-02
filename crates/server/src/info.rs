@@ -25,6 +25,9 @@ pub fn capabilities(config: &Config) -> Vec<Capability> {
         Capability::StateAt,
         Capability::LiveSubscription,
         Capability::Replay,
+        Capability::Compaction,
+        Capability::Retention,
+        Capability::Verify,
     ];
     if config.storage().durable_acks {
         offered.push(Capability::AckDurable);
@@ -51,8 +54,12 @@ pub fn server_resource(config: &Config, start: Timestamp, recovery: &IngestRecov
             replayed_sample_count: wide(recovery.replayed_samples),
             duplicate_sample_count: wide(recovery.duplicate_samples),
             findings: recovery.findings.clone(),
+            clean_stream_count: i32::try_from(recovery.clean_streams).unwrap_or(i32::MAX),
+            verified_segment_count: wide(recovery.verified_segments),
+            vouched_segment_count: wide(recovery.vouched_segments),
         }),
         index: Some(index_report(recovery)),
+        maintenance: None,
     }
 }
 

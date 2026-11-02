@@ -6,12 +6,14 @@
 
 mod admit;
 mod buffer;
+mod clean;
 mod commit;
 mod commit_fail;
 mod decision;
 mod dedup;
 mod indexing;
 mod journal;
+mod lifecycle;
 mod record;
 mod recover;
 mod report;
@@ -21,6 +23,7 @@ mod start;
 mod stats;
 mod store;
 mod tail;
+mod upkeep;
 
 pub use admit::THROTTLE_DELAY;
 pub use decision::{AckFailure, AckLevel, Admission, Batch, Completion, Decision, Outcome, Reason};
@@ -31,7 +34,7 @@ pub use stats::StreamStats;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -93,6 +96,7 @@ pub struct Ingest {
     stats: Mutex<HashMap<StreamId, StreamStats>>,
     threads: Mutex<Vec<JoinHandle<()>>>,
     draining: AtomicBool,
+    upkeep: upkeep::Upkeep,
 }
 
 impl Ingest {
@@ -130,6 +134,7 @@ impl Ingest {
             stats: Mutex::new(HashMap::new()),
             threads: Mutex::new(Vec::new()),
             draining: AtomicBool::new(false),
+            upkeep: upkeep::Upkeep::default(),
         }
     }
 
@@ -165,29 +170,6 @@ impl Ingest {
             None => {
                 let stats = self.stats.lock().unwrap_or_else(PoisonError::into_inner);
                 stats.get(&stream).copied().unwrap_or_default()
-            }
-        }
-    }
-
-    /// Refuses every new batch with `SHUTTING_DOWN`. Admitted ones finish.
-    pub fn begin_drain(&self) {
-        self.draining.store(true, Ordering::Release);
-    }
-
-    /// Refuses new batches, commits everything admitted, seals, and joins every
-    /// thread. Blocks on the disk; idempotent; safe after a failure.
-    pub fn close(&self) {
-        self.begin_drain();
-        let streams = self.streams.lock().unwrap_or_else(PoisonError::into_inner);
-        for handle in streams.values() {
-            handle.lock().tx = None;
-        }
-        drop(streams);
-        let threads =
-            std::mem::take(&mut *self.threads.lock().unwrap_or_else(PoisonError::into_inner));
-        for thread in threads {
-            if thread.join().is_err() {
-                tracing::error!("a write-path thread panicked");
             }
         }
     }

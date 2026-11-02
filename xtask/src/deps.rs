@@ -13,6 +13,27 @@ use crate::scan::Findings;
 /// Build-dependencies that mean "compiles or locates native code".
 pub const NATIVE_BUILD: &[&str] = &["cc", "cmake", "pkg-config", "vcpkg", "bindgen"];
 
+/// The targets Norn builds: the release matrix (`.github/release/plan.sh`)
+/// and CI's cross-compiles.
+///
+/// Why the gate is platform-scoped: "no C" is a promise about what Norn
+/// links, and a dependency only another target compiles is linked by no
+/// build of Norn. Without the scope, `iana-time-zone-haiku` (under `chrono`,
+/// reached through `arrow` and `schemars`), whose build script runs `cc` on
+/// Haiku alone, and `wasm-bindgen-shared`, whose `links` key is wasm32's and
+/// names no C library, would fail a gate about binaries that cannot exist.
+/// Only `deps` is scoped; `arch` and `docs` still see every platform. Adding
+/// a target here widens the gate, never narrows it, and
+/// `xtask/tests/platform_gates.rs` fails if a shipped target is missing.
+pub const PLATFORMS: &[&str] = &[
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "armv7-unknown-linux-gnueabihf",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+];
+
 /// Workspace members whose graphs may reach C, with the reason. Empty: no
 /// Norn crate needs C. Adding one is an architecture decision; record it in
 /// docs/reference/architecture.md and the commit.

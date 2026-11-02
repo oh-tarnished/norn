@@ -1,4 +1,4 @@
-# A vX.Y.Z tag, or a manual run, packages Norn's daemon and CLI.
+# A vX.Y.Z tag, or a manual run, packages Norn's daemon, CLI and MCP server.
 # Cargo crates remain unpublished; releases distribute the binaries.
 name: Release
 

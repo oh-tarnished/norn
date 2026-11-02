@@ -72,6 +72,13 @@ impl Snapshot {
         Plan::new(Arc::clone(self), request)
     }
 
+    /// Every signal of `stream` with an indexed chunk, by id. Touches no disk.
+    pub fn signals(&self, stream: StreamId) -> impl Iterator<Item = (SignalId, SignalSpan)> + '_ {
+        let view = self.streams.get(&stream);
+        view.into_iter()
+            .flat_map(|v| v.signals.entries.iter().copied())
+    }
+
     /// What the index knows of `signal`, over every stream, or `None` when no
     /// chunk of it is indexed. Touches no disk. O(streams × log signals).
     ///

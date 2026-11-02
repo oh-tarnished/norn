@@ -58,7 +58,7 @@ async fn a_persisted_sample_is_in_the_state_at_once_and_a_silent_signal_is_unkno
     assert_eq!(names[0], "entities/ahu/signals/a", "in signal name order");
     let got = call(&d.channel, at(1_009)).await.unwrap();
     assert_eq!(sequences(&got), [Some(9), Some(7), None]);
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -83,7 +83,7 @@ async fn max_age_turns_an_old_sample_into_unknown() {
     r.max_age.as_mut().unwrap().seconds = -1;
     let refused = call(&d.channel, r).await.unwrap_err();
     assert_eq!(refused.code(), Code::InvalidArgument);
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -107,7 +107,7 @@ async fn every_page_describes_one_state_though_late_samples_arrive_between_them(
     assert!(third.next_page_token.is_empty());
     let fresh = call(&d.channel, at(2_000)).await.unwrap();
     assert_eq!(sequences(&fresh)[1], Some(90), "a new call sees it");
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -125,7 +125,7 @@ async fn a_token_for_another_request_or_a_finished_one_is_refused_by_reason() {
     call(&d.channel, r.clone()).await.unwrap();
     let refused = call(&d.channel, r).await.unwrap_err();
     assert_eq!(reason(&refused), ErrorReason::InvalidToken.as_str_name());
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -137,7 +137,7 @@ async fn a_request_with_no_instant_or_an_unknown_entity_is_refused() {
     assert_eq!(refused.code(), Code::InvalidArgument);
     let refused = call(&d.channel, at(1)).await.unwrap_err();
     assert_eq!(refused.code(), Code::NotFound);
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -146,7 +146,7 @@ async fn a_corrupt_chunk_is_data_loss_and_never_an_unknown_signal() {
     seed(&d.channel, &[("a", Double)]).await;
     let list = (0..50).map(|n| double("a", n)).collect();
     append(&d.channel, vec![batch(1, list, Durable)]).await;
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     let stream = std::fs::read_dir(data.join("streams"))
         .unwrap()
         .next()
@@ -168,5 +168,5 @@ async fn a_corrupt_chunk_is_data_loss_and_never_an_unknown_signal() {
     let refused = call(&d.channel, at(2_000)).await.unwrap_err();
     assert_eq!(refused.code(), Code::DataLoss);
     assert_eq!(reason(&refused), ErrorReason::DataCorrupted.as_str_name());
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }

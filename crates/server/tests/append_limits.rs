@@ -8,10 +8,14 @@
 
 mod common;
 
+use std::time::{Duration, Instant};
+
 use common::{append, batch, double, seed, start, temp};
 use norn_core::{Config, Limits, MemoryBudgets};
 use norn_protocol::common::ValueType;
 use norn_protocol::rpc::pb;
+use norn_protocol::stream::GetStreamRequest;
+use norn_protocol::stream::stream_service_client::StreamServiceClient;
 use norn_protocol::telemetry::AcknowledgementLevel::{Buffered, Durable, Unspecified};
 use norn_protocol::telemetry::{BackpressureOutcome, BackpressureReason};
 use norn_server::{Daemon, DaemonConfig};
@@ -92,6 +96,29 @@ async fn malformed_batches_are_rejected_with_a_reason() {
     d.stop().await;
 }
 
+/// Waits, within a bound, for the stream to count `want` samples: BUFFERED promises
+/// nothing about visibility yet, only that they are on their way.
+async fn every_sample_arrives(channel: &tonic::transport::Channel, want: i64) {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        let name = "streams/plant".to_owned();
+        let stream = StreamServiceClient::new(channel.clone())
+            .get_stream(GetStreamRequest { name })
+            .await
+            .unwrap()
+            .into_inner();
+        let count = stream.stats.unwrap().sample_count;
+        if count == want {
+            return;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "{count} of {want} samples arrived"
+        );
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn a_message_past_the_byte_limit_fails_the_call_and_many_callers_share_a_tiny_ipc_budget() {
     let mut memory = MemoryBudgets::default();
@@ -108,12 +135,21 @@ async fn a_message_past_the_byte_limit_fails_the_call_and_many_callers_share_a_t
             common::append(&channel, vec![batch(1, samples, Buffered)]).await
         });
     }
+    // Whether the commit thread drains anything before the last batch is admitted is
+    // a race, and either answer is right: `BEHIND_BATCHES` is 16, so only the batch
+    // that fills the queue to 16 can hear BUFFER. Nothing is refused or lost.
+    let mut behind = 0;
     while let Some(replies) = calls.join_next().await {
-        assert_eq!(
-            outcome(&replies.unwrap()[0]).0,
-            BackpressureOutcome::Accept as i32
-        );
+        let (kind, reason) = outcome(&replies.unwrap()[0]);
+        if kind == BackpressureOutcome::Buffer as i32 {
+            assert_eq!(reason, BackpressureReason::WritePathBehind as i32);
+            behind += 1;
+        } else {
+            assert_eq!(kind, BackpressureOutcome::Accept as i32);
+        }
     }
+    assert!(behind <= 1, "{behind} batches found the queue at 16");
+    every_sample_arrives(&d.channel, 16 * 900).await;
     let huge: Vec<_> = (0..4000).map(|n| double("t", 100_000 + n)).collect();
     let (tx, rx) = tokio::sync::mpsc::channel(1);
     tx.send(batch(1, huge, Buffered)).await.unwrap();
@@ -144,6 +180,6 @@ async fn a_second_daemon_on_a_database_is_refused_and_the_next_after_it_stops_is
         refused.to_string().contains("another process holds"),
         "{refused}"
     );
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     start(DaemonConfig::default(), data).await.stop().await;
 }

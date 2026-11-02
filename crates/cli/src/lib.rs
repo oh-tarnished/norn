@@ -9,7 +9,9 @@
 //!   norn-ipc (SPEC §33, §47). It never imports the runtime, storage or the
 //!   server, except the server as a dev-dependency for integration tests.
 //! - **May import**: `norn-core`, `norn-protocol`, `norn-transport`,
-//!   `norn-ipc`; third-party: `tonic`, `tonic-health`, `prost-types`, `tokio`.
+//!   `norn-ipc`, and the adapters over them (`norn-adapter`, `norn-adapter-csv`,
+//!   `norn-adapter-parquet`, `norn-adapter-mcap`), which are clients too;
+//!   third-party: `tonic`, `tonic-health`, `prost-types`, `tokio`.
 //! - **Spans**: none; a CLI prints, it does not trace.
 //!
 //! Every command connects with [`connect`], which bounds both connecting
@@ -24,10 +26,13 @@ mod error;
 mod query;
 mod replay;
 pub mod resources;
+mod retention;
 mod session;
 mod state;
 mod subscribe;
 mod time;
+mod transfer;
+mod upkeep;
 
 use std::time::Duration;
 

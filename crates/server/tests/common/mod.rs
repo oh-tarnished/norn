@@ -60,7 +60,14 @@ pub async fn start(config: DaemonConfig, data: PathBuf) -> Running {
 }
 
 impl Running {
-    pub async fn stop(self) -> PathBuf {
+    /// Stops the daemon and removes its data: a test that wants the directory
+    /// afterwards calls [`Running::stop_keeping`], and then owns removing it.
+    pub async fn stop(self) {
+        let data = self.stop_keeping().await;
+        let _ = std::fs::remove_dir_all(data);
+    }
+
+    pub async fn stop_keeping(self) -> PathBuf {
         self.cancel.cancel();
         self.task.await.unwrap().unwrap();
         self.data

@@ -15,6 +15,7 @@ Database → Stream → Segment → Chunk → Block → Sample.
     0000000000000000-g0001.nseg     compaction output covering 0..=1
     quarantine/                     bytes recovery moved aside
     journal/                        the write-ahead journal: more segments
+    CLEAN                           segments a clean shutdown vouched for
     LOCK                            held by the stream's one writer
 ```
 
@@ -294,9 +295,9 @@ The index opens last, over the recovered segments, with the index budget. Its
 report is published as `Server.index`. A database whose lists and tails exceed
 `index_bytes` refuses to start: raise the budget.
 
-Cost: `recover_stream` already verifies every chunk's CRC, so startup is
-proportional to all stored data. It is not yet bounded by a clean-shutdown
-marker. See [Not implemented](#not-implemented).
+Cost: see [Clean shutdown](#clean-shutdown). A stream with a current marker skips
+every step above. Otherwise steps 1 to 3 read only what the marker does not vouch
+for, plus every segment's directory.
 
 ### Duplicates: exactly what is guaranteed
 
@@ -344,18 +345,123 @@ Crash safety is write new, switch, delete old:
 3. Delete the inputs, fsync the directory. A crash leaves superseded files, which
    `live_segments` ignores and recovery removes.
 
+`compact_observed` is the same, with a `CompactionObserver` that sees each
+`CompactionPhase` and may cancel before the commit. Merging also stops at half of
+`max_chunk_bytes` of string or byte payload, since a merged chunk must stay readable.
+
 It refuses (`CompactionRefused`, nothing changed) an unsealed input, mixed
 streams, or inputs omitting a live segment in their range, which would otherwise
 be superseded unmerged. A corrupt input aborts before the commit: damage is
 never compacted over. Ingest is unaffected, since it writes only newer segments.
 
-## Retention hooks
+## Maintenance
 
-`segments_before(dir, cutoff, opts)` lists sealed live segments whose every
-sample is before `cutoff`. `segments_over_size(dir, max_bytes, opts)` lists the
-oldest sealed segments that would have to go to fit a limit. **Neither deletes,
-and the crate has no retention deletion**: policy and the act of deleting belong
-to an explicit caller (SPEC §43). Unsealed and empty segments are never listed.
+`norn-runtime`'s `maintenance` module runs compaction, retention and verification on
+**one worker, one job at a time**. That one choice gives three properties: the CPU
+and disk taken from ingest are bounded, two jobs can never touch one stream, and no
+job needs a lock against another. Jobs run on tokio's blocking pool. At most 16 wait,
+and past that a request fails with `RESOURCE_EXHAUSTED`. A long `verify` delays
+compaction, which is the price.
+
+**Choosing a run.** From the index's sealed segments, neighbours by sequence number,
+at most `max_segment_bytes` of input spanning at most `max_segment_age`. A run is two
+or more segments, or one fresh from ingest. So each compaction lowers the segment
+count or raises a generation from zero, and asking again terminates. The open
+segment is never an input, because it is not sealed. Segments with known damage split
+runs and are skipped.
+
+**Not blocking ingest.** Compaction takes no write-path lock and only reads sealed
+files. What it shares is the index's update mutex, for one directory read per
+compaction: the store thread can wait that long, and an acknowledgement does not,
+since journalling never touches the index.
+
+**Readers.** A snapshot holds the inputs or the output, never both. A reader that
+meets a deleted input refreshes and reads the slice again
+([concurrency](#concurrency)).
+
+**Memory.** One run's directories, a merged chunk, an input chunk and an encoded
+frame, reserved from `chunk_cache_bytes` (which nothing else draws on) and capped at
+that budget.
+
+**Failure.** A failed run leaves its inputs live, is logged and counted in
+`compaction.failures`, and the worker carries on. Damage in an input marks the
+segment skipped. A run too large for one segment is not retried until restart.
+
+**Shutdown.** Cancellation stops a compaction within one chunk, before its commit;
+queued jobs end cancelled. The daemon waits for the worker before closing the write
+path, so files have stopped moving when the markers are written.
+
+**Operations** live in memory, at most 256, the oldest finished evicted first. A
+restart forgets them; `GetOperation` then fails with `NOT_FOUND`. What they did is
+durable.
+
+## Retention
+
+`segments_before(dir, cutoff, opts)` lists sealed live segments whose every sample is
+before `cutoff`, and `segments_over_size(dir, max_bytes, opts)` the oldest that would
+have to go to fit a limit. `remove_segments(dir, paths)` deletes what a caller names.
+**The storage crate decides nothing** (SPEC §43). The maintenance worker decides, from
+index records, which cost no read:
+
+| Policy | Removes |
+| --- | --- |
+| `Forever` (the default) | nothing |
+| `MaxAge(d)` | segments whose newest sample is before `newest - d` |
+| `MaxMonths(n)` | the same, with the cutoff `n` calendar months back in UTC, on the same day or the month's last |
+| `MaxBytes(n)` | the oldest segments until sealed bytes fit, buffered samples not counted |
+
+`newest` is the stream's newest sample, buffered ones included, so age never runs
+against the wall clock. Unsealed and empty segments are never candidates, and **the
+segment with the highest sequence number always stays**. That keeps sequence numbers
+from being reused, which is what lets a stale marker never match a new file.
+
+A pass logs at `WARN` first, deletes oldest first (a crash leaves an unfinished pass,
+never a hole), calls `refresh(stream)`, adjusts the stream's totals, and counts the
+removal for `GetServer`. A dry run stops before the log line and changes nothing.
+
+## Clean shutdown
+
+Reading every chunk at every start costs time proportional to all stored data. A
+sealed segment is fsynced before its seal and never changes, so a crash cannot have
+touched it. What could be wrong with it is what could be wrong with any byte on a
+disk at any time, and startup is the wrong moment to look: `VerifyStream` is the
+right one.
+
+`<stream>/CLEAN` is written atomically after the write path closes:
+
+| Offset | Size | Field |
+| ---: | ---: | --- |
+| 0 | 8 | magic `NORNCLN\0` |
+| 8 | 2 + 2 | version, 1; reserved |
+| 12 | 8 | stream id |
+| 20 | 4 | entry count |
+| 24 | 44 × n | sequence `u64`; generation `u16`; reserved `u16`; file length, samples `u64`; earliest, latest `i64` |
+| end | 4 | CRC-32C of everything before it |
+
+It says these segments were sealed and intact. That stays true after the daemon
+starts again, so it is **not** deleted at start:
+
+| At start | What happens |
+| --- | --- |
+| Directory holds exactly what the marker lists, no `.tmp`, journal empty | **Clean.** Nothing is read but the marker. Totals come from it, and each signal's duplicate state from one chunk through the index |
+| Anything else | Listed segments of the same name and length have only their header and directory read. Everything else is read and checked, as is the journal |
+| No marker, or one that fails its CRC | Everything is read and checked |
+
+A vouched segment whose header or directory does not verify gets the full treatment
+anyway. A marker is not written, and an old one is removed, when a stream failed, its
+index fell behind, samples remain unstored, it holds known damage, or its directory
+differs from the index. Finding damage removes the marker at once, so a crash
+afterwards still reads the stream and repeats the report. A kill leaves the old marker
+in place, which is sound: compaction outputs and new segments are not on it.
+
+Known limits:
+
+- **Bit rot in a vouched segment is not found at start.** It is found by `verify`, a
+  query, or a compaction reading it. A start used to find it, at the cost above.
+- The duplicate high-water mark comes from one chunk ending at each signal's latest
+  time. If chunks of two segments end at that very instant with different sequences,
+  it may be the lower one, and a resend of the other is then stored as late data.
+- A crash still reads every directory, twice in `reconcile`.
 
 ## Measurements
 
@@ -498,6 +604,7 @@ and a property test holds them equal.
 | Input of a compaction still on disk | not live, so never answered | |
 | Sidecar missing, torn, bit-flipped, or for another file length | answered from the segment's directory and rewritten | `IndexStats::detail_repairs` |
 | Unsealed segment at startup | listed by frame headers and served as a tail | `tails` |
+| On `refresh`, an unknown file shorter than a header | skipped: a writer created it and has not flushed its header; that writer publishes it | |
 | Orphan sidecars and `.tmp` files | removed at startup | `orphans_removed` |
 
 A crash can only leave an old summary, a stray temp file or orphan sidecars, and
@@ -582,8 +689,8 @@ and tied by a fingerprint to the exact set of sealed segments it describes:
 | 28 | 34 × n | signal `u64`; first, last `i64`; last segment's `first_seq` `u64`, generation `u16` |
 | end | 4 | CRC-32C of everything before it |
 
-Missing, damaged, stale, or naming a dead segment: every sidecar is read at startup,
-which recovery's full verification dwarfs, and it is rewritten. `refresh` reads only
+Missing, damaged, stale, or naming a dead segment: every sidecar is read at startup
+and it is rewritten. `refresh` reads only
 what is new, and rebuilds only when retention removed the segment a signal was last
 seen in. After retention, `first` is a lower bound.
 
@@ -661,8 +768,6 @@ client.
 
 - **Multi-signal chunks.** A chunk holds one signal; the frame's flags are
   reserved for groups.
-- **Startup cost bounded by a clean-shutdown marker.** Every start verifies all
-  stored chunks. Fine for hours of data; a year of it needs a marker.
 - **Salvage from a quarantined file.** A file with an unusable header is kept
   whole, but no tool reads the chunks inside it.
 
@@ -675,6 +780,9 @@ Known limits of the design:
   but not listed.
 - `live_segments` trusts a committed compaction output by its header alone;
   checking it is recovery's job, which keeps the inputs if it is damaged.
+- If deleting a compaction's inputs fails, and retention later removes the output
+  before a restart, those inputs become live again at the next start: old data
+  returns, and the next retention pass removes it.
 
 ## Encoding
 

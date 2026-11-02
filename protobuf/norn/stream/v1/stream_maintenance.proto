@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package norn.stream.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StreamMaintenanceProto";
+option java_package = "local.norn.stream.v1";
+
+// The request for StreamService.VerifyStream.
+message VerifyStreamRequest {
+  // The stream, as `streams/{stream}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Stream"}
+  ];
+}
+
+// The result of a finished VerifyStream operation. A damaged stream is still a
+// successful operation: this is the answer the caller asked for.
+message VerifyStreamResponse {
+  // Sealed segments read.
+  int64 segment_count = 1;
+
+  // Chunks read.
+  int64 chunk_count = 2;
+
+  // Samples those chunks hold, by their directories.
+  int64 sample_count = 3;
+
+  // Bytes read.
+  int64 verified_bytes = 4;
+
+  // Chunks that failed a check.
+  int64 damaged_chunk_count = 5;
+
+  // Samples those chunks claim to hold.
+  int64 damaged_sample_count = 6;
+
+  // What was found, at most 64 of them; `damaged_chunk_count` covers all.
+  repeated DamagedChunk damaged_chunks = 7;
+}
+
+// One region of a segment that failed a check.
+message DamagedChunk {
+  // The segment's file name.
+  string segment = 1;
+
+  // Where the region starts, in bytes from the start of the file.
+  int64 offset = 2;
+
+  // How long it is, in bytes.
+  int64 length = 3;
+
+  // What was wrong, for people. Never parse it.
+  string description = 4;
+}
+
+// Progress of a VerifyStream operation.
+message VerifyStreamMetadata {
+  // When the operation started.
+  google.protobuf.Timestamp create_time = 1;
+
+  // When the operation finished; unset while it runs.
+  google.protobuf.Timestamp end_time = 2;
+
+  // Segments read so far.
+  int64 segments_done = 3;
+
+  // Segments the operation will read in total.
+  int64 segments_total = 4;
+}
+
+// The request for StreamService.ApplyStreamRetention.
+message ApplyStreamRetentionRequest {
+  // The stream, as `streams/{stream}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Stream"}
+  ];
+
+  // Work out what the policy would remove, and remove nothing.
+  bool validate_only = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The result of a finished ApplyStreamRetention operation.
+message ApplyStreamRetentionResponse {
+  // Whether anything was removed. False under `validate_only`, whose counts say
+  // what would have been.
+  bool applied = 1;
+
+  // Samples older than this were eligible. Unset under a size limit or no policy.
+  google.protobuf.Timestamp cutoff_time = 2;
+
+  // Segments removed.
+  int64 removed_segment_count = 3;
+
+  // Samples they held.
+  int64 removed_sample_count = 4;
+
+  // Bytes they took on disk.
+  int64 removed_bytes = 5;
+
+  // Bytes of sealed segments left.
+  int64 retained_bytes = 6;
+
+  // The segments, oldest first, at most 1000; the counts cover all.
+  repeated RemovedSegment removed_segments = 7;
+}
+
+// One whole segment a retention policy removed or would remove.
+message RemovedSegment {
+  // The segment's file name.
+  string segment = 1;
+
+  // The earliest sample it held.
+  google.protobuf.Timestamp oldest_sample_time = 2;
+
+  // The latest sample it held; every sample is at or before this.
+  google.protobuf.Timestamp newest_sample_time = 3;
+
+  // Samples it held.
+  int64 sample_count = 4;
+
+  // Bytes it took on disk.
+  int64 byte_count = 5;
+}
+
+// Progress of an ApplyStreamRetention operation.
+message ApplyStreamRetentionMetadata {
+  // When the operation started.
+  google.protobuf.Timestamp create_time = 1;
+
+  // When the operation finished; unset while it runs.
+  google.protobuf.Timestamp end_time = 2;
+}

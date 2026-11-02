@@ -92,22 +92,3 @@ impl<S: Stubbed> tower::Service<http::Request<Body>> for Unimplemented<S> {
         ))
     }
 }
-
-macro_rules! stub {
-    ($(#[$doc:meta])* $marker:ident, $name:path, $capability:expr) => {
-        $(#[$doc])*
-        #[derive(Debug)]
-        pub enum $marker {}
-        impl Stubbed for $marker {
-            const NAME: &'static str = $name;
-            const CAPABILITY: Option<&'static str> = $capability;
-        }
-    };
-}
-
-stub!(
-    /// `google.longrunning.Operations`, for polling compaction and export.
-    OperationsStub,
-    norn_protocol::google::longrunning::operations_server::SERVICE_NAME,
-    None
-);

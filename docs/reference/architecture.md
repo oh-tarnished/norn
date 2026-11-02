@@ -37,19 +37,30 @@ workspace crate without a row fails the gate. Dev-dependencies are exempt.
 | `norn-replay` | core, storage, index, query, state | exists (uses core, query, state) |
 | `norn-runtime` | core, codec, metadata, storage, index, query, state, replay | exists (uses core, codec, metadata, storage, index, query, state, replay) |
 | `norn-server` | core, protocol, transport, ipc, shared-memory, metadata, runtime | exists (uses core, protocol, ipc, metadata, runtime) |
-| `norn-cli` | core, protocol, transport, ipc | exists (uses protocol, ipc) |
-| `norn-mcp` | core, protocol, transport, ipc | planned |
+| `norn-cli` | core, protocol, transport, ipc, adapter, adapter-csv, adapter-parquet, adapter-mcap | exists (uses protocol, ipc, the adapters) |
+| `norn-mcp` | core, protocol, transport, ipc | exists (uses protocol, ipc) |
+| `norn-adapter` | core, protocol, transport, ipc | exists (uses protocol) |
+| `norn-adapter-csv`, `-parquet`, `-mcap` | adapter, protocol | exists |
+| `norn-adapter-testkit` | adapter, protocol | exists, dev-only |
 | `xtask` | nothing | exists |
 
 Clients (CLI, MCP, adapters) reach Norn only through the protocol, never the
-storage API (SPEC §47), which is why their rows stop at `ipc`. Adapter crates
-get rows when the adapters wave places them.
+storage API (SPEC §47), which is why their rows stop at `ipc`. The adapters are
+clients too: the contract speaks the protocol, and each format knows only the
+contract. The server imports none of them, so `ExportStream` stays unimplemented
+([adapters.md](adapters.md#exportstream-stays-unimplemented)).
 
 ## No C
 
 `xtask deps` walks every workspace crate's normal dependency graph and fails
 on any package with a `links` key or a `cc`, `cmake`, `pkg-config`, `vcpkg`
 or `bindgen` build-dependency. The allow-list (`ALLOW_C`) is empty.
+
+The graph is the one Cargo resolves for the targets Norn builds (`deps::PLATFORMS`:
+the release matrix and CI's cross-compiles, Windows included), not for every platform a
+dependency's manifest mentions. A dependency only Haiku or wasm32 would compile, such as
+`iana-time-zone-haiku` under `chrono` (reached by `norn-mcp` through `schemars` and by the adapters through `arrow`), is
+linked by no build of Norn. A test fails if a target that ships is missing from the list.
 
 ## The core (exists)
 
@@ -74,8 +85,9 @@ main (crates/server/src/main.rs)
  ├─ logging::init: synchronous stderr, each record size-capped
  └─ Daemon::bind: claims the endpoint, builds every service, spawns nothing
      └─ Daemon::run → Runtime::run
-         ├─ task "ipc":    norn-ipc Server::serve(router) until cancelled
-         └─ task "health": mirrors Health into grpc.health.v1
+         ├─ task "ipc":         norn-ipc Server::serve(router) until cancelled
+         ├─ task "health":      mirrors Health into grpc.health.v1
+         └─ task "maintenance": compaction, retention, verification, one job at a time
 ```
 
 The runtime (`norn-runtime`) owns the lifecycle and knows nothing of networks:
@@ -111,7 +123,7 @@ before it holds bytes and gets a `Reservation`, which returns them on drop.
 a caller-given bound. Waiters are not FIFO: a large reservation can wait out its
 bound under a steady stream of small ones. The write path draws on `ingest_bytes`
 ([storage.md, "Write path"](storage.md#write-path)); the IPC layer draws on `ipc_bytes`;
-queries draw on `query_bytes` ([query.md](query.md#bounded-memory)).
+queries draw on `query_bytes` ([query.md](query.md#bounded-memory)); compaction draws on `chunk_cache_bytes`.
 
 `ipc_bytes` is split in two, since hyper owns one half's buffers and the daemon
 accounts for the other:
@@ -157,6 +169,7 @@ index, `norn-runtime`'s `ingest` module the write path, `norn-query` the read pa
 reached the same way through `norn_runtime::state` ([query.md](query.md#state-at-an-instant)).
 `norn-replay` holds a replay's virtual clock and state machine; the runtime drives
 each session on its clock and tasks and fans live samples out
-([replay.md](replay.md)). Still a design target: shared memory. Platform code sits behind per-platform modules
+([replay.md](replay.md)). `norn-runtime`'s `maintenance` module keeps a database
+healthy over a long life ([storage.md](storage.md#maintenance)). Still a design target: shared memory. Platform code sits behind per-platform modules
 (`crates/server/src/signal/`, `crates/transport/src/platform/`), never scattered
 `cfg`.

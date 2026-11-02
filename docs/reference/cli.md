@@ -28,12 +28,19 @@ not parse.
 | `entities`                                            | list entities                                    |
 | `entities create ID`                                  | create an entity                                 |
 | `signals [ENTITY]`                                    | list signals, of one entity or all               |
+| `compact STREAM`                                      | merge sealed segments, and wait                  |
+| `verify STREAM`                                       | read and check every chunk; exit 1 on damage     |
+| `retention get STREAM`                                | show the policy                                  |
+| `retention set STREAM forever\|Nd\|Nmo\|Nb`           | set the policy: time, months or bytes            |
+| `retention apply STREAM [--dry-run]`                  | run the policy now, or list what would go        |
 | `signals create ENTITY ID STREAM TYPE`                | create a signal                                  |
 | `append STREAM SIGNAL VALUE [--ack L] [--sequence N] [--at T]` | send one sample and wait for its ack |
 | `query TARGET [FLAGS]`                                | read samples or aggregates, streamed             |
 | `state TARGET [FLAGS]`                                | each signal's latest sample at an instant        |
 | `replay create TARGET [FLAGS]`, `replay ACTION NAME`  | a replay session and its clock                   |
 | `subscribe live TARGET`, `subscribe replay NAME`      | events as they come, numbered                    |
+| `export TARGET --format F --output PATH`              | samples to a new CSV, Parquet, Arrow or MCAP file |
+| `import PATH`                                         | a file into the daemon, safe to repeat           |
 
 `TYPE` is `bool`, `int32`, `int64`, `uint32`, `uint64`, `float`, `double`,
 `string`, `bytes` or `enum`. `--ack` takes `buffered`, `persisted` or `durable`,
@@ -45,9 +52,9 @@ the default. `SIGNAL` is a full name such as `entities/ahu-01/signals/supply-tem
 $ nornctl status
 health: SERVING
 server_version: 0.1.0
-protocol: 1.3
-capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUERY_RANGE CAPABILITY_QUERY_AGGREGATES CAPABILITY_STATE_AT CAPABILITY_LIVE_SUBSCRIPTION CAPABILITY_REPLAY CAPABILITY_ACK_DURABLE
-start_time: 1793592369.624148000
+protocol: 1.4
+capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUERY_RANGE CAPABILITY_QUERY_AGGREGATES CAPABILITY_STATE_AT CAPABILITY_LIVE_SUBSCRIPTION CAPABILITY_REPLAY CAPABILITY_COMPACTION CAPABILITY_RETENTION CAPABILITY_VERIFY CAPABILITY_ACK_DURABLE
+start_time: 1793625130.214140000
 limits.max_batch_samples: 10000
 limits.max_batch_bytes: 4194304
 limits.max_pending_batches: 256
@@ -58,6 +65,16 @@ recovery.streams: 0
 recovery.events: 0
 recovery.corruptions: 0
 recovery.replayed_samples: 0
+recovery.clean_streams: 0
+recovery.verified_segments: 0
+recovery.vouched_segments: 0
+compaction.runs: 0
+compaction.segments: 0
+compaction.saved_bytes: 0
+compaction.failures: 0
+retention.segments: 0
+retention.samples: 0
+retention.bytes: 0
 ```
 
 `start_time` is seconds and nanoseconds since the Unix epoch. `recovery.*` describes
@@ -68,9 +85,9 @@ the last start: see [operations](../guides/operations.md#crash-recovery).
 ```console
 $ nornctl version
 client: nornctl/0.1.0
-client_protocol: 1.3
+client_protocol: 1.4
 server_version: 0.1.0
-agreed_protocol: 1.3
+agreed_protocol: 1.4
 ```
 
 Unlike `status`, this negotiates, so an incompatible daemon fails here with its
@@ -95,7 +112,7 @@ timed now. See [ingesting data](../guides/ingesting-data.md).
 
 ## Not implemented
 
-SPEC section 33 also names `inspect`, `verify`, `compact`, `export`, `stats` and
+SPEC section 33 also names `inspect`, `verify`, `compact`, `stats` and
 `benchmark`. None exists yet; each gives
 `unexpected argument` and exit status 2. They come with the stages that build them
 ([roadmap](../../README.md#roadmap)).
@@ -193,3 +210,33 @@ nothing is missed. A live subscription runs until stopped; one that falls behind
 with `ERROR_REASON_SUBSCRIBER_TOO_SLOW`. `--timeout` bounds connecting and the first
 response only.
 
+## export and import
+
+```text
+nornctl export TARGET --format csv|parquet|arrow|mcap --output PATH [--from T] [--to T] [--select F]
+nornctl import PATH [--format csv|parquet|arrow|mcap] [--ack LEVEL] [--batch N]
+```
+
+| Argument | Takes | Default |
+| --- | --- | --- |
+| `TARGET` | a signal's full name, an entity, or `all`, as `query` | required |
+| `--format` | the file format; `import` reads it from the extension | required for `export` |
+| `--output` | a file that must not exist | required |
+| `--from`, `--to`, `--select` | as `query` | everything |
+| `--ack` | `buffered`, `persisted` or `durable`, which each batch must reach | `durable` |
+| `--batch` | samples per batch, at most the daemon's `max_batch_samples` | that limit |
+
+`export` prints `exported samples=N signals=N bytes=N to PATH`, and removes its file
+on failure. `import` prints `imported read= sent= present= duplicate= created= batches=
+throttled= retried=`; `present` counts samples the daemon already held, so a repeat
+sends nothing. A damaged file exits 1 naming the row, such as `csv row 3: truncated`.
+`--timeout` bounds connecting and each call. Both run in `nornctl`, through
+`QuerySamples` and `AppendSamples`; the daemon's `ExportStream` is not used. The
+[import and export guide](../guides/import-export.md) has real output, and
+[adapters](adapters.md) has the formats.
+
+## Long-running commands
+
+`compact`, `verify` and `retention apply` start an operation and poll it. `--timeout`
+bounds each poll, not the operation. Output:
+[operations](../guides/operations.md#compaction).

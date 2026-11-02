@@ -6,6 +6,7 @@ mod query;
 pub(crate) mod select;
 mod signal;
 mod stream;
+mod upkeep;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -15,6 +16,7 @@ use norn_metadata::{MetadataError, Registry, Write};
 use norn_protocol::common::ErrorReason;
 use norn_runtime::Clock;
 use norn_runtime::ingest::Ingest;
+use norn_runtime::maintenance::Maintenance;
 use tonic::{Code, Status};
 
 use crate::status::{bad_field, error_info};
@@ -29,16 +31,24 @@ pub struct Catalog {
     registry: Arc<Registry>,
     ingest: Arc<Ingest>,
     clock: Arc<dyn Clock>,
+    maintenance: Arc<Maintenance>,
 }
 
 impl Catalog {
-    /// A catalogue over `registry`, reading stream totals from `ingest`.
+    /// A catalogue over `registry`, reading stream totals from `ingest` and
+    /// handing long-running work to `maintenance`.
     #[must_use]
-    pub fn new(registry: Arc<Registry>, ingest: Arc<Ingest>, clock: Arc<dyn Clock>) -> Self {
+    pub fn new(
+        registry: Arc<Registry>,
+        ingest: Arc<Ingest>,
+        clock: Arc<dyn Clock>,
+        maintenance: Arc<Maintenance>,
+    ) -> Self {
         Self {
             registry,
             ingest,
             clock,
+            maintenance,
         }
     }
 

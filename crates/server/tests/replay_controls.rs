@@ -110,5 +110,5 @@ async fn step_seek_and_pace_move_the_clock_and_tell_subscribers() {
     assert_eq!(kind(&got[0]), Some(ClockEventKind::SpeedChanged));
     assert_eq!(kind(&got[1]), Some(ClockEventKind::Running));
     assert_eq!(got.iter().filter(|e| sample(e).is_some()).count(), 16);
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }

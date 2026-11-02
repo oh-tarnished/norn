@@ -15,8 +15,11 @@ use crate::CliError;
 use crate::append::{append, value_type};
 use crate::query::query;
 use crate::replay::replay;
+use crate::retention::retention;
 use crate::state::state;
 use crate::subscribe::subscribe;
+use crate::transfer::{export, import};
+use crate::upkeep::{compact, verify};
 
 pub(crate) fn call(method: &'static str) -> impl FnOnce(tonic::Status) -> CliError {
     move |status| CliError::Call { method, status }
@@ -37,6 +40,11 @@ pub async fn run(channel: Channel, words: &[String], out: &mut impl Write) -> Re
         ["state", rest @ ..] => state(channel, rest, out).await,
         ["replay", rest @ ..] => replay(channel, rest, out).await,
         ["subscribe", rest @ ..] => subscribe(channel, rest, out).await,
+        ["export", rest @ ..] => export(channel, rest, out).await,
+        ["import", rest @ ..] => import(channel, rest, out).await,
+        ["compact", rest @ ..] => compact(channel, rest, out).await,
+        ["verify", rest @ ..] => verify(channel, rest, out).await,
+        ["retention", rest @ ..] => retention(channel, rest, out).await,
         ["streams"] => list_streams(channel, out).await,
         ["streams", "create", id] => {
             let request = CreateStreamRequest {

@@ -59,7 +59,7 @@ async fn a_live_subscriber_gets_every_sample_appended_after_it_numbered_without_
         got.iter()
             .all(|e| sample(e).unwrap().signal.ends_with("/a"))
     );
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -108,7 +108,7 @@ async fn a_slow_live_subscriber_is_disconnected_and_ingestion_does_not_wait_for_
     assert!(seen < 40_000, "the slow one kept up after all");
     assert_eq!(ended.code(), Code::ResourceExhausted);
     assert_eq!(reason(&ended), ErrorReason::SubscriberTooSlow.as_str_name());
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -133,5 +133,5 @@ async fn a_subscription_with_fields_of_the_other_mode_is_refused() {
         subscribe(&d.channel, missing).await.unwrap_err().code(),
         Code::NotFound
     );
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }

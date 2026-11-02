@@ -113,5 +113,5 @@ async fn refusals_are_typed_by_reason() {
         .into_inner();
     assert_eq!(second.replay_sessions.len(), 1);
     assert!(second.next_page_token.is_empty());
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }

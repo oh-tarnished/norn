@@ -1,0 +1,50 @@
+[package]
+name = "norn-mcp"
+description = "norn-mcp: an MCP server giving AI agents Norn's temporal primitives, over the public gRPC API only."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "norn-mcp"
+path = "src/main.rs"
+
+# Each third-party crate is declared, with its reason, in the root Cargo.toml.
+# It reaches the daemon only through the protocol (SPEC section 31, section 47).
+[dependencies]
+norn-protocol = { path = "../../crates/protocol" }
+norn-ipc = { path = "../../crates/ipc" }
+rmcp = { workspace = true, features = ["server", "transport-io", "transport-streamable-http-server"] }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tonic = { workspace = true, features = ["codegen", "transport"] }
+prost-types = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "signal", "sync", "time"] }
+tokio-util = { workspace = true }
+# Serving streamable HTTP without a web framework: one route.
+hyper-util = { workspace = true, features = ["http1", "http2", "server-auto", "service", "tokio"] }
+tower = { workspace = true, features = ["util"] }
+http = { workspace = true }
+http-body-util = { workspace = true }
+hyper = { workspace = true }
+bytes = { workspace = true }
+# Hashes values for find_events and encodes them.
+prost = { workspace = true }
+# rmcp's own warnings, such as a refused Host, onto stderr; stdout is the protocol.
+tracing-subscriber = { workspace = true }
+
+[dev-dependencies]
+# A real daemon in-process, and storage to damage a chunk of it on disk.
+norn-server = { path = "../../crates/server" }
+norn-runtime = { path = "../../crates/runtime" }
+norn-storage = { path = "../../crates/storage" }
+# A real MCP client over both transports. reqwest comes without TLS: its
+# features are off, and rmcp's `-reqwest` feature does not enable one.
+rmcp = { workspace = true, features = ["client", "transport-async-rw", "transport-streamable-http-client-reqwest"] }
+tokio = { workspace = true, features = ["process", "io-util"] }
+
+[lints]
+workspace = true

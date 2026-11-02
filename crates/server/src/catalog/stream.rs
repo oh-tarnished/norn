@@ -1,19 +1,18 @@
-//! `norn.stream.v1.StreamService`. Compaction and export answer `UNIMPLEMENTED`.
+//! `norn.stream.v1.StreamService`. Export answers `UNIMPLEMENTED`.
 
-use std::time::Duration;
-
-use norn_metadata::{Retention, StreamPatch, StreamRecord, StreamSpec};
+use norn_metadata::{StreamPatch, StreamRecord, StreamSpec};
 use norn_protocol::google::longrunning::Operation;
-use norn_protocol::stream::retention_policy::Limit;
 use norn_protocol::stream::stream_service_server::{SERVICE_NAME, StreamService};
 use norn_protocol::stream::{
-    CompactStreamRequest, CreateStreamRequest, DeleteStreamRequest, ExportStreamRequest,
-    GetStreamRequest, ListStreamsRequest, ListStreamsResponse, RetentionPolicy, Stream,
-    StreamStats, UpdateStreamRequest,
+    ApplyStreamRetentionRequest, CompactStreamRequest, CreateStreamRequest, DeleteStreamRequest,
+    ExportStreamRequest, GetStreamRequest, ListStreamsRequest, ListStreamsResponse, Stream,
+    StreamStats, UpdateStreamRequest, VerifyStreamRequest,
 };
+use norn_runtime::maintenance::Request as Job;
 use tonic::{Request, Response, Status};
 
 use super::query::{Mask, after_token, matches, page_size, page_token, parse_filter};
+use super::upkeep::{bounds, retention_from_wire, retention_to_wire};
 use super::{
     Catalog, annotation_map, annotations, etag, expected, metadata_status, names, write_mode,
 };
@@ -23,29 +22,6 @@ use crate::unimplemented::not_implemented;
 
 const FILTERABLE: [&str; 1] = ["display_name"];
 const MUTABLE: [&str; 3] = ["display_name", "retention", "annotations"];
-
-fn retention_from_wire(policy: Option<RetentionPolicy>) -> Result<Retention, Status> {
-    match policy.and_then(|p| p.limit) {
-        None => Ok(Retention::Forever),
-        Some(Limit::MaxAge(age)) => Duration::try_from(age)
-            .map(Retention::MaxAge)
-            .map_err(|_| bad_field("retention.max_age", "must be positive")),
-        Some(Limit::MaxBytes(bytes)) => u64::try_from(bytes)
-            .ok()
-            .filter(|n| *n > 0)
-            .map(Retention::MaxBytes)
-            .ok_or_else(|| bad_field("retention.max_bytes", "must be positive")),
-    }
-}
-
-fn retention_to_wire(r: Retention) -> Option<RetentionPolicy> {
-    let limit = match r {
-        Retention::MaxAge(age) => Limit::MaxAge(age.try_into().ok()?),
-        Retention::MaxBytes(n) => Limit::MaxBytes(i64::try_from(n).unwrap_or(i64::MAX)),
-        _ => return None,
-    };
-    Some(RetentionPolicy { limit: Some(limit) })
-}
 
 impl Catalog {
     fn stream_to_wire(&self, r: &StreamRecord) -> Stream {
@@ -167,10 +143,30 @@ impl StreamService for Catalog {
 
     async fn compact_stream(
         &self,
-        _: Request<CompactStreamRequest>,
+        request: Request<CompactStreamRequest>,
     ) -> Result<Response<Operation>, Status> {
-        let capability = Some("CAPABILITY_COMPACTION");
-        Err(not_implemented(SERVICE_NAME, "CompactStream", capability))
+        let r = request.into_inner();
+        let interval = bounds(r.interval)?;
+        let job = Job::Compact { interval };
+        Ok(Response::new(self.start(&r.name, job)?))
+    }
+
+    async fn verify_stream(
+        &self,
+        request: Request<VerifyStreamRequest>,
+    ) -> Result<Response<Operation>, Status> {
+        let name = request.into_inner().name;
+        Ok(Response::new(self.start(&name, Job::Verify)?))
+    }
+
+    async fn apply_stream_retention(
+        &self,
+        request: Request<ApplyStreamRetentionRequest>,
+    ) -> Result<Response<Operation>, Status> {
+        let r = request.into_inner();
+        let dry_run = r.validate_only;
+        let job = Job::Retention { dry_run };
+        Ok(Response::new(self.start(&r.name, job)?))
     }
 
     async fn export_stream(

@@ -64,6 +64,33 @@ pub async fn status(channel: Channel, out: &mut impl Write) -> Result<(), CliErr
             "recovery.replayed_samples: {}",
             r.replayed_sample_count
         )?;
+        writeln!(out, "recovery.clean_streams: {}", r.clean_stream_count)?;
+        writeln!(
+            out,
+            "recovery.verified_segments: {}",
+            r.verified_segment_count
+        )?;
+        writeln!(
+            out,
+            "recovery.vouched_segments: {}",
+            r.vouched_segment_count
+        )?;
+    }
+    if let Some(m) = server.maintenance {
+        writeln!(out, "compaction.runs: {}", m.compaction_count)?;
+        writeln!(out, "compaction.segments: {}", m.compacted_segment_count)?;
+        writeln!(out, "compaction.saved_bytes: {}", m.compaction_saved_bytes)?;
+        writeln!(out, "compaction.failures: {}", m.compaction_failure_count)?;
+        writeln!(out, "retention.segments: {}", m.retention_segment_count)?;
+        writeln!(out, "retention.samples: {}", m.retention_sample_count)?;
+        writeln!(out, "retention.bytes: {}", m.retention_bytes)?;
+        for r in m.recent_removals {
+            writeln!(
+                out,
+                "retention.removal: {} segments={} samples={} bytes={}",
+                r.stream, r.segment_count, r.sample_count, r.removed_bytes
+            )?;
+        }
     }
     Ok(())
 }

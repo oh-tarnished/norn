@@ -50,7 +50,7 @@ async fn an_append_at_persisted_is_immediately_queryable_and_counted() {
     let stats = stream.stats.unwrap();
     assert_eq!((stats.sample_count, stats.buffered_sample_count), (1, 1));
     assert!(stats.newest_sample_time.is_some());
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     std::fs::remove_dir_all(data).unwrap();
 }
 
@@ -72,7 +72,7 @@ async fn exactly_once_holds_through_real_flushes_every_few_milliseconds() {
             "after batch {n}"
         );
     }
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     std::fs::remove_dir_all(data).unwrap();
 }
 
@@ -150,7 +150,7 @@ async fn aggregates_filters_tokens_and_refusals_reach_the_client_typed() {
             .capabilities
             .contains(&(Capability::QueryAggregates as i32))
     );
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     std::fs::remove_dir_all(data).unwrap();
 }
 

@@ -44,18 +44,20 @@ pub struct SignalRecord {
     pub revision: u64,
 }
 
-/// How long a stream keeps history (SPEC §43). Recorded here and published;
-/// nothing applies it until a retention pass exists.
+/// How long a stream keeps history (SPEC §43). Recorded here and published; the
+/// runtime's maintenance worker applies it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum Retention {
     /// Keep everything.
     #[default]
     Forever,
-    /// Remove chunks whose newest sample is older than this.
+    /// Remove segments whose newest sample is older than this.
     MaxAge(Duration),
-    /// Remove the oldest chunks while the stream is larger than this.
+    /// Remove the oldest segments while the stream is larger than this.
     MaxBytes(u64),
+    /// As `MaxAge`, in calendar months in UTC.
+    MaxMonths(u32),
 }
 
 /// One stream. `descriptor.name` is its resource ID.

@@ -1,0 +1,22 @@
+[package]
+name = "norn-adapter-csv"
+description = "Norn's CSV adapter: a documented long format, exact for every value."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Hand-parsed (SPEC §39): one fixed header, and a reader that must bound a record
+# and hash its raw bytes, which a parser crate would hide.
+[dependencies]
+norn-adapter = { path = "../contract" }
+norn-protocol = { path = "../../crates/protocol" }
+crc32fast = { workspace = true }
+
+[dev-dependencies]
+norn-adapter-testkit = { path = "../testkit" }
+proptest = { workspace = true }
+
+[lints]
+workspace = true

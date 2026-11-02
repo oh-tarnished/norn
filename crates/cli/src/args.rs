@@ -43,6 +43,22 @@ commands:
   subscribe replay NAME [--resume] [--limit N]
                               print events as they come, numbered; --resume
                               starts the session once subscribed
+  export TARGET --format F --output PATH [--from T] [--to T] [--select F]
+                              write samples to a new file; F is csv, parquet,
+                              arrow or mcap
+  import PATH [--format F] [--ack LEVEL] [--batch N]
+                              read a file into the daemon, creating what it
+                              declares; safe to repeat; F defaults from PATH
+  compact STREAM              merge a stream's sealed segments, and wait
+  verify STREAM               read and check every stored chunk, and wait; exits
+                              1 if any is damaged
+  retention get STREAM        a stream's policy
+  retention set STREAM forever|Nd|Nmo|Nb
+                              keep everything, or D of time, N calendar months,
+                              or N bytes; D is like 30d. Applied at the next pass
+  retention apply STREAM [--dry-run]
+                              run the policy now; --dry-run removes nothing and
+                              lists what would go
 
 options:
   --endpoint ENDPOINT  the daemon's endpoint, such as unix:/run/norn/norn.sock
@@ -117,7 +133,7 @@ pub fn parse<I: IntoIterator<Item = OsString>>(args: I) -> Result<Args, String> 
             "status" if command.is_none() => command = Some(Command::Status),
             "version" if command.is_none() => command = Some(Command::Version),
             "streams" | "entities" | "signals" | "append" | "query" | "state" | "replay"
-            | "subscribe"
+            | "subscribe" | "export" | "import" | "compact" | "verify" | "retention"
                 if command.is_none() =>
             {
                 command = Some(Command::Resource(vec![arg]));

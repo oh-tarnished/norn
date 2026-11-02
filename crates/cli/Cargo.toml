@@ -16,11 +16,18 @@ path = "src/main.rs"
 [dependencies]
 norn-protocol = { path = "../protocol" }
 norn-ipc = { path = "../ipc" }
+# export and import: the contract, and the formats, through the public API.
+norn-adapter = { path = "../../adapters/contract" }
+norn-adapter-csv = { path = "../../adapters/csv" }
+norn-adapter-parquet = { path = "../../adapters/parquet" }
+norn-adapter-mcap = { path = "../../adapters/mcap" }
 tonic = { workspace = true, features = ["codegen", "transport"] }
 # The grpc.health.v1 client for `status`.
 tonic-health = { workspace = true }
 # Timestamps in the samples `append` sends.
 prost-types = { workspace = true }
+# Decoding the typed response inside a long-running operation.
+prost = { workspace = true }
 tokio = { workspace = true, features = ["rt", "time"] }
 
 [dev-dependencies]
@@ -29,6 +36,9 @@ norn-server = { path = "../server" }
 norn-runtime = { path = "../runtime" }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
 tokio-util = { workspace = true }
+# Round-trip properties over every value kind, through a real daemon.
+norn-adapter-testkit = { path = "../../adapters/testkit" }
+proptest = { workspace = true }
 
 [[example]]
 name = "plain_client"

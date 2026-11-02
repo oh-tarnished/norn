@@ -1,0 +1,25 @@
+[package]
+name = "norn-adapter-parquet"
+description = "Norn's Parquet and Arrow IPC adapters: columnar export and import."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+norn-adapter = { path = "../contract" }
+norn-protocol = { path = "../../crates/protocol" }
+parquet = { workspace = true }
+arrow-array = { workspace = true }
+arrow-schema = { workspace = true }
+arrow-ipc = { workspace = true }
+crc32fast = { workspace = true }
+prost = { workspace = true }
+
+[dev-dependencies]
+norn-adapter-testkit = { path = "../testkit" }
+proptest = { workspace = true }
+
+[lints]
+workspace = true

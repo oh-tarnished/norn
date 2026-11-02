@@ -171,3 +171,15 @@ impl Ingest {
         }
     }
 }
+
+impl Ingest {
+    /// The database directory.
+    pub(crate) fn root(&self) -> &std::path::Path {
+        &self.ctx.root
+    }
+
+    /// The storage bounds this write path runs with.
+    pub(crate) fn storage_options(&self) -> norn_storage::StorageOptions {
+        self.ctx.opts
+    }
+}

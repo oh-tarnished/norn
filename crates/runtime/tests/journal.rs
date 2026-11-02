@@ -102,26 +102,24 @@ fn an_index_with_no_room_is_backpressure_and_the_samples_stay_safe() {
     let r = rig(&dir.0, cfg, None);
     r.batch(0..100, AckLevel::Buffered);
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-    let mut n = 100;
+    let (mut n, mut admitted) = (100, 100);
+    let reason = norn_runtime::ingest::Reason::MemoryExhausted;
     let refused = loop {
         r.clock.advance(std::time::Duration::from_secs(7200));
         let a = r.batch(n..n + 1, AckLevel::Buffered);
         n += 1;
-        if a.reached.is_none() {
+        admitted += usize::from(a.reached.is_some());
+        // A full queue may refuse first, under load: that is backpressure too,
+        // but not what this test is waiting for.
+        if a.reached.is_none() && a.decision.reason == reason {
             break a;
         }
         assert!(std::time::Instant::now() < deadline, "never refused");
         std::thread::sleep(std::time::Duration::from_millis(5));
     };
-    let reason = norn_runtime::ingest::Reason::MemoryExhausted;
-    assert_eq!(refused.decision.reason, reason);
     assert!(refused.decision.retry_delay.is_some());
     r.ingest.close();
-    assert_eq!(
-        r.stored(&dir.0).len(),
-        n as usize - 1,
-        "every admitted sample"
-    );
+    assert_eq!(r.stored(&dir.0).len(), admitted, "every admitted sample");
 }
 
 #[test]

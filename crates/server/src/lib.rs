@@ -7,7 +7,8 @@
 //!   local endpoint and serves gRPC as a task of a `norn-runtime`
 //!   [`Runtime`](norn_runtime::Runtime); `AdminService` ([`Admin`]);
 //!   `grpc.health.v1` mirroring the runtime's health; `EntityService`,
-//!   `SignalService` and `StreamService` over the registry ([`Catalog`]);
+//!   `SignalService` and `StreamService` over the registry and the maintenance
+//!   worker ([`Catalog`]); `google.longrunning.Operations` ([`OperationsService`]);
 //!   `AppendSamples` over the write path ([`Telemetry`]); `QueryService`
 //!   over `norn-query`, reached through the runtime ([`Queries`]); `StateService`
 //!   over `norn-state`, the same way ([`States`]); `ReplayService` over the
@@ -46,6 +47,7 @@ mod health;
 mod info;
 pub mod logging;
 mod metered;
+mod operations;
 mod query;
 mod replay;
 mod signal;
@@ -63,11 +65,12 @@ pub use events::{Events, Subscriptions};
 pub use health::serving_status;
 pub use info::{MAX_MESSAGE_BYTES, SERVER_VERSION, capabilities, max_batch_bytes, server_resource};
 pub use metered::{Meter, MeterLayer};
+pub use operations::OperationsService;
 pub use query::Queries;
 pub use replay::ReplaySessions;
 pub use signal::shutdown_requested;
 pub use state::States;
 pub use status::ERROR_DOMAIN;
 pub use telemetry::Telemetry;
-pub use unimplemented::{OperationsStub, Stubbed, Unimplemented};
+pub use unimplemented::{Stubbed, Unimplemented};
 pub use version_gate::{VersionGate, VersionGateLayer};

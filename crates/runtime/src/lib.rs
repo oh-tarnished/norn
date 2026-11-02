@@ -54,6 +54,7 @@ mod error;
 mod health;
 pub mod ingest;
 pub mod live;
+pub mod maintenance;
 mod run;
 mod runtime;
 pub mod sessions;

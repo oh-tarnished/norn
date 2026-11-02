@@ -68,6 +68,8 @@ api-lint-tools:
 # protoc-gen-tonic@0.5.0 protoc-gen-prost-crate@0.5.0).
 gen:
     buf generate
+    buf build --path protobuf/norn/type/sample.proto --as-file-descriptor-set \
+        --exclude-source-info -o adapters/mcap/src/generated/norn_type_sample.binpb
 
 # Install the local code generators declared by buf.gen.yaml.
 gen-tools:
@@ -82,6 +84,9 @@ gen-check:
     trap 'rm -rf "$generated"' EXIT
     buf generate --output "$generated"
     diff -ru crates/protocol/src/generated "$generated/crates/protocol/src/generated"
+    buf build --path protobuf/norn/type/sample.proto --as-file-descriptor-set \
+        --exclude-source-info -o "$generated/sample.binpb"
+    cmp adapters/mcap/src/generated/norn_type_sample.binpb "$generated/sample.binpb"
 
 # Regenerates docs/images from a real daemon; takes a little over a minute.
 screenshots:
@@ -98,7 +103,7 @@ release-plan:
 
 # Build and package the daemon and CLI for an installed Rust target.
 release-build target:
-    cargo build --release --locked -p norn-server -p norn-cli --target "{{ target }}"
+    cargo build --release --locked -p norn-server -p norn-cli -p norn-mcp --target "{{ target }}"
 
 release-package target version:
     {{ python }} .github/release/package.py "{{ target }}" "{{ version }}"

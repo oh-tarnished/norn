@@ -229,6 +229,66 @@ pub mod stream_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** Reads and checks every chunk of a stream's sealed segments, through
+ whatever startup skipped. Changes no stored byte. Damage found is reported
+ in the result and counted in the stream's `corrupt_sample_count`.
+*/
+        pub async fn verify_stream(
+            &mut self,
+            request: impl tonic::IntoRequest<super::VerifyStreamRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::super::google::longrunning::Operation>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.stream.v1.StreamService/VerifyStream",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("norn.stream.v1.StreamService", "VerifyStream"));
+            self.inner.unary(req, path, codec).await
+        }
+        /** Runs the stream's retention policy now rather than at the next pass (SPEC
+ section 43). With `validate_only`, removes nothing and says what would go.
+*/
+        pub async fn apply_stream_retention(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ApplyStreamRetentionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::super::google::longrunning::Operation>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.stream.v1.StreamService/ApplyStreamRetention",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "norn.stream.v1.StreamService",
+                        "ApplyStreamRetention",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         /** Writes a stream's samples in an interval to a file in an interchange
  format (SPEC section 44), streaming and in bounded memory.
 */
@@ -313,6 +373,27 @@ pub mod stream_service_server {
         async fn compact_stream(
             &self,
             request: tonic::Request<super::CompactStreamRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::super::google::longrunning::Operation>,
+            tonic::Status,
+        >;
+        /** Reads and checks every chunk of a stream's sealed segments, through
+ whatever startup skipped. Changes no stored byte. Damage found is reported
+ in the result and counted in the stream's `corrupt_sample_count`.
+*/
+        async fn verify_stream(
+            &self,
+            request: tonic::Request<super::VerifyStreamRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::super::google::longrunning::Operation>,
+            tonic::Status,
+        >;
+        /** Runs the stream's retention policy now rather than at the next pass (SPEC
+ section 43). With `validate_only`, removes nothing and says what would go.
+*/
+        async fn apply_stream_retention(
+            &self,
+            request: tonic::Request<super::ApplyStreamRetentionRequest>,
         ) -> std::result::Result<
             tonic::Response<super::super::super::super::google::longrunning::Operation>,
             tonic::Status,
@@ -659,6 +740,100 @@ pub mod stream_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CompactStreamSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.stream.v1.StreamService/VerifyStream" => {
+                    #[allow(non_camel_case_types)]
+                    struct VerifyStreamSvc<T: StreamService>(pub Arc<T>);
+                    impl<
+                        T: StreamService,
+                    > tonic::server::UnaryService<super::VerifyStreamRequest>
+                    for VerifyStreamSvc<T> {
+                        type Response = super::super::super::super::google::longrunning::Operation;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::VerifyStreamRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StreamService>::verify_stream(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = VerifyStreamSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.stream.v1.StreamService/ApplyStreamRetention" => {
+                    #[allow(non_camel_case_types)]
+                    struct ApplyStreamRetentionSvc<T: StreamService>(pub Arc<T>);
+                    impl<
+                        T: StreamService,
+                    > tonic::server::UnaryService<super::ApplyStreamRetentionRequest>
+                    for ApplyStreamRetentionSvc<T> {
+                        type Response = super::super::super::super::google::longrunning::Operation;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ApplyStreamRetentionRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StreamService>::apply_stream_retention(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ApplyStreamRetentionSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use norn_core::{Config, Limits, MemoryBudgets, MetadataLimits, StorageConfig};
+use norn_core::{Config, Limits, MaintenanceConfig, MemoryBudgets, MetadataLimits, StorageConfig};
 use serde::Deserialize;
 
 use super::ConfigError;
@@ -52,6 +52,48 @@ pub(super) struct Storage {
     durable_acks: Option<bool>,
 }
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct Upkeep {
+    background: Option<bool>,
+    compaction_interval_ms: Option<u64>,
+    retention_interval_ms: Option<u64>,
+    max_runs_per_pass: Option<usize>,
+    compaction_window: Option<String>,
+}
+
+impl Upkeep {
+    fn build(self) -> Result<MaintenanceConfig, ConfigError> {
+        let mut out = MaintenanceConfig::default();
+        let ms = |v: Option<u64>| v.map(Duration::from_millis);
+        set(&mut out.background, self.background);
+        set(
+            &mut out.compaction_interval,
+            ms(self.compaction_interval_ms),
+        );
+        set(&mut out.retention_interval, ms(self.retention_interval_ms));
+        set(&mut out.max_runs_per_pass, self.max_runs_per_pass);
+        if let Some(text) = self.compaction_window {
+            let window = parse_window(&text).ok_or_else(|| {
+                ConfigError::invalid("maintenance.compaction_window", "not HH:MM-HH:MM")
+            })?;
+            out.compaction_window = Some(window);
+        }
+        Ok(out)
+    }
+}
+
+/// `HH:MM-HH:MM`, UTC, as minutes from midnight.
+fn parse_window(text: &str) -> Option<(u16, u16)> {
+    let minute = |t: &str| {
+        let (h, m) = t.split_once(':')?;
+        let (h, m): (u16, u16) = (h.parse().ok()?, m.parse().ok()?);
+        (h < 24 && m < 60).then_some(h * 60 + m)
+    };
+    let (start, end) = text.split_once('-')?;
+    Some((minute(start)?, minute(end)?))
+}
+
 /// Sets `field` to `value` when the file gave one.
 pub(super) fn set<T>(field: &mut T, value: Option<T>) {
     if let Some(v) = value {
@@ -64,6 +106,7 @@ pub(super) fn engine(
     c: Option<Count>,
     d: Option<Meta>,
     s: Option<Storage>,
+    u: Option<Upkeep>,
 ) -> Result<Config, ConfigError> {
     let (m, c, d) = (
         m.unwrap_or_default(),
@@ -108,6 +151,7 @@ pub(super) fn engine(
         .storage(storage)
         .limits(limits)
         .metadata(metadata)
+        .maintenance(u.unwrap_or_default().build()?)
         .build()
         .map_err(ConfigError::Engine)
 }

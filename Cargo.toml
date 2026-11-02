@@ -8,9 +8,7 @@
 # README.md and LICENSE-COMMERCIAL.md). There is no permissive exception.
 [workspace]
 resolver = "3"
-# adapters/* and services/* join once a crate exists there: Cargo rejects a
-# glob that matches nothing.
-members = ["crates/*", "xtask"]
+members = ["crates/*", "adapters/*", "services/*", "xtask"]
 
 [workspace.package]
 license = "AGPL-3.0-or-later"
@@ -26,7 +24,9 @@ repository = "https://github.com/oh-tarnished/norn"
 # Property tests for lossless round-trips (SPEC §36). Dev-only: no shipped
 # crate links it.
 proptest = { version = "1", default-features = false, features = ["std"] }
-# xtask reads `cargo metadata` output; std has no JSON parser. Tooling only.
+# xtask reads `cargo metadata` output; std has no JSON parser. The adapters also
+# carry the entity and signal catalog in files as JSON, readable by any tool,
+# and norn-mcp's tool arguments and results are JSON by the MCP standard.
 serde_json = "1"
 
 # --- Encoding (norn-codec).
@@ -81,6 +81,32 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["s
 serde = { version = "1", default-features = false, features = ["std", "derive"] }
 # The TOML parser: pure Rust, the format Cargo itself uses.
 toml = { version = "1", default-features = false, features = ["parse", "serde", "std"] }
+
+# --- Interchange formats (adapters/); docs/reference/adapters.md justifies each.
+# Parquet (SPEC §12, §44). No default features: `snap` is the only codec, pure
+# Rust; `zstd` is the C library, so it stays off.
+parquet = { version = "60", default-features = false, features = ["arrow", "snap"] }
+# In-memory columns, and the Arrow IPC file format (SPEC §44). All already in
+# parquet's graph; no IPC compression features (lz4, zstd).
+arrow-array = { version = "60", default-features = false }
+arrow-schema = { version = "60", default-features = false }
+arrow-ipc = { version = "60", default-features = false }
+# MCAP for Foxglove and Lichtblick. No default features: its zstd and lz4 are C.
+mcap = { version = "0.26", default-features = false }
+# Row-group digests: Parquet and Arrow IPC writers store no data checksum, and
+# SPEC §20 will not silently accept damage. Already in mcap's graph.
+crc32fast = "1"
+
+# --- The MCP server (norn-mcp); docs/reference/mcp.md.
+# The Model Context Protocol, the same SDK the owner's other servers use. No
+# default features: each crate names the transports it needs, and none brings TLS.
+rmcp = { version = "3.8", default-features = false }
+# Each tool's input schema, derived from the type its arguments parse into, so
+# the two cannot disagree. Already in rmcp's graph.
+schemars = { version = "1", default-features = false, features = ["derive", "std"] }
+# Serves /mcp, and builds the 404 for any other path. Already in tonic's graph.
+hyper = { version = "1", default-features = false }
+http-body-util = "0.1"
 
 [workspace.lints.rust]
 unsafe_code = "deny"

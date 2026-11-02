@@ -1,8 +1,9 @@
 # Ingesting data
 
 Ingest works today, through `nornctl append` for one sample and
-`TelemetryService.AppendSamples` for real clients. Adapters (BACnet, MCAP, CSV)
-are not implemented: [adapters](../reference/adapters.md) has the plan.
+`TelemetryService.AppendSamples` for real clients, and `nornctl import` for CSV,
+Parquet, Arrow and MCAP files ([import and export](import-export.md)). BACnet comes
+from bacnet-rs ([adapters](../reference/adapters.md)).
 
 Create the [stream, entity and signal](getting-started.md#create-a-stream-an-entity-and-a-signal)
 first. Output below is real.

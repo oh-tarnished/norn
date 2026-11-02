@@ -30,7 +30,7 @@ mod sample;
 mod time;
 mod value;
 
-pub use config::{Config, ConfigBuilder, Limits, MemoryBudgets, StorageConfig};
+pub use config::{Config, ConfigBuilder, Limits, MaintenanceConfig, MemoryBudgets, StorageConfig};
 pub use descriptor::{EntityDescriptor, SignalDescriptor, StreamDescriptor};
 pub use error::{ConfigError, ConfigField, Error, Limit, NameError, Result};
 pub use id::{EntityId, SignalId, StreamId};

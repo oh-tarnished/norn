@@ -1,0 +1,17 @@
+[package]
+name = "norn-adapter-testkit"
+description = "Test support for Norn adapters: sample strategies covering every value kind. Dev-only."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+norn-protocol = { path = "../../crates/protocol" }
+norn-adapter = { path = "../contract" }
+proptest = { workspace = true }
+prost = { workspace = true }
+
+[lints]
+workspace = true

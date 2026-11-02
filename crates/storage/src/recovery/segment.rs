@@ -133,6 +133,31 @@ pub fn recover_segment(
     })
 }
 
+/// The segment at `path` from its header and directory alone, if `vouched` holds
+/// for its length and both verify. `None` means read it properly.
+pub(super) fn read_vouched(
+    path: &Path,
+    opts: &StorageOptions,
+    vouched: impl Fn(u64) -> bool,
+) -> Result<Option<SegmentRecovery>> {
+    let mut src = Source::open(path)?;
+    let len = src.len();
+    if !vouched(len) {
+        return Ok(None);
+    }
+    let Ok(header) = read_header(&mut src) else {
+        return Ok(None);
+    };
+    let Ok(Some(chunks)) = load_directory(&mut src, opts) else {
+        return Ok(None);
+    };
+    let summary = SegmentSummary::new(path.to_path_buf(), header, &chunks, len);
+    Ok(Some(SegmentRecovery {
+        summary: Some(summary),
+        events: Vec::new(),
+    }))
+}
+
 /// Appends a directory of `chunks` and the trailer at offset `at` (the
 /// current end of file), fsyncs, and returns the new length.
 fn seal_at(path: &Path, chunks: &[ChunkMeta], at: u64) -> Result<u64> {

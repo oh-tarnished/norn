@@ -7,8 +7,8 @@ use std::sync::{Arc, PoisonError};
 use norn_core::{Sample, StreamId};
 use norn_index::TemporalIndex;
 use norn_storage::{
-    Action, RecoveryEvent, RecoveryMode, RecoveryReport, SegmentReader, StorageError,
-    StorageOptions, StreamWriter, live_segments, recover_stream, stream_dir, sync_dir,
+    CleanMarker, RecoveryMode, SegmentReader, StorageError, StorageOptions, StreamWriter,
+    live_segments, recover_stream, recover_stream_vouched, stream_dir, sync_dir,
 };
 
 use super::buffer::Buffers;
@@ -24,7 +24,9 @@ use super::{Ingest, record};
 
 impl Ingest {
     /// Recovers every stream the registry knows, before any batch is admitted.
-    /// Blocks on the disk, in time proportional to all stored data.
+    /// Blocks on the disk. A stream whose clean marker says nothing has changed
+    /// costs one small file and a chunk per signal; any other reads and checks
+    /// every chunk its marker does not vouch for, and every directory.
     ///
     /// Idempotent over a crash: a crash here repeats it, and it finds what the
     /// last attempt wrote. Each stream's locks are taken and released inside.
@@ -38,10 +40,14 @@ impl Ingest {
     pub fn recover(&self) -> Result<IngestRecovery, RecoverError> {
         let mut total = IngestRecovery::default();
         let ids = self.ctx.registry.view().stream_ids();
+        let mut clean = Vec::new();
         for id in ids {
             total.streams += 1;
             let dir = stream_dir(&self.ctx.root, id);
             if !dir.exists() {
+                continue;
+            }
+            if self.clean_start(id, &dir, &mut total, &mut clean)? {
                 continue;
             }
             let mut dedup = Dedup::new(&self.ctx.budget);
@@ -58,6 +64,7 @@ impl Ingest {
         let (index, report) = TemporalIndex::open(&self.ctx.root, self.ctx.index_options)?;
         total.index = IndexSummary::from(&report);
         let _ = self.ctx.index.set(Arc::new(index));
+        self.seed_clean(clean);
         Ok(total)
     }
 
@@ -69,8 +76,13 @@ impl Ingest {
         total: &mut IngestRecovery,
     ) -> Result<StreamStats, StorageError> {
         let opts = self.ctx.opts;
-        let segments = recover_stream(dir, &opts, RecoveryMode::Repair)?;
+        let marker = CleanMarker::load(dir, id);
+        let vouched = |name, len| marker.as_ref().is_some_and(|m| m.vouches(name, len));
+        let repair = RecoveryMode::Repair;
+        let segments = recover_stream_vouched(dir, &opts, repair, &vouched)?;
         total.absorb(&segments);
+        total.verified_segments += segments.verified_segments;
+        total.vouched_segments += segments.vouched_segments;
         let journal = journal_dir(dir);
         let mut samples = Vec::new();
         let mut consumed = Vec::new();
@@ -95,7 +107,7 @@ impl Ingest {
         for s in &segments.segments {
             stats.add(s.samples, s.bytes, s.time_range);
         }
-        let damaged = corrupt_samples(&segments, &opts);
+        let damaged = self.seed_damage(id, &segments);
         stats.samples = stats.samples.saturating_sub(damaged);
         stats.corrupt_samples = damaged;
         for s in &samples {
@@ -116,30 +128,6 @@ impl Ingest {
         let stats = *shared.stats.lock().unwrap_or_else(PoisonError::into_inner);
         Ok(stats)
     }
-}
-
-/// How many samples the chunks recovery left in place, damaged, claim to hold.
-/// The directory says, and it has its own CRC. A segment that cannot be opened
-/// again counts none: its chunks are then reported by recovery alone.
-fn corrupt_samples(report: &RecoveryReport, opts: &StorageOptions) -> u64 {
-    let mut total = 0;
-    for event in &report.events {
-        let RecoveryEvent::Corruption { corruption, action } = event else {
-            continue;
-        };
-        if *action != Action::LeftInPlace {
-            continue;
-        }
-        let Ok(reader) = SegmentReader::open(&corruption.path, *opts) else {
-            continue;
-        };
-        let found = reader
-            .chunks()
-            .iter()
-            .find(|c| c.offset == corruption.offset);
-        total += found.map_or(0, |c| u64::from(c.count));
-    }
-    total
 }
 
 /// Reads every batch of a journal segment into `samples`. Returns false if any

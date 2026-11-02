@@ -142,3 +142,23 @@ fn the_configuration_guide_lists_every_key_with_its_true_default() {
     assert_eq!(config.drain(), norn_server::config::DEFAULT_DRAIN_TIMEOUT);
     assert_eq!(config.logging(), &norn_server::LogConfig::default());
 }
+
+#[test]
+fn the_maintenance_section_sets_the_schedule_and_a_bad_window_is_refused() {
+    let text = "[maintenance]\nbackground = false\ncompaction_interval_ms = 1000\n\
+                compaction_window = \"22:00-06:00\"\n";
+    let config = DaemonConfig::from_toml(text).unwrap();
+    let schedule = config.engine().maintenance();
+    assert!(!schedule.background);
+    assert_eq!(schedule.compaction_interval, Duration::from_secs(1));
+    assert_eq!(schedule.compaction_window, Some((22 * 60, 6 * 60)));
+    assert!(schedule.in_window(23 * 60) && schedule.in_window(60));
+    assert!(!schedule.in_window(12 * 60));
+    let bad = "[maintenance]\ncompaction_window = \"25:00-06:00\"\n";
+    assert!(matches!(
+        DaemonConfig::from_toml(bad),
+        Err(ConfigError::Invalid { .. })
+    ));
+    let zero = "[maintenance]\nretention_interval_ms = 0\n";
+    assert!(DaemonConfig::from_toml(zero).is_err());
+}

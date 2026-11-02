@@ -21,7 +21,7 @@ documentation to fit.
 | `purity` | `crates/core/src` names `std::fs`, `std::io`, `std::net`, `std::env`, `std::process`, `std::thread`, `SystemTime` or `Instant` outside a comment |
 | `docs` | a crate root does not open with a `//!` layer contract; a relative link, image or `#anchor` in a Markdown file does not resolve; a file under `docs/` is missing from the README's Contents, or the reverse; a README exists anywhere but the root |
 | `arch` | a crate depends outward, or has no row in the layer table |
-| `deps` | a shipped dependency graph reaches C (`links`, `cc`, `cmake`, ...) |
+| `deps` | a shipped dependency graph, on a target Norn builds, reaches C (`links`, `cc`, `cmake`, ...) |
 
 Every gate also fails when it examined nothing, and every gate has a test in
 `xtask/tests/` proving it bites. Never weaken a gate to pass: fix the code,
@@ -60,7 +60,7 @@ CI accepts both `main` and `master`. Dependabot uses the repository's default
 branch. Branch protection and auto-merge settings are configured on GitHub.
 
 A `vX.Y.Z` tag matching every workspace package version, or a manual Release
-workflow run, builds `norn` and `nornctl` for Linux x86-64/AArch64, macOS
+workflow run, builds `norn`, `nornctl` and `norn-mcp` for Linux x86-64/AArch64, macOS
 Intel/Apple Silicon and Windows x86-64. It attaches archives, documentation
 and SHA-256 checksums to a GitHub release. Linux builds target glibc 2.35.
 Prerelease versions create prereleases. There is no crate or Homebrew publish.

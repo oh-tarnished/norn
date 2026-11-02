@@ -39,7 +39,7 @@ pub struct Limits {
     /// it asked for. One past this is rejected whole, with a reason.
     pub max_pending_batches: usize,
     /// How long a replay session may sit idle before the daemon deletes it.
-    /// Published now; enforced by the replay subsystem when it exists.
+    /// Published through `GetServer`, and enforced by the replay sessions' task.
     pub replay_session_idle_timeout: Duration,
 }
 

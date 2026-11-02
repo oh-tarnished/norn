@@ -6,6 +6,7 @@ import "google/api/field_behavior.proto";
 import "google/api/resource.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+import "norn/admin/v1/maintenance.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "ServerProto";
@@ -46,6 +47,9 @@ message Server {
 
   // What opening the temporal index found when this daemon started.
   IndexReport index = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // What compaction and retention have done since the daemon started.
+  MaintenanceReport maintenance = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // What opening the temporal index found. The index is derived from segments,
@@ -96,6 +100,16 @@ message RecoveryReport {
   // Human-readable findings, at most 64 of them, for logs only. Never parse
   // them; `event_count` says whether any were left out.
   repeated string findings = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Streams a clean shutdown vouched for whole, and so not read at all.
+  int32 clean_stream_count = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Segments whose every chunk was read and checked at this start.
+  int64 verified_segment_count = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Segments not read, because a clean shutdown recorded them sealed and intact
+  // and they have not changed since. VerifyStream reads them.
+  int64 vouched_segment_count = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // A protocol version (SPEC section 40). `major` equals the `vN` of every
@@ -169,4 +183,8 @@ enum Capability {
   // A shared-memory data plane beside gRPC for bulk samples. Transport
   // selection is the IPC layer's; this only says it exists.
   CAPABILITY_SHARED_MEMORY = 11;
+  // StreamService.ApplyStreamRetention, and retention passes.
+  CAPABILITY_RETENTION = 12;
+  // StreamService.VerifyStream.
+  CAPABILITY_VERIFY = 13;
 }

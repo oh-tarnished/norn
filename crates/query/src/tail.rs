@@ -4,6 +4,7 @@ use std::fmt;
 use std::ops::ControlFlow;
 
 use norn_core::{Sample, SignalId, StreamId, Timestamp};
+use norn_storage::SegmentName;
 
 /// The samples a write path holds that may not be in the index yet.
 ///
@@ -37,6 +38,14 @@ pub trait TailSource: Send + Sync + fmt::Debug {
         signal: SignalId,
         at: Timestamp,
     ) -> Option<Timestamp>;
+
+    /// A read found the chunk at `offset` of `segment`, claiming `samples`
+    /// samples, damaged. The owner of the stream's totals may then count them
+    /// out at once. Called on the query's thread, so keep it short. Default:
+    /// nothing, since the query reports the damage to its caller regardless.
+    fn damaged(&self, stream: StreamId, segment: SegmentName, offset: u64, samples: u32) {
+        let _ = (stream, segment, offset, samples);
+    }
 }
 
 /// No tail: what a database no write path is running over looks like.

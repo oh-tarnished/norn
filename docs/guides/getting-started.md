@@ -3,8 +3,8 @@
 Everything here works today. It builds Norn, starts the daemon, creates a
 stream, appends a sample, and reads it back.
 
-All output below was captured from a real `norn` 0.1.0 on macOS. Linux and
-Windows have not been run.
+All output below was captured from a real `norn` 0.1.0 on macOS; CI tests these
+commands on Linux and Windows too.
 
 ## Build
 
@@ -12,12 +12,17 @@ Rust 1.99.1, pinned in `rust-toolchain.toml`. No C toolchain and no `protoc`: th
 committed.
 
 ```sh
-cargo build -p norn-server -p norn-cli
+cargo build -p norn-server -p norn-cli -p norn-mcp
 ```
 
-This gives you two binaries in `target/debug/`: `norn`, the daemon, and
-`nornctl`, a client that uses only the public gRPC API. The commands below assume
+This gives you three binaries in `target/debug/`: `norn`, the daemon;
+`nornctl`, a client that uses only the public gRPC API; and `norn-mcp`, the MCP
+server for AI agents ([AI agents](ai-agents.md)). The commands below assume
 that directory is on your `PATH`.
+
+Or download a release archive for your platform from GitHub Releases and check it
+against its `.sha256` file. Each one carries `norn`, `nornctl` and `norn-mcp`
+(`.exe` on Windows) with this documentation; Linux builds need glibc 2.35 or newer.
 
 ## Start the daemon
 
@@ -40,9 +45,9 @@ set `TMPDIR=/tmp/norn-demo/t`, which is where the default endpoint lives.)
 $ nornctl status
 health: SERVING
 server_version: 0.1.0
-protocol: 1.3
-capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUERY_RANGE CAPABILITY_QUERY_AGGREGATES CAPABILITY_STATE_AT CAPABILITY_LIVE_SUBSCRIPTION CAPABILITY_REPLAY CAPABILITY_ACK_DURABLE
-start_time: 1793592369.624148000
+protocol: 1.4
+capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUERY_RANGE CAPABILITY_QUERY_AGGREGATES CAPABILITY_STATE_AT CAPABILITY_LIVE_SUBSCRIPTION CAPABILITY_REPLAY CAPABILITY_COMPACTION CAPABILITY_RETENTION CAPABILITY_VERIFY CAPABILITY_ACK_DURABLE
+start_time: 1793625130.214140000
 limits.max_batch_samples: 10000
 limits.max_batch_bytes: 4194304
 limits.max_pending_batches: 256
@@ -53,12 +58,22 @@ recovery.streams: 0
 recovery.events: 0
 recovery.corruptions: 0
 recovery.replayed_samples: 0
+recovery.clean_streams: 0
+recovery.verified_segments: 0
+recovery.vouched_segments: 0
+compaction.runs: 0
+compaction.segments: 0
+compaction.saved_bytes: 0
+compaction.failures: 0
+retention.segments: 0
+retention.samples: 0
+retention.bytes: 0
 
 $ nornctl version
 client: nornctl/0.1.0
-client_protocol: 1.3
+client_protocol: 1.4
 server_version: 0.1.0
-agreed_protocol: 1.3
+agreed_protocol: 1.4
 ```
 
 ## Create a stream, an entity and a signal

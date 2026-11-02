@@ -54,15 +54,29 @@ pub struct Graph {
     pub members: Vec<String>,
 }
 
-/// Runs `cargo metadata` in `root` and parses it.
+/// Runs `cargo metadata` in `root` for every platform, and parses it.
 ///
 /// # Errors
 ///
 /// When cargo cannot run or its output is not the expected JSON.
 pub fn load(root: &Path) -> Result<Graph, String> {
+    load_for(root, &[])
+}
+
+/// As [`load`], but resolving only the dependencies that `platforms` (target
+/// triples) build, all of them together; every platform when empty. A
+/// dependency declared for another target, such as one only Haiku or wasm32
+/// compiles, is not in the graph, because no build of Norn links it.
+///
+/// # Errors
+///
+/// As [`load`]; also when cargo does not know a triple.
+pub fn load_for(root: &Path, platforms: &[&str]) -> Result<Graph, String> {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".into());
+    let filters = platforms.iter().flat_map(|p| ["--filter-platform", p]);
     let out = Command::new(cargo)
         .args(["metadata", "--format-version", "1"])
+        .args(filters)
         .current_dir(root)
         .output()
         .map_err(|e| format!("cannot run cargo metadata: {e}"))?;

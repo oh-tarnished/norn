@@ -1,17 +1,36 @@
 # Operations
 
-Working today: starting, stopping, recovery after a crash, and reporting damage.
-**Not available to an operator yet:** compaction (the format code exists, nothing
-in the daemon runs it), retention (candidates can be listed in code, nothing
-deletes), export and import, `verify`, metrics, backup tooling. All are planned;
-see the [roadmap](../../README.md#roadmap).
+Working today: starting, stopping, recovery after a crash, reporting damage,
+compaction, retention and verification. Export and import work: see
+[import and export](import-export.md). **Not available to an operator yet:**
+metrics and backup tooling. See the [roadmap](../../README.md#roadmap).
 
-Output below is real, from macOS. Linux and Windows have not been run.
+Output below is real, from macOS. CI tests Linux and Windows too ([platforms](#platforms)).
+
+## Starting
+
+After a clean stop a start reads no chunk: each stream's `CLEAN` marker lists its
+sealed segments and their totals, and a stream that matches is taken on that word.
+After a crash, whatever the marker does not vouch for is read and checked: new
+segments, compaction outputs and the journal. `nornctl status` says which happened:
+
+```console
+$ nornctl status | grep recovery.
+recovery.clean_streams: 1
+recovery.verified_segments: 0
+recovery.vouched_segments: 3
+```
+
+A start therefore does not look for bit rot in old segments. `nornctl verify` does
+([Verifying](#verifying)), so schedule it. Numbers:
+[performance.md](../performance.md#startup).
 
 ## Stopping
 
 SIGINT or SIGTERM drains in-flight calls for up to `drain_timeout_ms`, then
-exits 0.
+exits 0. A running compaction stops within one chunk, before its commit. The last
+thing a clean stop does is write each stream's `CLEAN` marker, which is what makes
+the next start quick ([Starting](#starting)).
 
 ```text
 INFO shutdown requested signal="SIGTERM"
@@ -31,13 +50,15 @@ norn/index/0000000000000001/summary.nidx
 norn/metadata/LOCK
 norn/metadata/metadata.log
 norn/streams/0000000000000001/0000000000000000-g0000.nseg
+norn/streams/0000000000000001/CLEAN
 norn/streams/0000000000000001/journal/LOCK
 norn/streams/0000000000000001/LOCK
 ```
 
 `metadata/` is the registry of streams, entities and signals. `streams/<id>/` holds
 sealed segments, and `journal/` the samples not yet stored as chunks. `index/`
-can be rebuilt from the segments. One daemon owns a directory at a time; a second
+can be rebuilt from the segments, and `CLEAN` can be deleted at any time: the next
+start then reads everything. One daemon owns a directory at a time; a second
 one stops at the lock:
 
 ```console
@@ -47,7 +68,9 @@ $ norn --listen unix:/tmp/norn-demo/n2.sock --data-dir /tmp/norn-demo/data
 
 ## Crash recovery
 
-Nothing needs doing: recovery runs at every start. Here one `DURABLE` sample is
+Nothing needs doing: recovery runs at every start. A kill during a compaction
+needs nothing either: `crates/server/tests/compaction_kill.rs` kills a real process
+at each phase and finds every sample exactly once. Here one `DURABLE` sample is
 acknowledged, the daemon gets `kill -9`, and the next start replays it from the
 journal:
 
@@ -71,36 +94,118 @@ streams/plant samples=5
 
 ## Damage
 
-A checksum failure is reported and never silently repaired. Here three bytes of a
-sealed segment were overwritten by hand before a restart:
+A checksum failure is reported and never silently repaired. Damage is found by
+whatever reads the chunk: `nornctl verify`, a query, a compaction, or a start that
+reads it. Here three bytes of a sealed segment were overwritten by hand after a
+clean stop. The start vouches for the file without reading it, so it reports
+nothing; `verify` finds it, and the count changes at once:
 
 ```console
 $ nornctl status | grep recovery
-recovery.streams: 2
-recovery.events: 1
+recovery.corruptions: 0
+recovery.clean_streams: 1
+recovery.verified_segments: 0
+recovery.vouched_segments: 2
+$ nornctl verify plant
+streams/plant segments=2 chunks=2 samples=6 bytes=466 damaged_chunks=1 damaged_samples=3
+damaged 0000000000000000-g0000.nseg offset=48 length=113 BodyChecksum { stored: 932781536, computed: 43525985 }
+nornctl: streams/plant: 1 damaged chunks
+$ nornctl streams
+streams/plant samples=3 corrupt=3
+```
+
+And after the next restart, which now reads everything:
+
+```console
+$ nornctl status | grep recovery
 recovery.corruptions: 1
-recovery.replayed_samples: 0
+recovery.clean_streams: 0
+recovery.verified_segments: 2
+recovery.vouched_segments: 0
 ```
 
-The log says where, at `WARN`:
+`verify` exits 1 when it finds damage. What to know:
 
-```text
-WARN recovery found damaged data recovery=IngestRecovery { ... findings: ["Corruption { corruption: Corruption { path: \"/tmp/norn-demo/x/norn/streams/0000000000000001/0000000000000000-g0000.nseg\", offset: 48, len: 129, kind: BodyChecksum { stored: 1554215434, computed: 2126562449 } }, action: LeftInPlace }"], ... }
-```
-
-Three things to know:
-
-- The file stays in place and the report repeats at every start.
-- `nornctl streams` leaves the damaged chunk's samples out of `samples` and shows
-  them as `corrupt=N`. That reflects the last start: a chunk damaged while the daemon
-  runs still counts until the next one.
+- The file stays in place. Finding damage removes the stream's `CLEAN` marker, so
+  every later start reads the whole stream and repeats the report in
+  `recovery.corruptions`, until the damage is dealt with.
+- `nornctl streams` takes the chunk's samples out of `samples` and shows them as
+  `corrupt=N` the moment anything finds them, without a restart. Damage nothing has
+  read yet is not known, and counts as ordinary samples until something does.
 - A query reaching the chunk fails with `DATA_LOSS`, naming it and its time span, and
   never skips it. [Query around it](querying.md#when-a-query-fails): everything else
   stays readable.
+- Compaction leaves a segment with known damage alone and reports it as
+  `skipped_segments`. Retention removes one like any other, when the policy says so.
 - Nothing reads quarantined files yet. There is no repair or salvage tool.
 
-Every start verifies all stored chunks, which is fine for hours of data and not
-yet for a year ([storage.md](../reference/storage.md#not-implemented)).
+## Verifying
+
+```console
+$ nornctl verify plant
+streams/plant segments=3 chunks=3 samples=9 bytes=705 damaged_chunks=0 damaged_samples=0
+```
+
+`verify` reads every chunk of every sealed segment and changes nothing. It reads
+through the operating system's page cache, so run it on a schedule that suits a read
+of the whole stream; it takes its turn on the maintenance worker, one job at a time.
+
+## Compaction
+
+Compaction merges each signal's small chunks, picks the smallest of zstd levels 3 to
+6, and replaces neighbouring sealed segments with one. Queries, `StateAt`, replay and
+ingest carry on throughout, and no sample is lost or doubled.
+
+It runs by itself, every 5 minutes by default, and on demand:
+
+```console
+$ nornctl compact plant
+streams/plant chunks=2->2 bytes=470->470 skipped_segments=0
+$ nornctl status | grep compaction
+compaction.runs: 2
+compaction.segments: 2
+compaction.saved_bytes: 0
+compaction.failures: 0
+```
+
+That example saved nothing because its two segments are too far apart to merge and
+hold too little to gain from it: an output stays within `max_segment_bytes` and
+`max_segment_age`. The schedule is [`[maintenance]`](configuration.md#maintenance).
+
+## Retention
+
+A stream keeps everything unless you say otherwise. A policy is a span of time, a
+number of calendar months, or a size. Age is measured from the stream's newest
+sample, not the wall clock, so a stream gone quiet does not empty itself.
+
+```console
+$ nornctl retention set plant 14d
+streams/plant max_age=1209600s
+$ nornctl retention apply plant --dry-run
+streams/plant would remove segments=1 samples=3 bytes=235 retained_bytes=470 cutoff=1970-01-21T17:20:02Z
+0000000000000000-g0000.nseg samples=3 bytes=235 from=1970-01-12T13:46:40Z to=1970-01-12T13:46:42Z
+$ nornctl retention apply plant
+streams/plant removed segments=1 samples=3 bytes=235 retained_bytes=470 cutoff=1970-01-21T17:20:02Z
+0000000000000000-g0000.nseg samples=3 bytes=235 from=1970-01-12T13:46:40Z to=1970-01-12T13:46:42Z
+$ nornctl status | grep retention
+retention.segments: 1
+retention.samples: 3
+retention.bytes: 235
+retention.removal: streams/plant segments=1 samples=3 bytes=235
+```
+
+**Setting a policy is what authorises deleting.** Once set it also runs by itself,
+hourly by default, so use `--dry-run` first. Only whole segments go, each entirely
+past the limit, and the newest segment always stays, so a stream can hold more than
+its policy says. Every removal is logged at `WARN` before and after:
+
+```text
+WARN retention removing segments stream=1 segments=1 samples=3 bytes=235 cutoff=Some(1790402000000000) policy=MaxAge(1209600s)
+WARN retention removed segments stream=1 segments=1
+```
+
+`status` counts since the daemon started and lists the last 16 removals. The log is
+the lasting record: keep it.
 
 ## Logs
 
@@ -113,3 +218,25 @@ object per line, and `--log-level` sets the level
 The socket's directory must be owner-only (0700) and the socket is created
 owner-only; the daemon refuses to start otherwise.
 [ipc.md](../reference/ipc.md#security-model-spec-41) has the model.
+
+## Platforms
+
+CI builds, lints and tests every push on Linux, macOS and Windows. On Windows the
+tests run the daemon and `nornctl` over a named pipe, and so do the `compact`,
+`verify` and `retention` test and the `norn-mcp` suite, which have type-checked for
+Windows but not yet run on a Windows runner. Some tests run on Linux and macOS only,
+and this is why:
+
+| Test | Why not on Windows |
+| --- | --- |
+| `crates/server/tests/crash.rs`, `crash_reads.rs`, `query_damage.rs` | they `kill -9` a real `norn` child, through a helper (`tests/process/`) that listens on a Unix socket; not yet ported to a named pipe |
+| `crates/server/tests/startup.rs` | uses the same helper to spawn and kill a real `norn`, to check what a start reads after a kill |
+| `crates/server/tests/compaction_kill.rs` | kills a real daemon at every phase of a compaction; the child listens on a Unix socket, as the helper does |
+| `crates/server/tests/signals.rs` | SIGTERM and SIGINT, which Windows does not have |
+| `services/mcp/tests/lifecycle.rs`, one test | sends `norn-mcp` SIGTERM; a test cannot send a child Ctrl-C on Windows without sharing its console. The rest of the MCP suite runs on Windows |
+| `crates/cli/tests/exchange_memory.rs` | samples `nornctl`'s resident memory with `ps -o rss=`, which Windows lacks |
+| `crates/cli/tests/history.rs` | written against a Unix socket; not yet ported to a named pipe |
+| `crates/transport/tests/unix_socket.rs` | Unix sockets themselves; named pipes are tested on Windows instead |
+
+Porting the kill tests is stage 16 work ([roadmap](../../README.md#roadmap)). Every
+performance figure so far is from macOS.

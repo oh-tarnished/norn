@@ -7,6 +7,7 @@ import "google/api/client.proto";
 import "google/longrunning/operations.proto";
 import "google/protobuf/empty.proto";
 import "norn/stream/v1/stream.proto";
+import "norn/stream/v1/stream_maintenance.proto";
 import "norn/stream/v1/stream_messages.proto";
 import "norn/stream/v1/stream_operations.proto";
 
@@ -15,7 +16,7 @@ option java_outer_classname = "StreamServiceProto";
 option java_package = "local.norn.stream.v1";
 
 // StreamService manages streams and the long-running work done on their
-// stored history: compaction and export. Those return a
+// stored history: compaction, verification, retention and export. Those return a
 // google.longrunning.Operation, polled through the google.longrunning.
 // Operations service the daemon also serves.
 service StreamService {
@@ -74,6 +75,35 @@ service StreamService {
     option (google.longrunning.operation_info) = {
       response_type: "CompactStreamResponse"
       metadata_type: "CompactStreamMetadata"
+    };
+  }
+
+  // Reads and checks every chunk of a stream's sealed segments, through
+  // whatever startup skipped. Changes no stored byte. Damage found is reported
+  // in the result and counted in the stream's `corrupt_sample_count`.
+  rpc VerifyStream(VerifyStreamRequest) returns (google.longrunning.Operation) {
+    option (google.api.http) = {
+      post: "/v1/{name=streams/*}:verify"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name";
+    option (google.longrunning.operation_info) = {
+      response_type: "VerifyStreamResponse"
+      metadata_type: "VerifyStreamMetadata"
+    };
+  }
+
+  // Runs the stream's retention policy now rather than at the next pass (SPEC
+  // section 43). With `validate_only`, removes nothing and says what would go.
+  rpc ApplyStreamRetention(ApplyStreamRetentionRequest) returns (google.longrunning.Operation) {
+    option (google.api.http) = {
+      post: "/v1/{name=streams/*}:applyRetention"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name";
+    option (google.longrunning.operation_info) = {
+      response_type: "ApplyStreamRetentionResponse"
+      metadata_type: "ApplyStreamRetentionMetadata"
     };
   }
 

@@ -62,7 +62,7 @@ max_chunk_age_ms = 60000       # the longest a sample waits to be encoded into a
 durable_acks = true            # false: no fsync, and DURABLE is refused, not weakened
 ```
 
-The `[memory]`, `[limits]`, `[metadata]` and `[storage]` defaults are
+The `[memory]`, `[limits]`, `[metadata]`, `[storage]` and `[maintenance]` defaults are
 `norn_core::Config`'s, which documents each field and validates the result. They
 were picked, not measured; stage 15 revisits them. The daemon applies the limits
 of what exists (clients, IPC, ingest, entities, signals, streams, metadata) and
@@ -74,6 +74,21 @@ per client; the other half pays for messages being decoded ([architecture.md](..
 `listen` takes `unix:<absolute path>`, `pipe:\\.\pipe\<name>` or
 `tcp:<loopback address>:<port>`; [ipc.md](../reference/ipc.md) gives the syntax and the
 security model. TCP has no OS identity check and is meant for tests.
+
+## Maintenance
+
+```toml
+[maintenance]
+background = true                      # false: only what a client asks for
+compaction_interval_ms = 300000        # how often compaction looks for work
+retention_interval_ms = 3600000        # how often recorded policies are applied
+max_runs_per_pass = 8                  # the most merges per stream, per pass
+compaction_window = "22:00-06:00"      # UTC; unset means any hour
+```
+
+The window limits when background compaction starts; `nornctl compact` ignores it.
+These defaults were picked, not measured. The working memory comes from
+`chunk_cache_bytes`.
 
 ## Logging
 

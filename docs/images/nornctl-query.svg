@@ -3,9 +3,9 @@
 <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" xml:space="preserve">
 <text x="16" y="24" fill="#8b949e">nornctl query</text>
 <text x="16" y="60" fill="#7ee787">$ nornctl query entities/ahu-01/signals/supply-temp</text>
-<text x="16" y="80" fill="#e6edf3">2026-11-02T04:08:20.269743Z entities/ahu-01/signals/supply-temp 21.5 GOOD seq=0</text>
-<text x="16" y="100" fill="#e6edf3">2026-11-02T04:08:20.293341Z entities/ahu-01/signals/supply-temp 21.75 GOOD seq=2</text>
-<text x="16" y="120" fill="#e6edf3">2026-11-02T04:08:20.296691Z entities/ahu-01/signals/supply-temp 22 GOOD seq=3</text>
+<text x="16" y="80" fill="#e6edf3">2026-11-02T13:10:56.880546Z entities/ahu-01/signals/supply-temp 21.5 GOOD seq=0</text>
+<text x="16" y="100" fill="#e6edf3">2026-11-02T13:10:56.906697Z entities/ahu-01/signals/supply-temp 21.75 GOOD seq=2</text>
+<text x="16" y="120" fill="#e6edf3">2026-11-02T13:10:56.912882Z entities/ahu-01/signals/supply-temp 22 GOOD seq=3</text>
 <text x="16" y="140" fill="#7ee787">$ nornctl query entities/ahu-01/signals/supply-temp --agg average</text>
 <text x="16" y="160" fill="#e6edf3">- - entities/ahu-01/signals/supply-temp 21.75 count=3</text>
 </g>

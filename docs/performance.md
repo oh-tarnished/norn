@@ -140,6 +140,36 @@ Reading these:
   rebuild now also fills the summary: 1.86 s for that month.
 - These are single-threaded, on a machine doing nothing else.
 
+## Startup
+
+`cargo bench -p norn-server --bench startup`, release build, Apple M3 Max, a local
+SSD. The real `norn` binary, timed from spawn to its first `GetServer` answer, over
+115.2 million samples: 16,000 signals × 1 Hz × 2 hours, 31 sealed segments, in ingest
+layout. Three runs of each; the last row is one run.
+
+| Start | Time | Segments read and checked | Vouched for |
+| --- | ---: | ---: | ---: |
+| after a clean stop, marker present | 88 to 94 ms | 0 | 31 |
+| marker removed: every chunk checked, as every start did before the marker | 2.59 to 2.67 s | 31 | 0 |
+| after `kill -9`, with 60 s of new samples in the journal | 1.19 s | 1 | 31 |
+
+What these do and do not show:
+
+- **The page cache was warm**: the data had just been written. The 2.6 s is CRC and
+  directory work, not disk. A cold start without the marker must read every byte, so
+  it is slower by the disk; that was not measured. The marked start reads almost
+  nothing, so it should change much less, also unmeasured.
+- The "before" row is the new binary with the marker removed, not the old binary. It
+  takes the same path the old code did, with `reconcile` included.
+- The marked start's cost follows signals, not history: one chunk per signal for the
+  duplicate state, plus one `stat` per segment. It was measured at this one size.
+- **Extrapolated, not measured:** linear from these two hours, a year without the
+  marker would take about 3.2 hours warm, and it is what `kill -9` avoids too, since
+  only the unvouched part is read. A crash still reads every directory, which this
+  benchmark's 31 segments do not stress.
+- Compaction's and retention's throughput in a live daemon was not benchmarked here.
+  [storage.md](reference/storage.md#measurements) has compaction's own speed.
+
 ## Query
 
 `cargo bench -p norn-server --bench query`, release build, Apple M3 Max, a local SSD
@@ -246,3 +276,41 @@ built.
 
 Not measured: several sessions at once, a slow subscriber's effect on throughput, paced
 replay's timing accuracy (tested with a fake clock, not measured), compacted data.
+
+## Import and export
+
+`tools/interchange/bench.sh 100 10000`, release build, Apple M3 Max, a local SSD 81%
+full, three runs. `tools/interchange/generate.py` writes 1,000,000 samples: 100
+signals at 1 Hz for 10,000 s, in an assumed mix of 60% noisy doubles, 20% stepping
+float setpoints, 10% booleans and 10% slow int32 counters. Not a real site. Each run
+imports that CSV into a daemon (the fill), then for each format: `nornctl export all`
+from it, `nornctl import` into a fresh daemon at `PERSISTED`, and the same import
+again (the repeat, which sends nothing). Every daemon and `nornctl` run on one machine
+over a Unix socket. Time and peak RSS are the `nornctl` process's, from
+`/usr/bin/time -l`, whose wall time has 10 ms resolution. Each cell is the median of
+the three runs. The script checks every import read and sent all 1,000,000 samples, and
+every repeat sent none.
+
+| Format | File bytes | Bytes/sample | Export samples/s | Export RSS | Import samples/s | Import RSS | Repeat samples/s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| CSV | 102,209,278 | 102.21 | 1,020,408 | 13 MiB | 346,021 | 12 MiB | 1,136,364 |
+| Parquet | 1,655,477 | 1.66 | 2,173,913 | 27 MiB | 364,964 | 16 MiB | 1,428,571 |
+| Arrow IPC | 128,254,618 | 128.25 | 2,325,581 | 19 MiB | 574,713 | 23 MiB | 1,538,462 |
+| MCAP | 105,710,065 | 105.71 | 1,562,500 | 17 MiB | 354,610 | 15 MiB | 549,451 |
+
+- Ranges over the three runs: CSV export 588 k to 1.39 M/s, the widest; why the
+  first run was slowest was not investigated. Imports 250 k to 578 k/s. The
+  fill from the generated CSV ran at 293 k to 366 k samples/s, 11 to 12 MiB.
+- Import is bounded by the daemon's `PERSISTED` acknowledgement of each batch, one
+  in flight. Its 13 to 16 `THROTTLE` responses a run were waited out. Arrow imports
+  faster because it decodes cheapest.
+- Parquet is 1.66 bytes a sample against Norn's 1.2 compacted and 2.2 at ingest
+  ([storage](reference/storage.md)). Arrow and MCAP are uncompressed, because their
+  codecs are C, and CSV is text.
+- A repeat import reads everything and sends nothing. Its cost is the lookups for
+  samples the daemon may hold. MCAP's is lowest because its time order touches many
+  signals per batch, so a lookup spans all signals.
+- Client RSS stays flat with size: `crates/cli/tests/exchange_memory.rs` asserts it
+  between 100,000 and 400,000 samples.
+
+Not measured: 16,000 signals, files beyond 1 million samples, Linux and Windows.

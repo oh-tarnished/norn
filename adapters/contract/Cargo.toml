@@ -1,0 +1,23 @@
+[package]
+name = "norn-adapter"
+description = "The Norn adapter contract: external data to entities, signals and samples, through the public API."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Each third-party crate is declared, with its reason, in the root Cargo.toml.
+# Clients only: no norn crate behind the protocol (SPEC §47).
+[dependencies]
+norn-protocol = { path = "../../crates/protocol" }
+tonic = { workspace = true, features = ["codegen", "transport"] }
+tokio = { workspace = true, features = ["sync", "time"] }
+prost = { workspace = true }
+prost-types = { workspace = true }
+# The catalog's JSON form, carried inside Parquet, Arrow and MCAP files.
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

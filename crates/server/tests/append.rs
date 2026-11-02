@@ -53,8 +53,9 @@ async fn a_durable_batch_gets_exactly_two_responses_and_a_buffered_one_gets_one(
     let last = replies.iter().rfind(|r| r.batch_id == 1).unwrap();
     assert_eq!(last.ack_level, Durable as i32);
     assert_eq!(outcome(last).0, BackpressureOutcome::Accept as i32);
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     assert_eq!(stored(&data).len(), 3);
+    let _ = std::fs::remove_dir_all(data);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -97,11 +98,12 @@ async fn one_bad_sample_refuses_the_whole_batch_and_every_bad_sample_is_listed()
     assert_eq!(reasons[0], "ERROR_REASON_SIGNAL_NOT_FOUND");
     assert_eq!(reasons[1], "ERROR_REASON_VALUE_TYPE_MISMATCH");
     assert_eq!(reasons[2], "ERROR_REASON_INVALID_ARGUMENT");
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     assert!(
         stored(&data).is_empty(),
         "nothing of a refused batch is stored"
     );
+    let _ = std::fs::remove_dir_all(data);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -113,6 +115,7 @@ async fn a_retried_batch_is_counted_as_duplicates_and_stored_once() {
     let again = append(&d.channel, vec![batch(1, samples(), Durable)]).await;
     assert_eq!(again[0].duplicate_count, 50);
     assert_eq!(again.last().unwrap().ack_level, Durable as i32);
-    let data = d.stop().await;
+    let data = d.stop_keeping().await;
     assert_eq!(stored(&data).len(), 50);
+    let _ = std::fs::remove_dir_all(data);
 }

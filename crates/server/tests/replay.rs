@@ -86,7 +86,7 @@ async fn a_replay_gives_back_exactly_what_was_recorded_in_order_and_again() {
             .collect::<Vec<_>>()
     };
     assert_eq!(strip(&first), strip(&second), "deterministic across runs");
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -111,5 +111,5 @@ async fn stopping_sends_stopped_last_and_closes_the_stream() {
         events.message().await.unwrap().is_none(),
         "closed after STOPPED"
     );
-    let _ = std::fs::remove_dir_all(d.stop().await);
+    let _ = std::fs::remove_dir_all(d.stop_keeping().await);
 }

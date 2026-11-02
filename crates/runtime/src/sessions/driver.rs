@@ -94,7 +94,9 @@ impl Driver {
                 Some(())
             }
             Next::Read => self.read(wall).await,
-            Next::Wait(wait) => self.idle(Some(wait)).await,
+            // The wait is measured from `wall`, so the deadline is too: an
+            // advance between `poll` and the sleep must not be lost.
+            Next::Wait(wait) => self.idle(Some(after(wall, wait))).await,
             _ => {
                 self.step_done();
                 self.idle(None).await
@@ -135,11 +137,11 @@ impl Driver {
         }
     }
 
-    async fn idle(&mut self, wait: Option<Duration>) -> Option<()> {
+    async fn idle(&mut self, until: Option<Timestamp>) -> Option<()> {
         let clock = Arc::clone(&self.clock);
         let sleep = async {
-            match wait {
-                Some(d) => clock.sleep(d).await,
+            match until {
+                Some(deadline) => clock.sleep_until(deadline).await,
                 None => std::future::pending().await,
             }
         };
@@ -164,4 +166,10 @@ impl Driver {
         }
         Some(())
     }
+}
+
+/// `wall` plus `wait`, saturating: a wait past the end of time never ends.
+fn after(wall: Timestamp, wait: Duration) -> Timestamp {
+    let nanos = i64::try_from(wait.as_nanos()).unwrap_or(i64::MAX);
+    Timestamp::from_nanos(wall.as_nanos().saturating_add(nanos))
 }

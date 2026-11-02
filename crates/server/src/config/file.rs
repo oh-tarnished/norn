@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
-use super::engine::{Count, Memory, Meta, Storage, engine, set};
+use super::engine::{Count, Memory, Meta, Storage, Upkeep, engine, set};
 use super::{ConfigError, DaemonConfig, LogConfig};
 
 /// The largest configuration file read. A configuration is a few hundred
@@ -28,6 +28,7 @@ struct File {
     limits: Option<Count>,
     metadata: Option<Meta>,
     storage: Option<Storage>,
+    maintenance: Option<Upkeep>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -107,7 +108,13 @@ impl DaemonConfig {
             return Err(ConfigError::invalid("log.max_record_bytes", detail));
         }
         config.log = log;
-        config.engine = engine(file.memory, file.limits, file.metadata, file.storage)?;
+        config.engine = engine(
+            file.memory,
+            file.limits,
+            file.metadata,
+            file.storage,
+            file.maintenance,
+        )?;
         Ok(config)
     }
 }

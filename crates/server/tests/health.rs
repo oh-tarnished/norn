@@ -29,7 +29,9 @@ fn loopback() -> DaemonConfig {
 
 #[tokio::test]
 async fn a_watcher_sees_serving_then_not_serving_when_draining_begins() {
-    let daemon = Daemon::bind(loopback()).await.unwrap();
+    let config = loopback();
+    let data = config.database();
+    let daemon = Daemon::bind(config).await.unwrap();
     let endpoint = daemon.local_endpoint().clone();
     let mut health = daemon.health();
     let cancel = CancellationToken::new();
@@ -59,6 +61,7 @@ async fn a_watcher_sees_serving_then_not_serving_when_draining_begins() {
     drop(stream);
     drop(client);
     let report = task.await.unwrap().unwrap();
+    let _ = std::fs::remove_dir_all(&data);
     assert_eq!(report.aborted, 0);
     assert_eq!(health.get(), Health::Stopped);
 }
@@ -72,7 +75,9 @@ fn versioned<T>(message: T, version: &str) -> Request<T> {
 
 #[tokio::test]
 async fn version_metadata_of_another_major_is_refused_except_by_get_server() {
-    let daemon = Daemon::bind(loopback()).await.unwrap();
+    let config = loopback();
+    let data = config.database();
+    let daemon = Daemon::bind(config).await.unwrap();
     let endpoint = daemon.local_endpoint().clone();
     let mut health = daemon.health();
     let cancel = CancellationToken::new();
@@ -108,4 +113,5 @@ async fn version_metadata_of_another_major_is_refused_except_by_get_server() {
 
     cancel.cancel();
     task.await.unwrap().unwrap();
+    let _ = std::fs::remove_dir_all(&data);
 }

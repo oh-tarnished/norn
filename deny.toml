@@ -8,7 +8,11 @@ all-features = true
 # Every advisory fails unless ignored here with a reason.
 version = 2
 yanked = "deny"
-ignore = []
+ignore = [
+    # paste is unmaintained, with no fix to take. A macro used only while
+    # compiling mcap (0.26 is the newest): nothing of it runs or ships.
+    { id = "RUSTSEC-2024-0436", reason = "compile-time macro of mcap; nothing of it ships" },
+]
 
 [licenses]
 version = 2
@@ -27,6 +31,11 @@ confidence-threshold = 0.9
 # The allow-list is policy, not inventory: a licence not yet in the graph is
 # still allowed.
 unused-allowed-license = "allow"
+
+# CC0-1.0 is a public-domain dedication, compatible with the AGPL and the
+# commercial licence. Only this crate: it is a build-time hash in const-random's
+# proc macro, under ahash under arrow, and none of it is linked into a binary.
+exceptions = [{ crate = "tiny-keccak", allow = ["CC0-1.0"] }]
 
 [licenses.private]
 # This allow-list governs third-party dependencies. Norn's unpublished

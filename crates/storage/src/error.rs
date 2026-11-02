@@ -97,6 +97,9 @@ pub enum StorageError {
     /// input, inputs of different streams, or inputs that leave out a live
     /// segment inside their sequence range. Nothing was changed.
     CompactionRefused(&'static str),
+    /// A [`crate::CompactionObserver`] stopped a compaction before its commit.
+    /// Nothing was changed.
+    CompactionCancelled,
     /// Another writer or repairing recovery holds the stream (SPEC §20): one
     /// writer per stream. It may be this process or another; the lock file
     /// names the holder's process ID, for a human.
@@ -166,6 +169,7 @@ impl fmt::Display for StorageError {
             Self::BadName(p) => write!(f, "not a Norn file name: {}", p.display()),
             Self::Sealed => write!(f, "segment is sealed"),
             Self::CompactionRefused(why) => write!(f, "compaction refused: {why}"),
+            Self::CompactionCancelled => f.write_str("compaction cancelled"),
             Self::Locked { path } => write!(f, "another writer holds {}", path.display()),
         }
     }

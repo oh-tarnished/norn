@@ -24,6 +24,22 @@ pub trait Clock: Send + Sync + fmt::Debug {
 
     /// Completes once at least `duration` has passed on this clock.
     fn sleep(&self, duration: Duration) -> Sleep<'_>;
+
+    /// Completes once this clock reads `deadline` or later; at once if it
+    /// already does.
+    ///
+    /// Use this, not [`sleep`](Clock::sleep), for a wait computed from an
+    /// earlier [`now`](Clock::now): `sleep` measures from when it is called,
+    /// so time passing between the reading and the call would be counted
+    /// twice. On a [`FakeClock`] that is a lost wakeup, since an advance that
+    /// lands in that gap moves the deadline past itself and nothing advances
+    /// again. The default measures from a fresh reading, which on a real
+    /// clock is the same up to scheduling jitter; [`FakeClock`] overrides it
+    /// to compare against the deadline itself.
+    fn sleep_until(&self, deadline: Timestamp) -> Sleep<'_> {
+        let left = deadline.as_nanos().saturating_sub(self.now().as_nanos());
+        self.sleep(Duration::from_nanos(u64::try_from(left).unwrap_or(0)))
+    }
 }
 
 /// The operating system's wall clock, with tokio's timer for `sleep`.
@@ -100,6 +116,11 @@ impl Clock for FakeClock {
     fn sleep(&self, duration: Duration) -> Sleep<'_> {
         let nanos = i64::try_from(duration.as_nanos()).unwrap_or(i64::MAX);
         let deadline = self.now.borrow().saturating_add(nanos);
+        self.sleep_until(Timestamp::from_nanos(deadline))
+    }
+
+    fn sleep_until(&self, deadline: Timestamp) -> Sleep<'_> {
+        let deadline = deadline.as_nanos();
         let mut rx = self.now.subscribe();
         Box::pin(async move {
             while *rx.borrow_and_update() < deadline {

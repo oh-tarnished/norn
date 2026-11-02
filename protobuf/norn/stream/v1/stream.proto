@@ -50,18 +50,23 @@ message Stream {
 
 // When history becomes eligible for removal (SPEC section 43). Retention is
 // always explicit: a stream without a policy keeps everything, and removal
-// happens only at whole-chunk granularity once every sample in the chunk
-// is past the limit, so a policy never removes data it does not cover.
+// happens only at whole-segment granularity once every sample in the segment
+// is past the limit, so a policy never removes data it does not cover. The
+// segment holding the stream's newest sealed samples is never removed.
 message RetentionPolicy {
   // The limit. Unset means keep forever.
   oneof limit {
-    // Remove chunks whose newest sample is older than this, measured from
+    // Remove segments whose newest sample is older than this, measured from
     // the newest sample in the stream rather than the wall clock, so a
     // stream that stops receiving data does not empty itself.
     google.protobuf.Duration max_age = 1;
-    // Remove the oldest chunks while the stream's stored size exceeds this
+    // Remove the oldest segments while the stream's stored size exceeds this
     // many bytes. Must be positive.
     int64 max_bytes = 2;
+    // As `max_age`, in calendar months in UTC: the cutoff is this many months
+    // before the newest sample, on the same day of the month or the month's
+    // last day. Must be positive.
+    int32 max_months = 3;
   }
 }
 
@@ -69,7 +74,7 @@ message RetentionPolicy {
 // from before its PERSISTED acknowledgement, and a flush changes no total.
 message StreamStats {
   // Samples a query can return: those stored and those buffered. Samples in
-  // chunks that failed verification at the daemon's last start are excluded.
+  // chunks known to be damaged are excluded.
   int64 sample_count = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
 
   // Bytes on disk, after encoding and compression.
@@ -84,8 +89,8 @@ message StreamStats {
   // Of `sample_count`, the samples in write buffers and not in a segment yet.
   int64 buffered_sample_count = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
 
-  // Samples in chunks that failed verification at the daemon's last start. A
-  // chunk damaged since then is counted here only after the next start, though
-  // a query reaching it reports it at once.
+  // Samples in chunks known to be damaged: found by startup verification,
+  // VerifyStream, or a query reaching them. Damage nothing has read yet is not
+  // counted; VerifyStream finds it.
   int64 corrupt_sample_count = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
 }

@@ -42,7 +42,10 @@ pub fn run(gate: &str, root: &Path) -> Result<Findings, String> {
         "purity" => Ok(purity::run(root)),
         "docs" => Ok(docs::run(root, &metadata::load(root)?)),
         "arch" => Ok(arch::check(&metadata::load(root)?, arch::LAYERS)),
-        "deps" => Ok(deps::check(&metadata::load(root)?, deps::ALLOW_C)),
+        "deps" => {
+            let graph = metadata::load_for(root, deps::PLATFORMS)?;
+            Ok(deps::check(&graph, deps::ALLOW_C))
+        }
         other => Err(format!(
             "unknown gate `{other}`; known: gates, {}",
             GATES.join(", ")

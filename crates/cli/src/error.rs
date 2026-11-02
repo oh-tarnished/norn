@@ -38,6 +38,8 @@ pub enum CliError {
     Refused(String),
     /// Writing the output failed (a closed pipe, a full disk).
     Output(std::io::Error),
+    /// An export or import failed; it says where in the file.
+    Adapter(norn_adapter::AdapterError),
 }
 
 impl fmt::Display for CliError {
@@ -61,6 +63,7 @@ impl fmt::Display for CliError {
             Self::Malformed { method, field } => write!(f, "{method}: response lacks {field}"),
             Self::Usage(text) | Self::Refused(text) => f.write_str(text),
             Self::Output(e) => write!(f, "writing output: {e}"),
+            Self::Adapter(e) => write!(f, "{e}"),
         }
     }
 }
@@ -71,6 +74,7 @@ impl std::error::Error for CliError {
             Self::Connect { source, .. } => Some(source),
             Self::Call { status, .. } => Some(status),
             Self::Output(e) => Some(e),
+            Self::Adapter(e) => Some(e),
             Self::Malformed { .. } | Self::Usage(_) | Self::Refused(_) => None,
         }
     }

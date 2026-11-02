@@ -7,7 +7,7 @@ use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use norn_core::Config;
 use norn_core::{Sample, SignalId, StreamId, Timestamp};
 use norn_query::{Engine, QueryLimits, QueryMemory, TailSource};
-use norn_storage::StorageOptions;
+use norn_storage::{SegmentName, StorageOptions};
 
 use super::Ingest;
 use super::buffer::{Buffers, Frozen, Generation, newest, scan_chunk};
@@ -168,5 +168,9 @@ impl TailSource for Ingest {
         at: Timestamp,
     ) -> Option<Timestamp> {
         self.running(stream)?.tail.newest(signal, at)
+    }
+
+    fn damaged(&self, stream: StreamId, segment: SegmentName, offset: u64, samples: u32) {
+        self.note_damage(stream, segment, offset, u64::from(samples));
     }
 }

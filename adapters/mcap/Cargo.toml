@@ -1,0 +1,22 @@
+[package]
+name = "norn-adapter-mcap"
+description = "Norn's MCAP adapter: one protobuf channel per signal, for Foxglove and Lichtblick."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+norn-adapter = { path = "../contract" }
+norn-protocol = { path = "../../crates/protocol" }
+mcap = { workspace = true }
+prost = { workspace = true }
+
+[dev-dependencies]
+norn-adapter-testkit = { path = "../testkit" }
+proptest = { workspace = true }
+prost-types = { workspace = true }
+
+[lints]
+workspace = true

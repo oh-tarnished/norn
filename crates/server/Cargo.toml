@@ -44,6 +44,8 @@ toml = { workspace = true }
 # Tests read back what the daemon stored; a client never does this.
 norn-storage = { path = "../storage" }
 norn-core = { path = "../core" }
+# A query's answer is the same before and after compaction, on generated data.
+proptest = { workspace = true }
 
 [lints]
 workspace = true
@@ -58,4 +60,8 @@ harness = false
 
 [[bench]]
 name = "state"
+harness = false
+
+[[bench]]
+name = "startup"
 harness = false

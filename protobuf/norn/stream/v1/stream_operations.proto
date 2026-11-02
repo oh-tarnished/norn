@@ -37,6 +37,10 @@ message CompactStreamResponse {
 
   // Stored bytes after compaction.
   int64 compacted_bytes = 4;
+
+  // Segments left as they were because a chunk in them is damaged. Compaction
+  // never rewrites over damage.
+  int64 skipped_segment_count = 5;
 }
 
 // Progress of a CompactStream operation.

@@ -75,14 +75,37 @@ pub const LAYERS: &[(&str, &[&str])] = &[
         ],
     ),
     // Clients reach Norn only through the protocol (SPEC §31, §33, §47).
+    // nornctl also drives the export and import formats, each a client library
+    // of the public API like itself.
     (
         "norn-cli",
-        &["norn-core", "norn-protocol", "norn-transport", "norn-ipc"],
+        &[
+            "norn-core",
+            "norn-protocol",
+            "norn-transport",
+            "norn-ipc",
+            "norn-adapter",
+            "norn-adapter-csv",
+            "norn-adapter-parquet",
+            "norn-adapter-mcap",
+        ],
     ),
     (
         "norn-mcp",
         &["norn-core", "norn-protocol", "norn-transport", "norn-ipc"],
     ),
+    // Adapters are clients too (SPEC §29, §47): the contract speaks the protocol,
+    // and a format knows only the contract and the protocol's types. The server
+    // cannot import any of them, which is why ExportStream stays UNIMPLEMENTED
+    // (docs/reference/adapters.md). The testkit is a dev-dependency only.
+    (
+        "norn-adapter",
+        &["norn-core", "norn-protocol", "norn-transport", "norn-ipc"],
+    ),
+    ("norn-adapter-csv", &["norn-adapter", "norn-protocol"]),
+    ("norn-adapter-parquet", &["norn-adapter", "norn-protocol"]),
+    ("norn-adapter-mcap", &["norn-adapter", "norn-protocol"]),
+    ("norn-adapter-testkit", &["norn-adapter", "norn-protocol"]),
     // Repository tooling imports no Norn crate.
     ("xtask", &[]),
 ];

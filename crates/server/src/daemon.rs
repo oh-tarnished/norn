@@ -11,6 +11,7 @@ use std::time::Duration;
 
 use norn_ipc::{Endpoint, Limits, Server, ServerConfig};
 use norn_runtime::ingest::{Ingest, IngestRecovery};
+use norn_runtime::maintenance::{CompactionPhase, Maintenance};
 use norn_runtime::sessions::Replays;
 use norn_runtime::{HealthWatch, Reservation, RunReport, Runtime};
 use tokio_util::sync::CancellationToken;
@@ -45,6 +46,7 @@ pub struct Daemon {
     ingest: Arc<Ingest>,
     recovery: IngestRecovery,
     replays: Arc<Replays>,
+    maintenance: Arc<Maintenance>,
     /// The half of `ipc_bytes` promised to flow-control windows.
     _windows: Reservation,
 }
@@ -79,18 +81,25 @@ impl Daemon {
 
         let database = open_database(&config, &runtime).await?;
         let (ingest, recovery) = (Arc::clone(&database.ingest), database.recovery.clone());
-        let (router, windows, reporter, replays) =
-            build_router(&config, &runtime, database).await?;
+        let built = build_router(&config, &runtime, database).await?;
         Ok(Self {
             runtime,
             server,
-            router,
-            reporter,
+            router: built.router,
+            reporter: built.reporter,
             ingest,
             recovery,
-            replays,
-            _windows: windows,
+            replays: built.replays,
+            maintenance: built.maintenance,
+            _windows: built.windows,
         })
+    }
+
+    /// Calls `probe` at each phase of every compaction, on the worker's thread. For
+    /// tests that must stop a real process at an exact point; a `norn` never sets
+    /// one. Before [`run`](Daemon::run).
+    pub fn compaction_probe(&self, probe: Box<dyn Fn(CompactionPhase) + Send + Sync>) {
+        self.maintenance.set_probe(probe);
     }
 
     /// What startup recovery found. Also published as `Server.recovery`.
@@ -126,6 +135,7 @@ impl Daemon {
             ingest,
             recovery: _,
             replays,
+            maintenance,
             _windows,
         } = self;
         let watch = runtime.health();
@@ -142,8 +152,19 @@ impl Daemon {
             replays.run(token).await;
             Ok(())
         })?;
+        // Cancelled by dropping the guard, so a panicking worker cannot hang
+        // shutdown behind it.
+        let quiet = CancellationToken::new();
+        let done = quiet.clone().drop_guard();
+        runtime.add_task("maintenance", move |token| async move {
+            let _done = done;
+            maintenance.run(token).await;
+            Ok(())
+        })?;
         runtime.add_task("ipc", move |token| async move {
             let served = server.serve(router, token).await;
+            // Files stop moving before the clean markers list them.
+            quiet.cancelled().await;
             // After the last call: everything admitted is committed, whether
             // serving ended cleanly or not.
             tokio::task::spawn_blocking(move || ingest.close()).await?;

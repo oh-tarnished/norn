@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package norn.admin.v1;
+
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "MaintenanceProto";
+option java_package = "local.norn.admin.v1";
+
+// What the daemon's background work has done since it started. Retention never
+// removes data silently: everything it removes is counted and listed here, and
+// logged.
+message MaintenanceReport {
+  // Compactions that committed.
+  int64 compaction_count = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Input segments those compactions replaced.
+  int64 compacted_segment_count = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Bytes those compactions took off the disk. Negative if they grew it.
+  int64 compaction_saved_bytes = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Compactions that failed, and left their inputs as they were.
+  int64 compaction_failure_count = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Segments retention removed.
+  int64 retention_segment_count = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Samples those segments held.
+  int64 retention_sample_count = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Bytes those segments took on disk.
+  int64 retention_bytes = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The latest retention passes that removed anything, newest first, at most 16.
+  repeated RetentionRemoval recent_removals = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// One retention pass over one stream that removed something.
+message RetentionRemoval {
+  // The stream, as `streams/{stream}`.
+  string stream = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // When the pass finished.
+  google.protobuf.Timestamp remove_time = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Segments removed.
+  int64 segment_count = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Samples they held.
+  int64 sample_count = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Bytes they took on disk.
+  int64 removed_bytes = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+}

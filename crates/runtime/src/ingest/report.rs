@@ -29,6 +29,12 @@ pub struct IngestRecovery {
     pub findings: Vec<String>,
     /// What opening the temporal index found.
     pub index: IndexSummary,
+    /// Streams a clean shutdown vouched for whole, and so not read at all.
+    pub clean_streams: u64,
+    /// Segments whose every chunk was read and checked.
+    pub verified_segments: u64,
+    /// Segments taken on a clean shutdown's word, chunks unread.
+    pub vouched_segments: u64,
 }
 
 /// [`norn_index::IndexReport`], totalled, so the server need not import the index.

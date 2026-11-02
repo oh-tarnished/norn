@@ -6,10 +6,9 @@ use norn_core::Timestamp;
 /// is before its `PERSISTED` acknowledgement, and moves from `buffered` to stored
 /// in one step, so `samples` never dips or doubles across a flush.
 ///
-/// `corrupt_samples` are those startup verification found in damaged chunks. They
-/// are not in `samples`, since a query cannot return them. A chunk damaged since
-/// the last start still counts in `samples` until the next one, though a query
-/// reaching it reports it.
+/// `corrupt_samples` are those in chunks known damaged: found by startup
+/// verification, `VerifyStream`, compaction or a query. They are not in `samples`,
+/// since a query cannot return them. Damage nothing has read yet is not known.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct StreamStats {
@@ -17,7 +16,7 @@ pub struct StreamStats {
     pub samples: u64,
     /// Of those, the samples not in a segment yet.
     pub buffered: u64,
-    /// Samples in chunks that failed verification at startup.
+    /// Samples in chunks known damaged.
     pub corrupt_samples: u64,
     /// Bytes on disk.
     pub stored_bytes: u64,

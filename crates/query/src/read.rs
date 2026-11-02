@@ -16,6 +16,7 @@ use crate::filter::Filter;
 use crate::memory::{Charge, Refused};
 use crate::rows::{Row, Rows};
 use crate::selection::Selection;
+use crate::tail::TailSource;
 
 /// What a sample costs decoded: time, sequence, an inline value, a quality.
 const DECODED_SAMPLE: u64 = 26;
@@ -143,7 +144,7 @@ impl Reader {
         match self.files.read(snapshot, locator) {
             Ok(chunk) => Ok((chunk, decoded)),
             Err(FileError::Memory(e)) => Err(Attempt::Stop(Stop::Memory(e))),
-            Err(FileError::Storage(e)) => Err(classify(e, locator)),
+            Err(FileError::Storage(e)) => Err(classify(e, locator, self.engine.tail.as_ref())),
         }
     }
 }
@@ -157,8 +158,9 @@ fn planning(e: IndexError) -> Attempt {
 }
 
 /// A vanished file is a race; damage is reported as damage.
-fn classify(e: StorageError, l: &ChunkLocator) -> Attempt {
+fn classify(e: StorageError, l: &ChunkLocator, tail: &dyn TailSource) -> Attempt {
     let damage = |source| {
+        tail.damaged(l.stream, l.segment, l.offset(), l.chunk.count);
         let damage = ChunkDamage {
             stream: l.stream,
             segment: l.segment,

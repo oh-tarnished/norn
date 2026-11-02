@@ -71,7 +71,10 @@ async fn real_time_follows_the_injected_clock() {
         2,
         "running, then the sample at 0"
     );
-    while s.clock.sleepers() == 0 {
+    // Two sleepers: the session table's expiry tick, and the driver waiting for
+    // the sample at 1. Advancing sooner is also correct, since the driver sleeps
+    // until a deadline (`Clock::sleep_until`), but then this would test less.
+    while s.clock.sleepers() < 2 {
         tokio::task::yield_now().await;
     }
     s.clock.advance(Duration::from_nanos(4));

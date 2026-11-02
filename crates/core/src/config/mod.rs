@@ -6,10 +6,12 @@
 //! core performs no I/O.
 
 mod limits;
+mod maintenance;
 mod memory;
 mod storage;
 
 pub use limits::Limits;
+pub use maintenance::MaintenanceConfig;
 pub use memory::MemoryBudgets;
 pub use storage::StorageConfig;
 
@@ -25,6 +27,7 @@ pub struct Config {
     limits: Limits,
     metadata: MetadataLimits,
     storage: StorageConfig,
+    maintenance: MaintenanceConfig,
 }
 
 impl Config {
@@ -55,6 +58,12 @@ impl Config {
     #[must_use]
     pub fn storage(&self) -> StorageConfig {
         self.storage
+    }
+
+    /// When compaction and retention run.
+    #[must_use]
+    pub fn maintenance(&self) -> MaintenanceConfig {
+        self.maintenance
     }
 }
 
@@ -90,6 +99,12 @@ impl ConfigBuilder {
     /// Replaces the storage settings.
     pub fn storage(mut self, storage: StorageConfig) -> Self {
         self.config.storage = storage;
+        self
+    }
+
+    /// Replaces the maintenance schedule.
+    pub fn maintenance(mut self, maintenance: MaintenanceConfig) -> Self {
+        self.config.maintenance = maintenance;
         self
     }
 
@@ -133,7 +148,7 @@ impl ConfigBuilder {
             let field = ConfigField::Named("replay_session_idle_timeout");
             return invalid(field, ConfigError::Zero);
         }
-        if let Some(name) = c.storage.first_zero() {
+        if let Some(name) = c.storage.first_zero().or(c.maintenance.first_invalid()) {
             return invalid(ConfigField::Named(name), ConfigError::Zero);
         }
         Ok(c)

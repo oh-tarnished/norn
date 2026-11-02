@@ -5,6 +5,7 @@ use std::sync::Arc;
 use norn_metadata::Registry;
 use norn_protocol::admin::admin_service_server::AdminServiceServer;
 use norn_protocol::entity::entity_service_server::EntityServiceServer;
+use norn_protocol::google::longrunning::operations_server::OperationsServer;
 use norn_protocol::query::query_service_server::QueryServiceServer;
 use norn_protocol::replay::replay_service_server::ReplayServiceServer;
 use norn_protocol::signal::signal_service_server::SignalServiceServer;
@@ -12,6 +13,7 @@ use norn_protocol::state::state_service_server::StateServiceServer;
 use norn_protocol::stream::stream_service_server::StreamServiceServer;
 use norn_protocol::telemetry::telemetry_service_server::TelemetryServiceServer;
 use norn_runtime::ingest::{Ingest, IngestRecovery};
+use norn_runtime::maintenance::Maintenance;
 use norn_runtime::sessions::Replays;
 use norn_runtime::{Reservation, Runtime, RuntimeError, Subsystem};
 use tonic::transport::server::Router;
@@ -29,11 +31,11 @@ use crate::info::{
     MAX_MESSAGE_BYTES, connection_window, max_batch_bytes, server_resource, stream_window,
 };
 use crate::metered::{MeterLayer, MeterLimits};
+use crate::operations::OperationsService;
 use crate::query::Queries;
 use crate::replay::ReplaySessions;
 use crate::state::States;
 use crate::telemetry::Telemetry;
-use crate::unimplemented::{OperationsStub, Unimplemented};
 use crate::version_gate::VersionGateLayer;
 
 /// Concurrent calls per connection (HTTP/2 `MAX_CONCURRENT_STREAMS`). Picked,
@@ -43,9 +45,15 @@ const MAX_STREAMS_PER_CONNECTION: u32 = 16;
 
 pub(super) type Services = Router<Stack<MeterLayer, Stack<VersionGateLayer, Identity>>>;
 
-/// The router, the flow-control reservation held for life, the health reporter,
-/// and the replay sessions, whose task the daemon runs.
-pub(super) type Built = (Services, Reservation, HealthReporter, Arc<Replays>);
+/// What `build_router` makes, for the daemon to hold and run.
+pub(super) struct Built {
+    pub(super) router: Services,
+    /// The flow-control reservation, held for life.
+    pub(super) windows: Reservation,
+    pub(super) reporter: HealthReporter,
+    pub(super) replays: Arc<Replays>,
+    pub(super) maintenance: Arc<Maintenance>,
+}
 
 /// The recovered database.
 pub(super) struct Database {
@@ -108,10 +116,20 @@ pub(super) async fn build_router(
     let (reporter, health) = tonic_health::server::health_reporter();
     report(&reporter, ServingStatus::NotServing).await;
     let resource = server_resource(engine, runtime.start_time(), &recovery);
-    let admin =
-        AdminServiceServer::new(Admin::new(resource)).max_decoding_message_size(MAX_MESSAGE_BYTES);
+    let upkeep_memory = runtime.budgets().get(Subsystem::ChunkCache).clone();
     let clock = Arc::clone(runtime.clock());
-    let catalog = Catalog::new(Arc::clone(&registry), Arc::clone(&ingest), clock);
+    let maintenance = Arc::new(Maintenance::new(
+        Arc::clone(&ingest),
+        Arc::clone(&registry),
+        upkeep_memory,
+        clock,
+        engine.maintenance(),
+    ));
+    let admin = Admin::new(resource).maintenance(Arc::clone(&maintenance));
+    let admin = AdminServiceServer::new(admin).max_decoding_message_size(MAX_MESSAGE_BYTES);
+    let clock = Arc::clone(runtime.clock());
+    let (r, i, m) = (&registry, &ingest, &maintenance);
+    let catalog = Catalog::new(Arc::clone(r), Arc::clone(i), clock, Arc::clone(m));
     let reads = runtime.budgets().get(Subsystem::Query).clone();
     let reading = ingest
         .query_engine(reads, engine)
@@ -163,6 +181,14 @@ pub(super) async fn build_router(
         .add_service(QueryServiceServer::new(queries))
         .add_service(ReplayServiceServer::new(sessions))
         .add_service(StateServiceServer::new(states))
-        .add_service(Unimplemented::<OperationsStub>::new());
-    Ok((router, windows, reporter, replays))
+        .add_service(OperationsServer::new(OperationsService::new(Arc::clone(
+            &maintenance,
+        ))));
+    Ok(Built {
+        router,
+        windows,
+        reporter,
+        replays,
+        maintenance,
+    })
 }

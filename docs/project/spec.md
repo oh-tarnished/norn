@@ -192,12 +192,15 @@ deterministically.
 Outside the core, behind one adapter contract (BACnet, Modbus, OPC-UA, MQTT,
 MCAP, Parquet, CSV, custom Protobuf), converting external data into Entity,
 Signal, Sample, Metadata.
+**Decision (owner, 2026-11-02):** the BACnet adapter lives in `bacnet-rs`, as a
+client over IPC using only Norn's public crates, not under `adapters/` here
+(docs/project/plan.md, "Connecting bacnet-rs").
 
 ## 30. BACnet adapter (later)
 Device and object discovery, object metadata, property reads, subscriptions,
 polling, quality, units, timestamps. A BACnet object maps to Entity + Signal +
 Metadata; no BACnet structures in the core. (The `bacnet-rs` library supplies
-the protocol side.)
+the protocol side, and by the §29 decision the adapter itself.)
 
 ## 31. MCP
 An optional, independent MCP server executable above Norn: AI agent → MCP

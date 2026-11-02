@@ -16,13 +16,14 @@ def main():
     binaries = Path("target") / target / "release"
     subprocess.run([str(binaries / f"norn{suffix}"), "--version"], check=True)
     subprocess.run([str(binaries / f"nornctl{suffix}"), "--help"], check=True)
+    subprocess.run([str(binaries / f"norn-mcp{suffix}"), "--version"], check=True)
     name = f"norn-{version}-{target}"
     dist = Path("dist")
     dist.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="norn-release-") as temporary:
         package = Path(temporary) / name
         package.mkdir()
-        for binary in ("norn", "nornctl"):
+        for binary in ("norn", "nornctl", "norn-mcp"):
             shutil.copy2(binaries / f"{binary}{suffix}", package)
         for document in (
             "LICENSE", "LICENSE-COMMERCIAL.md", "README.md",

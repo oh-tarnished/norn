@@ -1,18 +1,20 @@
 //! Compaction, format side (SPEC §42): merge small chunks into large ones.
 
+mod merge;
+mod observer;
+
+pub use observer::{CompactionObserver, CompactionPhase, Unobserved};
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use norn_codec::compress::Compression;
-
-use crate::chunk::Chunk;
+use self::merge::{overlapping_live, write_merged};
 use crate::error::{Result, StorageError};
 use crate::format::SegmentHeader;
 use crate::fsio::tmp_path;
-use crate::layout::live_segments;
 use crate::options::StorageOptions;
 use crate::platform::sync_dir;
-use crate::segment::{SegmentName, SegmentReader, SegmentSummary, SegmentWriter};
+use crate::segment::{SegmentName, SegmentReader, SegmentSummary};
 
 /// What a compaction did.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,7 +32,7 @@ pub struct CompactionOutcome {
 /// Rewrites the sealed segments `inputs` of stream directory `dir` as one
 /// segment in which each signal's chunks are merged, in order, into chunks
 /// of up to `max_chunk_samples`, every column re-encoded with
-/// [`Compression::ZstdSmallest`]. Every sample is preserved exactly, in its
+/// [`norn_codec::compress::Compression::ZstdSmallest`]. Every sample is preserved exactly, in its
 /// original order.
 ///
 /// Crash safety: write new, then switch, then delete old.
@@ -51,13 +53,30 @@ pub struct CompactionOutcome {
 /// input chunk, and the input directories. Ingest is not blocked: it writes
 /// to newer segments, which are never inputs while open.
 ///
+/// Concurrency: one compaction per stream directory at a time, which the
+/// caller ensures; a writer may be appending to newer segments throughout.
+///
 /// # Errors
 /// [`StorageError::CompactionRefused`] for unmet preconditions (nothing
 /// changed); any read, decode or write error before the commit (the inputs
 /// stay live); an I/O error while deleting inputs after the commit (they are
-/// superseded, and recovery finishes the job). A stale `.tmp` from an earlier
-/// crash makes the create fail, so run recovery first.
+/// superseded, and recovery finishes the job).
 pub fn compact(dir: &Path, inputs: &[PathBuf], opts: &StorageOptions) -> Result<CompactionOutcome> {
+    compact_observed(dir, inputs, opts, &Unobserved)
+}
+
+/// [`compact`], telling `observer` how it goes and stopping before the commit
+/// if it asks to.
+///
+/// # Errors
+/// As [`compact`]; [`StorageError::CompactionCancelled`] when `observer` asked
+/// to stop, which leaves the inputs live and no temporary file.
+pub fn compact_observed(
+    dir: &Path,
+    inputs: &[PathBuf],
+    opts: &StorageOptions,
+    observer: &dyn CompactionObserver,
+) -> Result<CompactionOutcome> {
     let refuse = |why| Err(StorageError::CompactionRefused(why));
     let mut readers = Vec::with_capacity(inputs.len());
     for p in inputs {
@@ -88,11 +107,9 @@ pub fn compact(dir: &Path, inputs: &[PathBuf], opts: &StorageOptions) -> Result<
         .iter()
         .map(|p| p.file_name().map(ToOwned::to_owned))
         .collect();
-    let missing = live_segments(dir)?.into_iter().any(|s| {
-        s.header.last_seq >= lo
-            && s.header.first_seq <= hi
-            && !names.contains(&s.path.file_name().map(ToOwned::to_owned))
-    });
+    let missing = overlapping_live(dir, lo, hi)?
+        .into_iter()
+        .any(|s| !names.contains(&s.path.file_name().map(ToOwned::to_owned)));
     if missing {
         return refuse("inputs leave out a live segment in their sequence range");
     }
@@ -109,7 +126,9 @@ pub fn compact(dir: &Path, inputs: &[PathBuf], opts: &StorageOptions) -> Result<
     header.generation = generation;
     let path = dir.join(SegmentName::of(&header).file_name());
     let tmp = tmp_path(&path);
-    let written = write_merged(&mut readers, &tmp, header, opts);
+    // One compaction per directory, so a file here is a failed rename's residue.
+    let _ = fs::remove_file(&tmp);
+    let written = write_merged(&mut readers, &tmp, header, opts, observer);
     let output = match written {
         Ok(o) => o,
         Err(e) => {
@@ -117,16 +136,20 @@ pub fn compact(dir: &Path, inputs: &[PathBuf], opts: &StorageOptions) -> Result<
             return Err(e);
         }
     };
+    observer.phase(CompactionPhase::OutputWritten);
     fs::rename(&tmp, &path).map_err(|e| StorageError::io("rename", &tmp, e))?;
     sync_dir(dir)?;
+    observer.phase(CompactionPhase::Committed);
     let chunks_before = readers.iter().map(|r| r.chunks().len()).sum();
     drop(readers);
     let mut bytes_before = 0;
     for p in inputs {
         bytes_before += fs::metadata(p).map(|m| m.len()).unwrap_or(0);
         fs::remove_file(p).map_err(|e| StorageError::io("remove", p, e))?;
+        observer.phase(CompactionPhase::InputRemoved);
     }
     sync_dir(dir)?;
+    observer.phase(CompactionPhase::InputsRemoved);
     let output = SegmentSummary { path, ..output };
     Ok(CompactionOutcome {
         output,
@@ -134,61 +157,4 @@ pub fn compact(dir: &Path, inputs: &[PathBuf], opts: &StorageOptions) -> Result<
         chunks_before,
         bytes_before,
     })
-}
-
-/// Writes the merged segment to `tmp`, sealed, and checks it holds exactly
-/// as many samples as the inputs.
-fn write_merged(
-    readers: &mut [SegmentReader],
-    tmp: &Path,
-    header: SegmentHeader,
-    opts: &StorageOptions,
-) -> Result<SegmentSummary> {
-    let mut plan: Vec<(u64, usize, usize)> = Vec::new();
-    for (i, r) in readers.iter().enumerate() {
-        plan.extend(
-            r.chunks()
-                .iter()
-                .enumerate()
-                .map(|(j, c)| (c.signal.get(), i, j)),
-        );
-    }
-    plan.sort();
-    let expected: u64 = readers
-        .iter()
-        .flat_map(|r| r.chunks())
-        .map(|c| u64::from(c.count))
-        .sum();
-    let mut w = SegmentWriter::create_at(tmp.to_path_buf(), header, *opts)?;
-    let mut acc: Option<Chunk> = None;
-    for (_, i, j) in plan {
-        let r = readers.get_mut(i).ok_or(StorageError::Sealed)?;
-        let meta = *r.chunks().get(j).ok_or(StorageError::Sealed)?;
-        let chunk = r.read_chunk(&meta)?;
-        acc = match acc.take() {
-            Some(mut a) if fits(&a, &chunk, opts) => {
-                a.extend(&chunk)?;
-                Some(a)
-            }
-            Some(a) => {
-                w.append_with(&a, Compression::ZstdSmallest)?;
-                Some(chunk)
-            }
-            None => Some(chunk),
-        };
-    }
-    if let Some(a) = acc {
-        w.append_with(&a, Compression::ZstdSmallest)?;
-    }
-    let out = w.seal()?;
-    if out.samples != expected {
-        return Err(StorageError::CompactionRefused(
-            "output sample count differs from inputs",
-        ));
-    }
-    Ok(out)
-}
-
-fn fits(a: &Chunk, b: &Chunk, opts: &StorageOptions) -> bool {
-    a.signal() == b.signal() && a.kind() == b.kind() && a.len() + b.len() <= opts.max_chunk_samples
 }
