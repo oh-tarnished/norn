@@ -1,0 +1,195 @@
+# nornctl
+
+The `nornctl` command, through the public gRPC API only. It never touches storage.
+Output below is real, from `nornctl` 0.1.0 on macOS.
+
+```text
+usage: nornctl [OPTIONS] COMMAND
+
+options:
+  --endpoint ENDPOINT  the daemon's endpoint, such as unix:/run/norn/norn.sock
+                       (default: the platform's per-user endpoint, as norn's)
+  --timeout SECONDS    give up on connecting or on any call after this long
+                       (default 5)
+  -h, --help           print this text
+```
+
+Exit status: 0 on success, 1 when a command failed, 2 for a command line it could
+not parse.
+
+## Commands
+
+| Command                                               | Does                                             |
+| ----------------------------------------------------- | ------------------------------------------------ |
+| `status`                                              | health, version, capabilities, limits, recovery  |
+| `version`                                             | protocol negotiation with the daemon             |
+| `streams`                                             | list streams, with sample counts                 |
+| `streams create ID`                                   | create a stream                                  |
+| `entities`                                            | list entities                                    |
+| `entities create ID`                                  | create an entity                                 |
+| `signals [ENTITY]`                                    | list signals, of one entity or all               |
+| `signals create ENTITY ID STREAM TYPE`                | create a signal                                  |
+| `append STREAM SIGNAL VALUE [--ack L] [--sequence N] [--at T]` | send one sample and wait for its ack |
+| `query TARGET [FLAGS]`                                | read samples or aggregates, streamed             |
+| `state TARGET [FLAGS]`                                | each signal's latest sample at an instant        |
+| `replay create TARGET [FLAGS]`, `replay ACTION NAME`  | a replay session and its clock                   |
+| `subscribe live TARGET`, `subscribe replay NAME`      | events as they come, numbered                    |
+
+`TYPE` is `bool`, `int32`, `int64`, `uint32`, `uint64`, `float`, `double`,
+`string`, `bytes` or `enum`. `--ack` takes `buffered`, `persisted` or `durable`,
+the default. `SIGNAL` is a full name such as `entities/ahu-01/signals/supply-temp`.
+
+## status
+
+```console
+$ nornctl status
+health: SERVING
+server_version: 0.1.0
+protocol: 1.3
+capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUERY_RANGE CAPABILITY_QUERY_AGGREGATES CAPABILITY_STATE_AT CAPABILITY_LIVE_SUBSCRIPTION CAPABILITY_REPLAY CAPABILITY_ACK_DURABLE
+start_time: 1793592369.624148000
+limits.max_batch_samples: 10000
+limits.max_batch_bytes: 4194304
+limits.max_pending_batches: 256
+limits.max_streams: 1024
+limits.max_replay_sessions: 16
+limits.max_subscriptions: 256
+recovery.streams: 0
+recovery.events: 0
+recovery.corruptions: 0
+recovery.replayed_samples: 0
+```
+
+`start_time` is seconds and nanoseconds since the Unix epoch. `recovery.*` describes
+the last start: see [operations](../guides/operations.md#crash-recovery).
+
+## version
+
+```console
+$ nornctl version
+client: nornctl/0.1.0
+client_protocol: 1.3
+server_version: 0.1.0
+agreed_protocol: 1.3
+```
+
+Unlike `status`, this negotiates, so an incompatible daemon fails here with its
+reason.
+
+## streams, entities, signals
+
+```console
+$ nornctl streams
+streams/plant samples=3
+$ nornctl entities
+entities/ahu-01
+$ nornctl signals ahu-01
+entities/ahu-01/signals/fan-on VALUE_TYPE_BOOL streams/plant
+entities/ahu-01/signals/supply-temp VALUE_TYPE_DOUBLE streams/plant
+```
+
+## append
+
+`--at T` sets the sample's `observe_time`, as `query` reads `T`; without it the sample is
+timed now. See [ingesting data](../guides/ingesting-data.md).
+
+## Not implemented
+
+SPEC section 33 also names `inspect`, `verify`, `compact`, `export`, `stats` and
+`benchmark`. None exists yet; each gives
+`unexpected argument` and exit status 2. They come with the stages that build them
+([roadmap](../../README.md#roadmap)).
+
+## streams
+
+```console
+$ nornctl streams
+streams/plant samples=7 buffered=7
+```
+
+`samples` is what a query can return. `buffered`, shown when not zero, is how many of
+those are not in a chunk yet. `corrupt`, shown when not zero, counts samples in chunks
+that failed verification at the last start, which `samples` leaves out.
+
+## query
+
+```text
+nornctl query TARGET [--from T] [--to T] [--where F] [--select F] [--agg FN]
+                     [--window D] [--order signal|time] [--limit N] [--resume TOKEN]
+```
+
+| Flag | Takes | Default |
+| --- | --- | --- |
+| `TARGET` | a signal's full name, an entity, or `all` | required |
+| `--from`, `--to` | half-open bounds: RFC 3339 in UTC, Unix seconds, `now`, `now-5m` | open |
+| `--where` | the sample filter, such as `"value > 20.5"` | every sample |
+| `--select` | a signal filter, as ListSignals takes | every signal of `TARGET` |
+| `--agg` | `latest`, `first`, `last`, `count`, `min`, `max`, `average`, `sum`, `rate` | raw samples |
+| `--window` | a window width: `500ms`, `10s`, `5m`, `1h`, `1d` | one window |
+| `--order` | raw order: `signal` or `time` | `signal` |
+| `--limit` | stop at the first response reaching this many results, and print `resume_token:`. It can print more than this: tokens have response granularity | no limit |
+| `--resume` | a token from a query with otherwise equal flags | the start |
+
+Samples print as `time signal value quality seq=N`, aggregates as `start end signal
+value count=N`, with `-` for an open end. `--timeout` bounds connecting and the first
+response, not the whole stream. The [querying guide](../guides/querying.md) has real
+output.
+
+## state
+
+```text
+nornctl state TARGET [--at T] [--max-age D] [--select F]
+```
+
+| Flag | Takes | Default |
+| --- | --- | --- |
+| `TARGET` | a signal's full name, an entity, or `all` | required |
+| `--at` | the instant: RFC 3339 in UTC, Unix seconds, `now`, `now-5m`; a sample at exactly it counts | `now` |
+| `--max-age` | a duration: `500ms`, `10s`, `5m`, `1h`, `1d`; an older sample is reported unknown | no limit |
+| `--select` | a signal filter, as ListSignals takes | every signal of `TARGET` |
+
+Prints `state_time:`, then one line a signal in name order: its latest sample as
+`query` prints one, or `- SIGNAL unknown` when it has none. It reads every page,
+each in its own call bounded by `--timeout`. The [replay and state
+guide](../guides/replay.md) has real output.
+
+## replay
+
+```text
+nornctl replay create TARGET --from T --to T [--speed X|max] [--id ID] [--select F]
+nornctl replay list
+nornctl replay get|pause|resume|stop|delete NAME
+nornctl replay seek NAME T
+nornctl replay step NAME N|D
+nornctl replay speed NAME X|max
+```
+
+| Argument | Takes |
+| --- | --- |
+| `TARGET` | a signal's full name, an entity, or `all`, as `query` |
+| `--from`, `--to` | the half-open interval, both required, as `query` reads `T` |
+| `--speed` | a multiple of real time (`0`, `1`, `10`, `100`, `0.5`; a trailing `x` is allowed), or `max`. Default `1` |
+| `--id` | the session's ID: lower-case letters, digits and hyphens, a letter first. Default: chosen by the daemon |
+| `NAME` | an ID or `replaySessions/ID` |
+| `step` | `N`, a number of sample events, or `D`, a duration such as `10s`, of virtual time |
+
+Every command but `list` and `delete` prints the session as one line:
+`NAME STATE at=CLOCK emitted=N pace=P from=START to=END`. `list` prints every session,
+oldest first. A refused control exits 1 with the daemon's reason. The [replay
+guide](../guides/replay.md#replay) has real output.
+
+## subscribe
+
+```text
+nornctl subscribe live TARGET [--select F] [--limit N]
+nornctl subscribe replay NAME [--resume] [--limit N]
+```
+
+Prints each event as `#N CLOCK` and then the sample as `query` prints one, `state` and a
+sample for what a signal held at a seek, or a clock event (`RUNNING`, `PAUSED`, `SEEKED`,
+`SPEED_CHANGED`, `ENDED`, `STOPPED`). It stops at the end of the stream, at `ENDED`, or
+after `--limit` events. `--resume` resumes the session once the subscription is open, so
+nothing is missed. A live subscription runs until stopped; one that falls behind exits 1
+with `ERROR_REASON_SUBSCRIBER_TOO_SLOW`. `--timeout` bounds connecting and the first
+response only.
+

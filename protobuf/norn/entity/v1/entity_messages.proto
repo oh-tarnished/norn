@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package norn.entity.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "norn/entity/v1/entity.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "EntityMessagesProto";
+option java_package = "local.norn.entity.v1";
+
+// The request for EntityService.CreateEntity.
+message CreateEntityRequest {
+  // The ID to give the entity, which becomes the last segment of its name.
+  string entity_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The entity to create. Its `name` is ignored.
+  Entity entity = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // Validate the request and return what would be created, storing nothing.
+  bool validate_only = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for EntityService.GetEntity.
+message GetEntityRequest {
+  // The entity, as `entities/{entity}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Entity"}
+  ];
+}
+
+// The request for EntityService.ListEntities.
+message ListEntitiesRequest {
+  // The most entities to return; the server caps it at 1000 and uses 100
+  // when it is zero.
+  int32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // The `next_page_token` of a previous call. Every other field must equal
+  // that call's, or the call fails with ERROR_REASON_INVALID_TOKEN.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // An AIP-160 filter over `display_name` and `annotations`, such as
+  // `annotations.site = "north"`.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for EntityService.ListEntities.
+message ListEntitiesResponse {
+  // The entities on this page, in name order.
+  repeated Entity entities = 1;
+
+  // Passed as `page_token` to read the next page; empty on the last one.
+  string next_page_token = 2;
+}
+
+// The request for EntityService.UpdateEntity.
+message UpdateEntityRequest {
+  // The entity, with `name` identifying it and new values in the fields
+  // that `update_mask` names. A set `etag` must match the current one.
+  Entity entity = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The fields to change. `*` replaces every mutable field.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Validate the request and return the result, storing nothing.
+  bool validate_only = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for EntityService.DeleteEntity.
+message DeleteEntityRequest {
+  // The entity, as `entities/{entity}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Entity"}
+  ];
+
+  // If set, the delete happens only if it matches the current etag.
+  string etag = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Validate the request, deleting nothing.
+  bool validate_only = 3 [(google.api.field_behavior) = OPTIONAL];
+}

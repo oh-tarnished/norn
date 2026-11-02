@@ -1,0 +1,11 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 140ff79cf1e66fc368550df7edb8bc4e60a671fb80b3d8b2d8f82ba66bac4581 # shrinks to sets = [[(0, 145, 1, 1)], [(0, 145, 1, 1), (0, 0, 1, 1)]], from = 0, span = 0, signals = [0]
+cc 59b36cfc80f64aafa80513579f3be49012d75ba043fe2a7d23b6f8ababb8ea5e # shrinks to sets = [[(0, 234, 1, 1)], [(0, 0, 1, 1), (0, 234, 1, 1)]], cuts = [], from = 0, signals = [0]
+cc 7471aaa46e6f4f46709d16f93b0c5279603ec4bbd2d6e3d0b1f9c774442ae8d5 # shrinks to sets = [[], [(0, 1813, 4, 38)]], from = 551, span = 1262, signals = [0]
+cc e10db94dfab9f94f3282466989b4fc5ddb3cdf016f9e43331f501c9bfe7f47c4 # shrinks to sets = [[(0, 0, 1, 1), (0, 1863, 3, 14)], []], cuts = [], from = 1563, signals = [0]
+cc e440302d88e4afdd121c15e048c7f045d74bd8738029ea491c560f735497e168 # shrinks to sets = [[(0, 198, 1, 1), (0, 0, 1, 1)], [(0, 0, 1, 1)]], cuts = [], from = 198, signals = [0]

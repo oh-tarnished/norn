@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package norn.stream.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "norn/stream/v1/stream.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StreamMessagesProto";
+option java_package = "local.norn.stream.v1";
+
+// The request for StreamService.CreateStream.
+message CreateStreamRequest {
+  // The ID to give the stream, the last segment of its name.
+  string stream_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The stream to create. Its `name` is ignored.
+  Stream stream = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // Validate the request and return what would be created, storing nothing.
+  bool validate_only = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for StreamService.GetStream.
+message GetStreamRequest {
+  // The stream, as `streams/{stream}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Stream"}
+  ];
+}
+
+// The request for StreamService.ListStreams.
+message ListStreamsRequest {
+  // The most streams to return; capped at 1000, 100 when zero.
+  int32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // The `next_page_token` of a previous call with otherwise equal fields.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // An AIP-160 filter over `display_name` and `annotations`.
+  string filter = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for StreamService.ListStreams.
+message ListStreamsResponse {
+  // The streams on this page, in name order.
+  repeated Stream streams = 1;
+
+  // Passed as `page_token` to read the next page; empty on the last one.
+  string next_page_token = 2;
+}
+
+// The request for StreamService.UpdateStream.
+message UpdateStreamRequest {
+  // The stream, with `name` identifying it and new values in the fields
+  // that `update_mask` names. A set `etag` must match the current one.
+  Stream stream = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The fields to change. `*` replaces every mutable field.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Validate the request and return the result, storing nothing.
+  bool validate_only = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for StreamService.DeleteStream.
+message DeleteStreamRequest {
+  // The stream, as `streams/{stream}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Stream"}
+  ];
+
+  // If set, the delete happens only if it matches the current etag.
+  string etag = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Validate the request, deleting nothing.
+  bool validate_only = 3 [(google.api.field_behavior) = OPTIONAL];
+}

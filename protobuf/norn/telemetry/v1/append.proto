@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package norn.telemetry.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/rpc/status.proto";
+import "norn/telemetry/v1/backpressure.proto";
+import "norn/type/sample.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AppendProto";
+option java_package = "local.norn.telemetry.v1";
+
+// One batch of samples on a TelemetryService.AppendSamples stream.
+//
+// A batch is atomic: it is admitted or rejected whole. Retrying a batch is
+// safe, because a sample equal in signal, `observe_time` and `sequence` to a
+// stored one is counted as a duplicate and not stored again.
+message AppendSamplesRequest {
+  // The stream every sample's signal records into, as `streams/{stream}`.
+  // Backpressure is decided per stream, so a batch names exactly one.
+  string stream = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Stream"}
+  ];
+
+  // Chosen by the client, unique and increasing within one call. Every
+  // response about this batch carries it.
+  int64 batch_id = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // The samples, in any order. At most norn.admin.v1.Limits
+  // `max_batch_samples` of them.
+  repeated norn.type.Sample samples = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // The level the client wants to hear about. The batch is complete, from
+  // the client's point of view, once a response reports this level.
+  AcknowledgementLevel ack_level = 4 [(google.api.field_behavior) = REQUIRED];
+}
+
+// What the daemon says about one batch.
+//
+// Every batch gets a first response as soon as it is admitted or rejected,
+// carrying `admission` and the level reached by then. If the batch was
+// admitted below the requested level, exactly one more response follows:
+// either at the requested level, or with `error` set if the batch can no
+// longer reach it. First responses arrive in batch order; second responses
+// for one stream arrive in batch order too.
+message AppendSamplesResponse {
+  // The batch this is about.
+  int64 batch_id = 1;
+
+  // The admission decision. Repeated unchanged in a second response.
+  Admission admission = 2;
+
+  // The highest level the batch has reached. Unset for a rejected batch.
+  AcknowledgementLevel ack_level = 3;
+
+  // Set when the batch was rejected or failed after admission, such as a
+  // write error before PERSISTED. Its details hold a google.rpc.ErrorInfo
+  // whose reason is a norn.type.ErrorReason.
+  google.rpc.Status error = 4;
+
+  // For BACKPRESSURE_REASON_INVALID_SAMPLES, every invalid sample.
+  repeated SampleError sample_errors = 5;
+
+  // Admitted samples already stored by an earlier batch, and so not stored
+  // again. Reported, never silently discarded.
+  int64 duplicate_count = 6;
+}
+
+// Why one sample of a batch is invalid.
+message SampleError {
+  // The sample's position in `AppendSamplesRequest.samples`, from zero.
+  int32 index = 1;
+
+  // What is wrong, with a google.rpc.ErrorInfo detail such as
+  // ERROR_REASON_SIGNAL_NOT_FOUND or ERROR_REASON_VALUE_TYPE_MISMATCH.
+  google.rpc.Status status = 2;
+}

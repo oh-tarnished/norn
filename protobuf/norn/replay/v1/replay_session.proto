@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package norn.replay.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+import "google/type/interval.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ReplaySessionProto";
+option java_package = "local.norn.replay.v1";
+
+// A deterministic replay of stored history, driven by a virtual clock that
+// is independent of wall time (SPEC sections 25 and 28). Events are read
+// through norn.telemetry.v1.TelemetryService.SubscribeEvents in REPLAY mode.
+//
+// Determinism: a session emits the samples selected by `scope` and `filter`
+// whose `observe_time` lies in `interval`, ordered by `observe_time`, then
+// `sequence`, then signal name. The events and their order depend only on
+// those fields and on the seeks and steps applied, never on speed, pauses,
+// or how fast subscribers read.
+//
+// A session starts PAUSED at the start of its interval, so subscribers can
+// attach before anything is emitted. Sessions are bounded: the daemon
+// limits how many exist, and removes one idle past `expire_time`.
+message ReplaySession {
+  option (google.api.resource) = {
+    type: "norn.local/ReplaySession"
+    pattern: "replaySessions/{replay_session}"
+    singular: "replaySession"
+    plural: "replaySessions"
+  };
+
+  // The resource name, `replaySessions/{replay_session}`.
+  string name = 1 [(google.api.field_behavior) = IDENTIFIER];
+
+  // The half-open interval of `observe_time` to replay. Both ends are
+  // required.
+  google.type.Interval interval = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE
+  ];
+
+  // Whose signals to replay, as `entities/{entity}`, or `entities/-` for
+  // every entity.
+  string scope = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (google.api.resource_reference) = {child_type: "norn.local/Signal"}
+  ];
+
+  // An AIP-160 filter selecting signals within `scope`, as in ListSignals.
+  string filter = 4 [
+    (google.api.field_behavior) = OPTIONAL,
+    (google.api.field_behavior) = IMMUTABLE
+  ];
+
+  // How fast the virtual clock runs while RUNNING. Unset means 1x.
+  oneof pace {
+    // A multiple of real time: 1 is real time, 100 is a hundred times
+    // faster, 0.5 half speed. 0 freezes the clock, so it moves only by
+    // StepReplaySession. Must be finite and not negative.
+    double speed = 5;
+    // When true, the clock jumps straight to each next event, so events are
+    // emitted as fast as subscribers read them (SPEC's "maximum" speed).
+    bool max_speed = 6;
+  }
+
+  // Whether the clock is advancing.
+  ReplayState state = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The virtual clock: every selected sample with an earlier
+  // `observe_time` has been emitted, and none with a later one.
+  google.protobuf.Timestamp current_time = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Events emitted since the session's last seek or creation. Together with
+  // `current_time` it is the exact cursor, even among equal timestamps.
+  int64 emitted_count = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // When the session was created.
+  google.protobuf.Timestamp create_time = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // When the session's controls last changed.
+  google.protobuf.Timestamp update_time = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // When the daemon will delete the session unless a method touches it
+  // first. Every call naming the session, and every live subscription to
+  // it, pushes this back by the daemon's idle timeout.
+  google.protobuf.Timestamp expire_time = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Changes whenever the session's controls or state do (AIP-154). Control
+  // methods accept it, so two controllers cannot interleave unknowingly.
+  string etag = 13 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// Whether a session's virtual clock is advancing.
+enum ReplayState {
+  // Not set. Never sent.
+  REPLAY_STATE_UNSPECIFIED = 0;
+  // The clock is stopped where it is; StepReplaySession and
+  // ResumeReplaySession move it. Every session starts here.
+  REPLAY_STATE_PAUSED = 1;
+  // The clock advances at the session's pace.
+  REPLAY_STATE_RUNNING = 2;
+  // The clock reached the end of the interval. Seeking back makes the
+  // session PAUSED again.
+  REPLAY_STATE_ENDED = 3;
+  // StopReplaySession was called. Terminal: no method changes the session
+  // again, and it can only be read or deleted.
+  REPLAY_STATE_STOPPED = 4;
+}

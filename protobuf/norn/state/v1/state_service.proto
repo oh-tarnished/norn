@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package norn.state.v1;
+
+import "google/api/annotations.proto";
+import "google/api/client.proto";
+import "norn/state/v1/state.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StateServiceProto";
+option java_package = "local.norn.state.v1";
+
+// StateService answers "what did the system look like at time T" (SPEC
+// sections 23 and 26). Callers name an instant; checkpoints and chunks stay
+// internal.
+service StateService {
+  // The default host; see norn.entity.v1.EntityService.
+  option (google.api.default_host) = "norn.local";
+
+  // Computes the state of the selected signals at an instant: for each, the
+  // latest sample at or before it. Deterministic: the result equals what a
+  // replay of every selected sample up to and including the instant would
+  // leave behind (SPEC section 36). This is SPEC's StateAt(T); AIP-136
+  // keeps prepositions out of method names, so the instant is the
+  // `state_time` field. A custom method rather than a Get, because the
+  // state is computed, not stored.
+  rpc ComputeState(ComputeStateRequest) returns (ComputeStateResponse) {
+    option (google.api.http) = {
+      post: "/v1/{parent=entities/*}/signals:computeState"
+      body: "*"
+    };
+    option (google.api.method_signature) = "parent,state_time";
+  }
+}

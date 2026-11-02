@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package norn.telemetry.v1;
+
+import "google/api/annotations.proto";
+import "google/api/client.proto";
+import "norn/telemetry/v1/append.proto";
+import "norn/telemetry/v1/event.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "TelemetryServiceProto";
+option java_package = "local.norn.telemetry.v1";
+
+// TelemetryService moves samples: into Norn, and out of it as events.
+service TelemetryService {
+  // The default host; see norn.entity.v1.EntityService.
+  option (google.api.default_host) = "norn.local";
+
+  // Writes batches of samples and reports, per batch, the backpressure
+  // decision and the acknowledgement level reached (SPEC sections 18-19).
+  // Bidirectional so a client can keep batches in flight and learn of
+  // backpressure without waiting for each write. Closing the request side
+  // lets every in-flight batch finish; the daemon then closes its side.
+  //
+  // It has no HTTP mapping: AIP-127 leaves bidirectional streams to gRPC.
+  rpc AppendSamples(stream AppendSamplesRequest) returns (stream AppendSamplesResponse);
+
+  // Follows events, live or replayed, through one method (SPEC section 27).
+  //
+  // A LIVE subscription gets every sample admitted after it starts. Its
+  // queue is bounded; a subscriber that falls behind it is ended with
+  // RESOURCE_EXHAUSTED and ERROR_REASON_SUBSCRIBER_TOO_SLOW rather than
+  // having events skipped. A REPLAY subscription instead slows the
+  // session's clock to the slowest subscriber, because replay is
+  // deterministic and its consumers must see every event in order.
+  rpc SubscribeEvents(SubscribeEventsRequest) returns (stream SubscribeEventsResponse) {
+    option (google.api.http) = {
+      post: "/v1/events:subscribe"
+      body: "*"
+    };
+  }
+}

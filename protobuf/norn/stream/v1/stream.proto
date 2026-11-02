@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package norn.stream.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StreamProto";
+option java_package = "local.norn.stream.v1";
+
+// A logical sequence of temporal observations (SPEC section 10): the unit of
+// storage, retention, compaction and export. Every signal records into
+// exactly one stream; a stream holds the samples of many signals.
+message Stream {
+  option (google.api.resource) = {
+    type: "norn.local/Stream"
+    pattern: "streams/{stream}"
+    singular: "stream"
+    plural: "streams"
+  };
+
+  // The resource name, `streams/{stream}`. `{stream}` is 1 to 63
+  // characters of `[a-z0-9-]`, starting with a letter.
+  string name = 1 [(google.api.field_behavior) = IDENTIFIER];
+
+  // A human-readable name, at most 256 characters.
+  string display_name = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // How long the stream keeps history. Unset keeps it forever.
+  RetentionPolicy retention = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // Free-form metadata owned by the creator; limits as on an entity.
+  map<string, string> annotations = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // What the stream currently holds, as of the read.
+  StreamStats stats = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // When the stream was created.
+  google.protobuf.Timestamp create_time = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // When the stream's settings were last changed.
+  google.protobuf.Timestamp update_time = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Changes whenever the stream's settings do (AIP-154).
+  string etag = 8 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// When history becomes eligible for removal (SPEC section 43). Retention is
+// always explicit: a stream without a policy keeps everything, and removal
+// happens only at whole-chunk granularity once every sample in the chunk
+// is past the limit, so a policy never removes data it does not cover.
+message RetentionPolicy {
+  // The limit. Unset means keep forever.
+  oneof limit {
+    // Remove chunks whose newest sample is older than this, measured from
+    // the newest sample in the stream rather than the wall clock, so a
+    // stream that stops receiving data does not empty itself.
+    google.protobuf.Duration max_age = 1;
+    // Remove the oldest chunks while the stream's stored size exceeds this
+    // many bytes. Must be positive.
+    int64 max_bytes = 2;
+  }
+}
+
+// Totals for a stream, held in memory, so cheap to read. They count a sample
+// from before its PERSISTED acknowledgement, and a flush changes no total.
+message StreamStats {
+  // Samples a query can return: those stored and those buffered. Samples in
+  // chunks that failed verification at the daemon's last start are excluded.
+  int64 sample_count = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Bytes on disk, after encoding and compression.
+  int64 stored_bytes = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The earliest `observe_time` held; unset when the stream is empty.
+  google.protobuf.Timestamp oldest_sample_time = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The latest `observe_time` held; unset when the stream is empty.
+  google.protobuf.Timestamp newest_sample_time = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Of `sample_count`, the samples in write buffers and not in a segment yet.
+  int64 buffered_sample_count = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Samples in chunks that failed verification at the daemon's last start. A
+  // chunk damaged since then is counted here only after the next start, though
+  // a query reaching it reports it at once.
+  int64 corrupt_sample_count = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+}

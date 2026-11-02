@@ -1,0 +1,31 @@
+[package]
+name = "norn-ipc"
+description = "Norn's gRPC control plane over local IPC: tonic serving and client channels."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Dependencies (SPEC §39), each justified in docs/reference/ipc.md and declared in the
+# root Cargo.toml. All but norn-transport
+# are already in tonic's own dependency graph; naming them only exposes the
+# types tonic's custom-transport hooks require.
+[dependencies]
+norn-transport = { path = "../transport" }
+tonic = { workspace = true, features = ["transport", "router"] }
+tokio = { workspace = true, features = ["time", "macros"] }
+tokio-util = { workspace = true }
+hyper-util = { workspace = true, features = ["tokio"] }
+tower = { workspace = true, features = ["util"] }
+futures-core = { workspace = true }
+http = { workspace = true }
+http-body = { workspace = true }
+bytes = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
+tonic-health = { workspace = true }
+
+[lints]
+workspace = true

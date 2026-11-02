@@ -1,0 +1,24 @@
+[package]
+name = "norn-index"
+description = "Norn's temporal index: sparse, bounded, and rebuilt from segment directories alone."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+# No third-party dependency (SPEC §39). The snapshot swap is std's RwLock around
+# an Arc, the checksum is norn-storage's, the cache a HashMap and a BTreeMap.
+[dependencies]
+norn-core = { path = "../core" }
+norn-storage = { path = "../storage" }
+
+[dev-dependencies]
+proptest = { workspace = true }
+
+[[bench]]
+name = "year"
+harness = false

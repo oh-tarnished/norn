@@ -1,0 +1,45 @@
+# cargo-deny: licences, advisories, bans and sources across the whole graph.
+# `just deny` runs it locally; CI runs it on every change.
+
+[graph]
+all-features = true
+
+[advisories]
+# Every advisory fails unless ignored here with a reason.
+version = 2
+yanked = "deny"
+ignore = []
+
+[licenses]
+version = 2
+# Permissive licences only (the brief): anything else is an explicit decision.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+]
+confidence-threshold = 0.9
+# The allow-list is policy, not inventory: a licence not yet in the graph is
+# still allowed.
+unused-allowed-license = "allow"
+
+[licenses.private]
+# This allow-list governs third-party dependencies. Norn's unpublished
+# crates use AGPL-3.0-or-later; norn-protocol uses Apache-2.0 (README.md).
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

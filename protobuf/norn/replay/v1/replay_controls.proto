@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package norn.replay.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ReplayControlsProto";
+option java_package = "local.norn.replay.v1";
+
+// The request for ReplayService.PauseReplaySession.
+message PauseReplaySessionRequest {
+  // The session, as `replaySessions/{replay_session}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/ReplaySession"}
+  ];
+
+  // If set, the call succeeds only if it matches the current etag.
+  string etag = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for ReplayService.ResumeReplaySession.
+message ResumeReplaySessionRequest {
+  // The session, as `replaySessions/{replay_session}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/ReplaySession"}
+  ];
+
+  // If set, the call succeeds only if it matches the current etag.
+  string etag = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for ReplayService.SeekReplaySession.
+message SeekReplaySessionRequest {
+  // The session, as `replaySessions/{replay_session}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/ReplaySession"}
+  ];
+
+  // Where to put the clock; must lie within the session's interval. The
+  // next sample emitted is the first with `observe_time` at or after it.
+  google.protobuf.Timestamp seek_time = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // If set, the call succeeds only if it matches the current etag.
+  string etag = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for ReplayService.StepReplaySession.
+message StepReplaySessionRequest {
+  // The session, as `replaySessions/{replay_session}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/ReplaySession"}
+  ];
+
+  // How far to step. Exactly one is required.
+  oneof step {
+    // Emit exactly this many next events, or fewer if the interval ends
+    // first. Must be positive.
+    int32 event_count = 2;
+    // Advance the clock by this much virtual time, emitting every sample
+    // passed. Must be positive.
+    google.protobuf.Duration duration = 3;
+  }
+
+  // If set, the call succeeds only if it matches the current etag.
+  string etag = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for ReplayService.StopReplaySession.
+message StopReplaySessionRequest {
+  // The session, as `replaySessions/{replay_session}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/ReplaySession"}
+  ];
+
+  // If set, the call succeeds only if it matches the current etag.
+  string etag = 2 [(google.api.field_behavior) = OPTIONAL];
+}

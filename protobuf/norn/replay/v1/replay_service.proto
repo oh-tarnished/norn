@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package norn.replay.v1;
+
+import "google/api/annotations.proto";
+import "google/api/client.proto";
+import "google/protobuf/empty.proto";
+import "norn/replay/v1/replay_controls.proto";
+import "norn/replay/v1/replay_messages.proto";
+import "norn/replay/v1/replay_session.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ReplayServiceProto";
+option java_package = "local.norn.replay.v1";
+
+// ReplayService creates replay sessions and drives their virtual clocks.
+// The clock controls are custom methods (AIP-136) because each is a state
+// transition with its own rules, not a field write. Every control returns
+// the session as it is after the transition, and fails with
+// FAILED_PRECONDITION and ERROR_REASON_REPLAY_STATE_CONFLICT when the
+// session's state forbids it.
+service ReplayService {
+  // The default host; see norn.entity.v1.EntityService.
+  option (google.api.default_host) = "norn.local";
+
+  // Creates a session, PAUSED at the start of its interval.
+  rpc CreateReplaySession(CreateReplaySessionRequest) returns (ReplaySession) {
+    option (google.api.http) = {
+      post: "/v1/replaySessions"
+      body: "replay_session"
+    };
+    option (google.api.method_signature) = "replay_session,replay_session_id";
+  }
+
+  // Reads a session, including its clock.
+  rpc GetReplaySession(GetReplaySessionRequest) returns (ReplaySession) {
+    option (google.api.http) = {get: "/v1/{name=replaySessions/*}"};
+    option (google.api.method_signature) = "name";
+  }
+
+  // Lists sessions in creation order.
+  rpc ListReplaySessions(ListReplaySessionsRequest) returns (ListReplaySessionsResponse) {
+    option (google.api.http) = {get: "/v1/replaySessions"};
+    option (google.api.method_signature) = "";
+  }
+
+  // Changes the session's pace, the only mutable setting. Subscribers see
+  // CLOCK_EVENT_KIND_SPEED_CHANGED.
+  rpc UpdateReplaySession(UpdateReplaySessionRequest) returns (ReplaySession) {
+    option (google.api.http) = {
+      patch: "/v1/{replay_session.name=replaySessions/*}"
+      body: "replay_session"
+    };
+    option (google.api.method_signature) = "replay_session,update_mask";
+  }
+
+  // Deletes a session, stopping it first if it is not STOPPED.
+  rpc DeleteReplaySession(DeleteReplaySessionRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {delete: "/v1/{name=replaySessions/*}"};
+    option (google.api.method_signature) = "name";
+  }
+
+  // Stops the clock: RUNNING becomes PAUSED. Pausing a PAUSED session is a
+  // no-op, so the method is idempotent.
+  rpc PauseReplaySession(PauseReplaySessionRequest) returns (ReplaySession) {
+    option (google.api.http) = {
+      post: "/v1/{name=replaySessions/*}:pause"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name";
+  }
+
+  // Starts the clock: PAUSED becomes RUNNING. Resuming a RUNNING session is
+  // a no-op; resuming an ENDED or STOPPED one is a state conflict.
+  rpc ResumeReplaySession(ResumeReplaySessionRequest) returns (ReplaySession) {
+    option (google.api.http) = {
+      post: "/v1/{name=replaySessions/*}:resume"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name";
+  }
+
+  // Moves the clock to a time within the interval without emitting the
+  // samples skipped. The session keeps its state, except that an ENDED
+  // session becomes PAUSED.
+  rpc SeekReplaySession(SeekReplaySessionRequest) returns (ReplaySession) {
+    option (google.api.http) = {
+      post: "/v1/{name=replaySessions/*}:seek"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name,seek_time";
+  }
+
+  // Advances a PAUSED clock by a number of events or a span of virtual
+  // time, emitting what it passes, and leaves it PAUSED.
+  rpc StepReplaySession(StepReplaySessionRequest) returns (ReplaySession) {
+    option (google.api.http) = {
+      post: "/v1/{name=replaySessions/*}:step"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name";
+  }
+
+  // Ends the session for good: subscribers receive CLOCK_EVENT_KIND_STOPPED
+  // and their streams close. Stopping a STOPPED session is a no-op.
+  rpc StopReplaySession(StopReplaySessionRequest) returns (ReplaySession) {
+    option (google.api.http) = {
+      post: "/v1/{name=replaySessions/*}:stop"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name";
+  }
+}

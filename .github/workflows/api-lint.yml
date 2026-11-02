@@ -1,0 +1,54 @@
+name: API lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  aip:
+    name: Protobuf, Google AIP and generated code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: extractions/setup-just@v4
+      - uses: Swatinem/rust-cache@v2
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: 1.75.0
+          github_token: ${{ github.token }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: false
+      - run: just api-lint-tools gen-tools
+      - run: just buf
+      - run: just api-lint
+      - run: just gen-check
+      - name: Check protobuf compatibility with the previous schema
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            echo "No previous commit for this event; no compatibility baseline."
+          else
+            if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+              git fetch --no-tags origin "$BASE_SHA"
+            fi
+            if git cat-file -e "$BASE_SHA:buf.yaml" 2>/dev/null; then
+              just buf-breaking ".git#ref=$BASE_SHA"
+            else
+              echo "The previous commit predates buf.yaml; no schema to compare."
+            fi
+          fi

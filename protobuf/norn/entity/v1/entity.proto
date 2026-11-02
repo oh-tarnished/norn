@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package norn.entity.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "EntityProto";
+option java_package = "local.norn.entity.v1";
+
+// A thing that exists and has observable properties: a machine, a room, a
+// vehicle, a sensor (SPEC section 10). Norn attaches no meaning to what kind
+// of thing it is; that lives in `annotations`, owned by whoever created it.
+message Entity {
+  option (google.api.resource) = {
+    type: "norn.local/Entity"
+    pattern: "entities/{entity}"
+    singular: "entity"
+    plural: "entities"
+  };
+
+  // The resource name, `entities/{entity}`. `{entity}` is chosen by the
+  // creator: 1 to 63 characters of `[a-z0-9-]`, starting with a letter.
+  string name = 1 [(google.api.field_behavior) = IDENTIFIER];
+
+  // A human-readable name, at most 256 characters.
+  string display_name = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Free-form metadata owned by the creator, such as the source protocol
+  // and its addressing. By default keys are at most 128 bytes, values at most
+  // 1024 bytes, and an entity carries at most 64 entries; the daemon's
+  // configuration sets these. Norn filters on the keys but never interprets
+  // them.
+  map<string, string> annotations = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // When the entity was created.
+  google.protobuf.Timestamp create_time = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // When the entity was last changed.
+  google.protobuf.Timestamp update_time = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Changes whenever the entity does. Sent back on update or delete, it
+  // makes the change conditional on nobody having changed it since (AIP-154).
+  string etag = 6 [(google.api.field_behavior) = OPTIONAL];
+}

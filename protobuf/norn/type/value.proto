@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package norn.type;
+
+import "google/api/field_behavior.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ValueProto";
+option java_package = "local.norn.type";
+
+// A single observed value. Exactly one member of `kind` is set; an unset
+// `kind` is malformed and is rejected wherever a Value is accepted.
+//
+// The members are the scalar types of SPEC section 10. A future type is a new
+// oneof member with a new field number, so an older peer sees an unknown
+// field rather than a misread one, and rejects the value instead of guessing.
+message Value {
+  // The value itself.
+  oneof kind {
+    // A boolean value.
+    bool bool_value = 1;
+    // A signed 32-bit integer.
+    int32 int32_value = 2;
+    // A signed 64-bit integer.
+    int64 int64_value = 3;
+    // An unsigned 32-bit integer, from 0 to 2^32 - 1, which int64 holds
+    // exactly (AIP-141 forbids unsigned wire types). A value outside that
+    // range is rejected.
+    int64 uint32_value = 4;
+    // An unsigned 64-bit integer, carried as the int64 with the same 64 bits
+    // (AIP-141 forbids unsigned wire types). The wire encoding is identical
+    // to uint64's, so nothing is lost; a value of 2^63 or more reads as
+    // negative to a client that does not reinterpret it, which only the JSON
+    // mapping can show. The signal's ValueType says which reading applies.
+    int64 uint64_value = 5;
+    // An IEEE 754 binary32 float. NaN and the infinities are legal values
+    // and are stored bit-exactly, payload included.
+    float float_value = 6;
+    // An IEEE 754 binary64 float, stored bit-exactly like `float_value`.
+    double double_value = 7;
+    // A UTF-8 string.
+    string string_value = 8;
+    // Opaque bytes, never interpreted by Norn.
+    bytes bytes_value = 9;
+    // A member of an enumeration the signal declares.
+    EnumValue enum_value = 10;
+  }
+}
+
+// A member of an enumeration, such as a multi-state point's current state.
+//
+// Norn stores and compares the number only. The symbol is a convenience for
+// readers, carried so a value can be shown without a metadata lookup; it is
+// never used for ordering, equality or aggregation.
+message EnumValue {
+  // The member's number within its enumeration, zero or more. A negative
+  // number is rejected.
+  int32 number = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The member's symbolic name, such as `OCCUPIED`, if the writer knows it.
+  string symbol = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The type of every value a signal records. A signal declares its type once,
+// at creation, and every sample written to it must carry a Value of that
+// type: the encoding Norn chooses for a chunk depends on it.
+enum ValueType {
+  // Not set. Never valid on a signal.
+  VALUE_TYPE_UNSPECIFIED = 0;
+  // `Value.bool_value`.
+  VALUE_TYPE_BOOL = 1;
+  // `Value.int32_value`.
+  VALUE_TYPE_INT32 = 2;
+  // `Value.int64_value`.
+  VALUE_TYPE_INT64 = 3;
+  // `Value.uint32_value`.
+  VALUE_TYPE_UINT32 = 4;
+  // `Value.uint64_value`.
+  VALUE_TYPE_UINT64 = 5;
+  // `Value.float_value`.
+  VALUE_TYPE_FLOAT = 6;
+  // `Value.double_value`.
+  VALUE_TYPE_DOUBLE = 7;
+  // `Value.string_value`.
+  VALUE_TYPE_STRING = 8;
+  // `Value.bytes_value`.
+  VALUE_TYPE_BYTES = 9;
+  // `Value.enum_value`.
+  VALUE_TYPE_ENUM = 10;
+}

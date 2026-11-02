@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package norn.signal.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "norn/signal/v1/signal.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SignalMessagesProto";
+option java_package = "local.norn.signal.v1";
+
+// The request for SignalService.CreateSignal.
+message CreateSignalRequest {
+  // The owning entity, as `entities/{entity}`.
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {child_type: "norn.local/Signal"}
+  ];
+
+  // The ID to give the signal, the last segment of its name.
+  string signal_id = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // The signal to create. Its `name` is ignored.
+  Signal signal = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // Validate the request and return what would be created, storing nothing.
+  bool validate_only = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for SignalService.GetSignal.
+message GetSignalRequest {
+  // The signal, as `entities/{entity}/signals/{signal}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Signal"}
+  ];
+}
+
+// The request for SignalService.ListSignals.
+message ListSignalsRequest {
+  // The entity, as `entities/{entity}`, or `entities/-` for all of them.
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {child_type: "norn.local/Signal"}
+  ];
+
+  // The most signals to return; capped at 1000, 100 when zero.
+  int32 page_size = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // The `next_page_token` of a previous call with otherwise equal fields.
+  string page_token = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // An AIP-160 filter over `display_name`, `value_type`, `stream`, `unit`
+  // and `annotations`, such as `stream = "streams/plant"`.
+  string filter = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for SignalService.ListSignals.
+message ListSignalsResponse {
+  // The signals on this page, in name order.
+  repeated Signal signals = 1;
+
+  // Passed as `page_token` to read the next page; empty on the last one.
+  string next_page_token = 2;
+}
+
+// The request for SignalService.UpdateSignal.
+message UpdateSignalRequest {
+  // The signal, with `name` identifying it and new values in the fields
+  // that `update_mask` names. A set `etag` must match the current one.
+  Signal signal = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The fields to change. `*` replaces every mutable field.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Validate the request and return the result, storing nothing.
+  bool validate_only = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for SignalService.DeleteSignal.
+message DeleteSignalRequest {
+  // The signal, as `entities/{entity}/signals/{signal}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Signal"}
+  ];
+
+  // If set, the delete happens only if it matches the current etag.
+  string etag = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Validate the request, deleting nothing.
+  bool validate_only = 3 [(google.api.field_behavior) = OPTIONAL];
+}

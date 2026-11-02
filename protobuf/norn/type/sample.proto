@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package norn.type;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+import "norn/type/quality.proto";
+import "norn/type/value.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SampleProto";
+option java_package = "local.norn.type";
+
+// A timestamped observation of one signal: the unit Norn stores, queries,
+// replays and streams (SPEC section 10).
+//
+// Ordering: samples of one signal are ordered by `observe_time`, then by
+// `sequence`. Two samples of one signal with equal time and equal sequence
+// are the same observation; Norn keeps the first and reports the second as a
+// duplicate rather than storing it twice.
+message Sample {
+  // The signal observed, as `entities/{entity}/signals/{signal}`.
+  string signal = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Signal"}
+  ];
+
+  // When the source observed the value, not when Norn received it. Norn
+  // stores nanosecond precision and never rewrites the time it is given.
+  google.protobuf.Timestamp observe_time = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // What was observed. Its type must be the signal's `value_type`.
+  Value value = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // How far the source trusts the value.
+  Quality quality = 4 [(google.api.field_behavior) = REQUIRED];
+
+  // The source's sequence number for this observation: non-decreasing per
+  // signal, so it orders samples with equal times and exposes gaps. Norn
+  // preserves it exactly and does not require it dense. Zero or more; a
+  // negative sequence is rejected.
+  int64 sequence = 5 [(google.api.field_behavior) = OPTIONAL];
+}

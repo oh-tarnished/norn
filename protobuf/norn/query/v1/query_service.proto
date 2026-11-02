@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package norn.query.v1;
+
+import "google/api/annotations.proto";
+import "google/api/client.proto";
+import "norn/query/v1/query.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "QueryServiceProto";
+option java_package = "local.norn.query.v1";
+
+// QueryService reads stored history: raw ranges and aggregates.
+service QueryService {
+  // The default host; see norn.entity.v1.EntityService.
+  option (google.api.default_host) = "norn.local";
+
+  // Reads samples or aggregates of the selected signals (SPEC section 22).
+  //
+  // Server-streaming so a result of any size flows in bounded memory on
+  // both sides: the daemon never builds the whole result, and a consumer
+  // that stops reading stalls the query rather than growing a buffer. Each
+  // message carries a resume token, so a broken stream continues where it
+  // stopped instead of starting over.
+  rpc QuerySamples(QuerySamplesRequest) returns (stream QuerySamplesResponse) {
+    option (google.api.http) = {
+      post: "/v1/{parent=entities/*}/signals:querySamples"
+      body: "*"
+    };
+    option (google.api.method_signature) = "parent,interval";
+  }
+}

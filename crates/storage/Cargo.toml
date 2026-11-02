@@ -1,0 +1,25 @@
+[package]
+name = "norn-storage"
+description = "Norn's native on-disk format: segments of checksummed, independently recoverable chunks."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+# No third-party dependency (SPEC §39): CRC32C is implemented in
+# `src/crc32c.rs` (about 40 lines, table-driven, no unsafe), and file I/O is
+# std. See docs/reference/storage.md "Checksums" for why CRC32C over xxHash64.
+[dependencies]
+norn-core = { path = "../core" }
+norn-codec = { path = "../codec" }
+
+[dev-dependencies]
+proptest = { workspace = true }
+
+[[bench]]
+name = "ingest"
+harness = false

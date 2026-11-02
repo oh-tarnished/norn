@@ -1,0 +1,38 @@
+# Norn's protocol module. protobuf/ is the source of truth for the public API;
+# the Rust in crates/protocol/src/generated is produced from it by `just gen`.
+# docs/reference/protocol.md explains the design; this file only configures buf.
+version: v2
+modules:
+  - path: protobuf
+lint:
+  use:
+    - STANDARD
+    # Every service, method, message, field, enum, value and oneof carries a
+    # comment: the schema is the API reference.
+    - COMMENTS
+  except:
+    # buf's STANDARD category and Google AIP disagree here, and AIP is the
+    # authority for this schema (SPEC section 8).
+    #
+    # AIP-131, AIP-133 and AIP-134 require Get, Create and Update to return
+    # the resource itself, AIP-135 a Delete to return google.protobuf.Empty,
+    # and AIP-151 a long-running method to return google.longrunning.Operation.
+    # buf wants a unique XResponse wrapper per method instead, which would
+    # fail the AIP linter that CI gates on.
+    - RPC_REQUEST_RESPONSE_UNIQUE
+    - RPC_RESPONSE_STANDARD_NAME
+  ignore_only:
+    # norn.type is an AIP-213 component package, like google.type: shared by
+    # every API package and, by that AIP's convention, unversioned. AIP-215
+    # exempts only a `.type` package from its ban on foreign type references.
+    PACKAGE_VERSION_SUFFIX:
+      - protobuf/norn/type
+breaking:
+  use:
+    # WIRE_JSON: a change is breaking if it breaks a client on the wire or in
+    # the canonical JSON mapping. FILE would also forbid moving a message
+    # between files, which the 200-line limit makes routine and which no
+    # client can observe.
+    - WIRE_JSON
+deps:
+  - buf.build/googleapis/googleapis

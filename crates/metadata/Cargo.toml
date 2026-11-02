@@ -1,0 +1,16 @@
+[package]
+name = "norn-metadata"
+description = "Norn's durable registry of entities, signals and streams."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# No third-party dependency (SPEC §39): the log's CRC is small and std does the
+# file I/O. norn-core is the only import the layer table allows.
+[dependencies]
+norn-core = { path = "../core" }
+
+[lints]
+workspace = true

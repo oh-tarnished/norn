@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="831" height="216" viewBox="0 0 831 216" role="img" aria-label="nornctl append">
+<rect width="831" height="216" rx="8" fill="#0d1117"/>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" xml:space="preserve">
+<text x="16" y="24" fill="#8b949e">nornctl append</text>
+<text x="16" y="60" fill="#7ee787">$ nornctl append plant entities/ahu-01/signals/supply-temp 21.5</text>
+<text x="16" y="80" fill="#e6edf3">BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED</text>
+<text x="16" y="100" fill="#e6edf3">BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_DURABLE</text>
+<text x="16" y="120" fill="#7ee787">$ nornctl append plant entities/ahu-01/signals/supply-temp 21.75 --ack persisted --sequence 2</text>
+<text x="16" y="140" fill="#e6edf3">BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED</text>
+<text x="16" y="160" fill="#e6edf3">BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_PERSISTED</text>
+<text x="16" y="180" fill="#7ee787">$ nornctl append plant entities/ahu-01/signals/supply-temp 22 --ack buffered --sequence 3</text>
+<text x="16" y="200" fill="#e6edf3">BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED</text>
+</g>
+</svg>

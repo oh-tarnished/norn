@@ -1,0 +1,22 @@
+[package]
+name = "norn-state"
+description = "Norn's state reconstruction: StateAt, and the pinned pages that describe one state."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+# No third-party dependency (SPEC §39): the query engine does the reading.
+[dependencies]
+norn-core = { path = "../core" }
+norn-query = { path = "../query" }
+
+[dev-dependencies]
+# The query crate's test rig, shared by path, needs what it needs.
+norn-index = { path = "../index" }
+norn-storage = { path = "../storage" }
+proptest = { workspace = true }

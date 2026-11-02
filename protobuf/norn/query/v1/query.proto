@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package norn.query.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/duration.proto";
+import "google/type/interval.proto";
+import "norn/type/sample.proto";
+import "norn/type/value.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "QueryProto";
+option java_package = "local.norn.query.v1";
+
+// The request for QueryService.QuerySamples.
+message QuerySamplesRequest {
+  // Whose signals to read, as `entities/{entity}`, or `entities/-` for
+  // every entity.
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {child_type: "norn.local/Signal"}
+  ];
+
+  // An AIP-160 filter selecting signals, as in ListSignals, whose fields
+  // include `id`: `id = "supply-temp"` under `entities/ahu-01` selects one.
+  string filter = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // The half-open interval of `observe_time` to read. Unset reads all
+  // history, samples still buffered included: every sample acknowledged at
+  // PERSISTED or better is visible.
+  google.type.Interval interval = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // An AIP-160 filter over each sample's `value` and `quality`, such as
+  // `quality.severity = QUALITY_SEVERITY_GOOD AND value > 20.5`. Applied
+  // before aggregation. Clauses over `value`, `quality.severity` and
+  // `quality.substatus` joined by AND; anything else fails with
+  // INVALID_ARGUMENT, as does comparing `value` with a literal of another
+  // type on any selected signal.
+  string sample_filter = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // What to compute. Unset returns the matching samples themselves.
+  Aggregation aggregation = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // The order of raw samples. Ignored with an aggregation, whose results
+  // are always grouped by signal, then window.
+  SampleOrder order = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // A `resume_token` from an earlier response of a call with otherwise equal
+  // fields: the query continues just after the result that carried it.
+  string resume_token = 7 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// A reduction of each signal's samples over fixed windows.
+message Aggregation {
+  // The reduction.
+  AggregateFunction aggregate_function = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The window width, the sampling interval of SPEC section 22. Windows are
+  // aligned to the query interval's start, or to the Unix epoch when it has
+  // none. Unset makes one window spanning the whole interval. Ignored for
+  // AGGREGATE_FUNCTION_LATEST.
+  google.protobuf.Duration window = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// One message of a QuerySamples stream. Exactly one of `samples` or
+// `aggregates` is non-empty, according to the request.
+message QuerySamplesResponse {
+  // Raw samples, in the requested order.
+  repeated norn.type.Sample samples = 1;
+
+  // Aggregates, by signal then window.
+  repeated Aggregate aggregates = 2;
+
+  // Resumes the query after the last result in this message. Valid while
+  // the history it points into is retained.
+  string resume_token = 3;
+}
+
+// The result of an aggregation for one signal and one window. A window with
+// no matching samples produces none.
+message Aggregate {
+  // The signal, as `entities/{entity}/signals/{signal}`.
+  string signal = 1 [(google.api.resource_reference) = {type: "norn.local/Signal"}];
+
+  // The window, half-open, clipped to the query's interval. For
+  // AGGREGATE_FUNCTION_LATEST, the instant of the sample itself.
+  google.type.Interval window = 2;
+
+  // The result. Its type is given with each AggregateFunction.
+  norn.type.Value value = 3;
+
+  // How many samples the window reduced.
+  int64 sample_count = 4;
+}
+
+// A reduction (SPEC section 22). AVERAGE, SUM and RATE need a numeric
+// signal and fail with INVALID_ARGUMENT on any other; their result is a
+// double. COUNT's is an int64. The rest return a value of the signal's type.
+// Samples are reduced in `observe_time`, then `sequence`, order.
+enum AggregateFunction {
+  // Not set. Rejected.
+  AGGREGATE_FUNCTION_UNSPECIFIED = 0;
+  // The newest matching sample of each signal in the interval. One result
+  // per signal.
+  AGGREGATE_FUNCTION_LATEST = 1;
+  // The window's earliest sample's value.
+  AGGREGATE_FUNCTION_FIRST = 2;
+  // The window's latest sample's value.
+  AGGREGATE_FUNCTION_LAST = 3;
+  // The number of samples.
+  AGGREGATE_FUNCTION_COUNT = 4;
+  // The smallest value. Floats compare by IEEE 754 total order, so -0 is
+  // below +0 and a positive NaN above every number; a negative NaN is below
+  // every number. Strings and bytes compare bytewise.
+  AGGREGATE_FUNCTION_MIN = 5;
+  // The largest value, ordered as for MIN.
+  AGGREGATE_FUNCTION_MAX = 6;
+  // The arithmetic mean: SUM over the sample count. IEEE 754 applies.
+  AGGREGATE_FUNCTION_AVERAGE = 7;
+  // The sum. Integers sum exactly, then convert. Floats follow IEEE 754,
+  // added in sample order: a NaN gives NaN, and +inf with -inf gives NaN.
+  AGGREGATE_FUNCTION_SUM = 8;
+  // A counter's increase per second: the sum of the increases between
+  // consecutive samples, over the seconds between the first and the last. A
+  // decrease is a counter reset, so that step adds the new value, counted
+  // from zero; the result is never negative for finite values. For a gauge,
+  // use LAST and FIRST. A window with fewer than two samples, or whose samples
+  // share one time, produces no result.
+  AGGREGATE_FUNCTION_RATE = 9;
+}
+
+// The order in which raw samples are returned.
+enum SampleOrder {
+  // The default, SAMPLE_ORDER_BY_SIGNAL.
+  SAMPLE_ORDER_UNSPECIFIED = 0;
+  // Each signal's samples in time order, signals in name order. Cheapest,
+  // because it follows how history is stored.
+  SAMPLE_ORDER_BY_SIGNAL = 1;
+  // All signals merged by `observe_time`, then `sequence`, then signal
+  // name: the order replay emits them in.
+  SAMPLE_ORDER_BY_TIME = 2;
+}

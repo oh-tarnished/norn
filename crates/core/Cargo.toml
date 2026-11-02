@@ -1,0 +1,17 @@
+[package]
+name = "norn-core"
+description = "Norn's domain-independent temporal types."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# No runtime dependencies, deliberately: the core is pure data and validation.
+[dependencies]
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

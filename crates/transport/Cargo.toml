@@ -1,0 +1,33 @@
+[package]
+name = "norn-transport"
+description = "Norn's local IPC transports: Unix sockets, Windows named pipes, loopback TCP."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Dependencies (SPEC §39), each justified in docs/reference/ipc.md:
+# - tokio: the async runtime tonic already requires; its `net` feature
+#   provides Unix sockets, named pipes and TCP without further crates.
+# - tokio-util: `CancellationToken`, used to abort connections after a
+#   bounded drain. Already in tonic's graph (via h2).
+[dependencies]
+tokio = { workspace = true, features = ["net", "time", "sync", "io-util", "rt"] }
+tokio-util = { workspace = true }
+
+# Windows only: building an owner-only security descriptor for named pipes.
+# std and tokio expose no safe API for it; see src/platform/windows/security.rs.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Security_Authorization",
+  "Win32_System_Threading",
+] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "io-util", "time"] }
+
+[lints]
+workspace = true

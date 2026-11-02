@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package norn.type;
+
+option java_multiple_files = true;
+option java_outer_classname = "ErrorProto";
+option java_package = "local.norn.type";
+
+// The machine-readable reason in every error Norn returns.
+//
+// Per AIP-193 an error is a google.rpc.Status whose details include exactly
+// one google.rpc.ErrorInfo. Its `domain` is `norn.local`, and its `reason` is
+// the name of one of these values, such as `ERROR_REASON_STREAM_NOT_EMPTY`.
+// A caller branches on (domain, reason), never on the message text. The
+// status code says what class of failure it is; the reason says which one.
+// New reasons may be added in a minor version; a caller treats an unknown
+// reason by its status code alone.
+enum ErrorReason {
+  // Not set. Never sent.
+  ERROR_REASON_UNSPECIFIED = 0;
+  // FAILED_PRECONDITION: the client's protocol major version is not one the
+  // server speaks. ErrorInfo metadata carries `server_major`, `server_minor`.
+  ERROR_REASON_PROTOCOL_VERSION_UNSUPPORTED = 1;
+  // FAILED_PRECONDITION: a capability the client marked required is not
+  // offered. ErrorInfo metadata `capability` names the first one missing.
+  ERROR_REASON_CAPABILITY_UNAVAILABLE = 2;
+  // INVALID_ARGUMENT: a sample's value type differs from its signal's.
+  ERROR_REASON_VALUE_TYPE_MISMATCH = 3;
+  // NOT_FOUND: a sample names a signal that does not exist.
+  ERROR_REASON_SIGNAL_NOT_FOUND = 4;
+  // INVALID_ARGUMENT: a request or batch exceeds a published limit (see
+  // norn.admin.v1.Limits). ErrorInfo metadata `limit` names it.
+  ERROR_REASON_LIMIT_EXCEEDED = 5;
+  // RESOURCE_EXHAUSTED: a bounded resource (replay sessions, subscriptions,
+  // streams, memory) is at capacity. Retry later or release one.
+  ERROR_REASON_CAPACITY_EXHAUSTED = 6;
+  // FAILED_PRECONDITION: the resource still holds data or children, and
+  // Norn never deletes history implicitly.
+  ERROR_REASON_RESOURCE_NOT_EMPTY = 7;
+  // ABORTED: the request's etag does not match the resource's current one.
+  ERROR_REASON_ETAG_MISMATCH = 8;
+  // RESOURCE_EXHAUSTED: a live subscriber fell behind its bounded queue.
+  // The subscription ends rather than silently skipping events.
+  ERROR_REASON_SUBSCRIBER_TOO_SLOW = 9;
+  // DATA_LOSS: stored data failed a checksum. ErrorInfo metadata `chunk`
+  // identifies it, and `min_time` and `max_time` give its span in Unix
+  // nanoseconds, so a client can query around it. Norn reports corruption; it
+  // never silently skips it.
+  ERROR_REASON_DATA_CORRUPTED = 10;
+  // UNAVAILABLE: the daemon is shutting down and accepts no new work.
+  ERROR_REASON_SHUTTING_DOWN = 11;
+  // FAILED_PRECONDITION: the replay session is in a state that does not
+  // allow the request, such as resuming a stopped session.
+  ERROR_REASON_REPLAY_STATE_CONFLICT = 12;
+  // INVALID_ARGUMENT: a page or resume token is malformed, expired, or was
+  // issued for different request parameters.
+  ERROR_REASON_INVALID_TOKEN = 13;
+  // UNIMPLEMENTED: this daemon does not implement the method yet. ErrorInfo
+  // metadata carries `service`, `method`, and `capability` where one gates it.
+  ERROR_REASON_NOT_IMPLEMENTED = 14;
+  // INVALID_ARGUMENT: a request field is malformed. The status also carries a
+  // google.rpc.BadRequest naming the field; ErrorInfo metadata `field` too.
+  ERROR_REASON_INVALID_ARGUMENT = 15;
+  // NOT_FOUND: the named resource does not exist. ErrorInfo metadata
+  // `resource` carries its name.
+  ERROR_REASON_RESOURCE_NOT_FOUND = 16;
+  // ALREADY_EXISTS: a resource with the requested ID exists. ErrorInfo
+  // metadata `resource` carries its name.
+  ERROR_REASON_RESOURCE_ALREADY_EXISTS = 17;
+  // UNAVAILABLE or INTERNAL: Norn's files cannot be written or read, such as
+  // a full or read-only disk. Needs an operator; retrying alone may not help.
+  ERROR_REASON_STORAGE_UNAVAILABLE = 18;
+}

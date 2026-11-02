@@ -1,0 +1,61 @@
+[package]
+name = "norn-server"
+description = "The Norn daemon: configuration, AdminService and health over local IPC."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "norn"
+path = "src/main.rs"
+
+# Each third-party crate is declared, with its reason, in the root Cargo.toml.
+[dependencies]
+norn-core = { path = "../core" }
+norn-protocol = { path = "../protocol" }
+norn-ipc = { path = "../ipc" }
+norn-runtime = { path = "../runtime" }
+norn-metadata = { path = "../metadata" }
+# Serving: generated service servers, the router, and Status.
+tonic = { workspace = true, features = ["codegen", "router", "transport"] }
+tonic-health = { workspace = true }
+# google.protobuf.Timestamp and Duration in the Server resource.
+prost-types = { workspace = true }
+# Reading the google.rpc.Status a tonic error carries into a SampleError.
+prost = { workspace = true }
+# Reading gRPC frames as they arrive, to reserve before decoding (metered.rs).
+http-body = { workspace = true }
+bytes = { workspace = true }
+# The tokio runtime the daemon runs on, and SIGINT/SIGTERM (Ctrl-C on Windows).
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal", "time"] }
+tokio-util = { workspace = true }
+# The UNIMPLEMENTED stub services are plain tower services over http types.
+tower = { workspace = true }
+http = { workspace = true }
+tracing = { workspace = true }
+# Text or JSON lines on stderr; `json` for machine-read logs.
+tracing-subscriber = { workspace = true, features = ["json"] }
+serde = { workspace = true }
+toml = { workspace = true }
+
+[dev-dependencies]
+# Tests read back what the daemon stored; a client never does this.
+norn-storage = { path = "../storage" }
+norn-core = { path = "../core" }
+
+[lints]
+workspace = true
+
+[[bench]]
+name = "append"
+harness = false
+
+[[bench]]
+name = "query"
+harness = false
+
+[[bench]]
+name = "state"
+harness = false

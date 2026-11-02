@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package norn.signal.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+import "norn/type/value.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SignalProto";
+option java_package = "local.norn.signal.v1";
+
+// A measurable or observable property of an entity: a temperature, a speed,
+// a position, a state (SPEC section 10). Samples are written to a signal.
+//
+// A signal is a child of its entity because it has no meaning without it:
+// the same property of two machines is two signals.
+message Signal {
+  option (google.api.resource) = {
+    type: "norn.local/Signal"
+    pattern: "entities/{entity}/signals/{signal}"
+    singular: "signal"
+    plural: "signals"
+  };
+
+  // The resource name, `entities/{entity}/signals/{signal}`. `{signal}` is
+  // 1 to 63 characters of `[a-z0-9-]`, starting with a letter.
+  string name = 1 [(google.api.field_behavior) = IDENTIFIER];
+
+  // A human-readable name, at most 256 characters.
+  string display_name = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // The type of every value this signal records. Fixed at creation, because
+  // stored chunks are encoded for it.
+  norn.type.ValueType value_type = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE
+  ];
+
+  // The stream the signal's samples are recorded in, as `streams/{stream}`.
+  // Fixed at creation: moving a signal would split its history.
+  string stream = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (google.api.resource_reference) = {type: "norn.local/Stream"}
+  ];
+
+  // The unit of numeric values, free text such as a UCUM code (`Cel`,
+  // `kW.h`). Norn records it and never converts between units.
+  string unit = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // Free-form metadata owned by the creator, with the same limits as an
+  // entity's annotations. Source addressing belongs here, never in Norn.
+  map<string, string> annotations = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // When the signal was created.
+  google.protobuf.Timestamp create_time = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // When the signal's metadata was last changed. Writing samples does not
+  // change it.
+  google.protobuf.Timestamp update_time = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Changes whenever the signal's metadata does (AIP-154).
+  string etag = 9 [(google.api.field_behavior) = OPTIONAL];
+}

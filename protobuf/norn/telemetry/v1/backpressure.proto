@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package norn.telemetry.v1;
+
+import "google/protobuf/duration.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "BackpressureProto";
+option java_package = "local.norn.telemetry.v1";
+
+// The daemon's decision about one batch, made when it is received (SPEC
+// section 18). Every batch gets exactly one, always with a reason: telemetry
+// is never silently dropped or delayed.
+message Admission {
+  // What happened to the batch.
+  BackpressureOutcome outcome = 1;
+
+  // Why. Never BACKPRESSURE_REASON_UNSPECIFIED.
+  BackpressureReason reason = 2;
+
+  // For THROTTLE, how long the client must wait before sending its next
+  // batch for this stream. For a REJECT with a transient reason, how long to
+  // wait before retrying this batch. Unset otherwise.
+  google.protobuf.Duration retry_delay = 3;
+
+  // A human-readable explanation, for logs only. Never parse it.
+  string message = 4;
+}
+
+// What the daemon did with a batch. ACCEPT, BUFFER and THROTTLE all admit
+// the batch: every sample in it will be stored, and the batch climbs the
+// acknowledgement levels. Only REJECT refuses it, and refuses all of it.
+enum BackpressureOutcome {
+  // Not set. Never sent.
+  BACKPRESSURE_OUTCOME_UNSPECIFIED = 0;
+  // Admitted with capacity to spare. Send at the current rate.
+  BACKPRESSURE_OUTCOME_ACCEPT = 1;
+  // Admitted, but into a write buffer the write path has not caught up
+  // with: acknowledgement beyond BUFFERED will lag. The client may keep
+  // sending; it should expect latency, not loss.
+  BACKPRESSURE_OUTCOME_BUFFER = 2;
+  // Admitted, but the stream's buffer passed its high-water mark. The
+  // client must not send another batch for this stream until `retry_delay`
+  // has elapsed; one sent sooner is rejected with reason THROTTLED.
+  BACKPRESSURE_OUTCOME_THROTTLE = 3;
+  // Refused. No sample of the batch is stored. `reason` says whether a
+  // retry can succeed: transient reasons carry `retry_delay`, the others
+  // need the batch or the configuration changed first.
+  BACKPRESSURE_OUTCOME_REJECT = 4;
+}
+
+// Why a batch got its outcome.
+enum BackpressureReason {
+  // Not set. Never sent.
+  BACKPRESSURE_REASON_UNSPECIFIED = 0;
+  // ACCEPT: the write path has room.
+  BACKPRESSURE_REASON_CAPACITY_AVAILABLE = 1;
+  // BUFFER: the stream's buffer holds unwritten batches.
+  BACKPRESSURE_REASON_WRITE_PATH_BEHIND = 2;
+  // THROTTLE: the stream's buffer passed its high-water mark.
+  BACKPRESSURE_REASON_BUFFER_HIGH_WATER = 3;
+  // THROTTLE or REJECT: this client exceeds its configured sample rate.
+  BACKPRESSURE_REASON_CLIENT_RATE_EXCEEDED = 4;
+  // REJECT, transient: the stream's buffer is full.
+  BACKPRESSURE_REASON_BUFFER_FULL = 5;
+  // REJECT, transient: the daemon's memory budget is spent.
+  BACKPRESSURE_REASON_MEMORY_EXHAUSTED = 6;
+  // REJECT, transient: the batch was sent during a THROTTLE delay.
+  BACKPRESSURE_REASON_THROTTLED = 7;
+  // REJECT, transient: the daemon is shutting down.
+  BACKPRESSURE_REASON_SHUTTING_DOWN = 8;
+  // REJECT, permanent until fixed: storage cannot be written, such as a
+  // full or read-only disk.
+  BACKPRESSURE_REASON_STORAGE_UNAVAILABLE = 9;
+  // REJECT, permanent: the batch exceeds a published limit.
+  BACKPRESSURE_REASON_BATCH_TOO_LARGE = 10;
+  // REJECT, permanent: at least one sample is invalid; `sample_errors`
+  // lists every one.
+  BACKPRESSURE_REASON_INVALID_SAMPLES = 11;
+  // REJECT, permanent: the requested acknowledgement level is one this
+  // daemon does not offer, such as DURABLE with durability disabled.
+  BACKPRESSURE_REASON_ACK_LEVEL_UNAVAILABLE = 12;
+}
+
+// How far a batch has travelled towards stable storage (SPEC section 19).
+// Each level implies every level below it.
+enum AcknowledgementLevel {
+  // Not set. Rejected in a request; never sent.
+  ACKNOWLEDGEMENT_LEVEL_UNSPECIFIED = 0;
+  // The daemon has read and validated the whole batch. It is in process
+  // memory only and is lost if the daemon exits.
+  ACKNOWLEDGEMENT_LEVEL_RECEIVED = 1;
+  // The batch is in its stream's bounded write buffer, and its order
+  // relative to every other batch of the stream is fixed. Still lost if
+  // the daemon process exits.
+  ACKNOWLEDGEMENT_LEVEL_BUFFERED = 2;
+  // The batch has been written to Norn's storage files and handed to the
+  // operating system. It survives the daemon process exiting or crashing,
+  // but not an operating-system crash or power loss.
+  ACKNOWLEDGEMENT_LEVEL_PERSISTED = 3;
+  // The batch has crossed the daemon's configured durability boundary: its
+  // data, and the metadata needed to recover it, have been flushed to
+  // stable storage (fsync or the platform's equivalent). It survives power
+  // loss, to the extent the storage device honours flushes.
+  ACKNOWLEDGEMENT_LEVEL_DURABLE = 4;
+}

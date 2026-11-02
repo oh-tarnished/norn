@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package norn.stream.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+import "google/type/interval.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StreamOperationsProto";
+option java_package = "local.norn.stream.v1";
+
+// The request for StreamService.CompactStream.
+message CompactStreamRequest {
+  // The stream, as `streams/{stream}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Stream"}
+  ];
+
+  // Restricts compaction to chunks overlapping this interval. Unset
+  // compacts the whole stream.
+  google.type.Interval interval = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The result of a finished CompactStream operation.
+message CompactStreamResponse {
+  // Chunks covering the interval before compaction.
+  int64 original_chunk_count = 1;
+
+  // Chunks covering the same samples after compaction.
+  int64 compacted_chunk_count = 2;
+
+  // Stored bytes before compaction.
+  int64 original_bytes = 3;
+
+  // Stored bytes after compaction.
+  int64 compacted_bytes = 4;
+}
+
+// Progress of a CompactStream operation.
+message CompactStreamMetadata {
+  // When the operation started.
+  google.protobuf.Timestamp create_time = 1;
+
+  // When the operation finished; unset while it runs.
+  google.protobuf.Timestamp end_time = 2;
+
+  // Chunks rewritten so far.
+  int64 chunks_done = 3;
+
+  // Chunks the operation will rewrite in total.
+  int64 chunks_total = 4;
+}
+
+// The request for StreamService.ExportStream.
+message ExportStreamRequest {
+  // The stream, as `streams/{stream}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Stream"}
+  ];
+
+  // Where to write, as a `file://` URI on the daemon's host. The file must
+  // not exist: export never overwrites.
+  string output_uri = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // The format to write.
+  ExportFormat format = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // The half-open interval of `observe_time` to export. Unset exports the
+  // whole stream.
+  google.type.Interval interval = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // An AIP-160 filter selecting signals, as in ListSignals.
+  string filter = 5 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The result of a finished ExportStream operation.
+message ExportStreamResponse {
+  // The file written.
+  string output_uri = 1;
+
+  // Samples written.
+  int64 sample_count = 2;
+
+  // Bytes written.
+  int64 byte_count = 3;
+}
+
+// Progress of an ExportStream operation.
+message ExportStreamMetadata {
+  // When the operation started.
+  google.protobuf.Timestamp create_time = 1;
+
+  // When the operation finished; unset while it runs.
+  google.protobuf.Timestamp end_time = 2;
+
+  // Samples written so far.
+  int64 samples_done = 3;
+}
+
+// An interchange format Norn exports to (SPEC section 44). These are
+// interoperability formats; Norn's own storage format is never exported
+// as such.
+enum ExportFormat {
+  // Not set. Rejected.
+  EXPORT_FORMAT_UNSPECIFIED = 0;
+  // Comma-separated values, one sample per row.
+  EXPORT_FORMAT_CSV = 1;
+  // Apache Parquet.
+  EXPORT_FORMAT_PARQUET = 2;
+  // The Apache Arrow IPC file format.
+  EXPORT_FORMAT_ARROW_IPC = 3;
+  // MCAP, one channel per signal.
+  EXPORT_FORMAT_MCAP = 4;
+}

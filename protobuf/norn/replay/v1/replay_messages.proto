@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package norn.replay.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "norn/replay/v1/replay_session.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ReplayMessagesProto";
+option java_package = "local.norn.replay.v1";
+
+// The request for ReplayService.CreateReplaySession.
+message CreateReplaySessionRequest {
+  // The ID to give the session. Empty lets the daemon choose one.
+  string replay_session_id = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // The session to create. Its `name` and output fields are ignored.
+  ReplaySession replay_session = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The request for ReplayService.GetReplaySession.
+message GetReplaySessionRequest {
+  // The session, as `replaySessions/{replay_session}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/ReplaySession"}
+  ];
+}
+
+// The request for ReplayService.ListReplaySessions.
+message ListReplaySessionsRequest {
+  // The most sessions to return; capped at 1000, 100 when zero.
+  int32 page_size = 1 [(google.api.field_behavior) = OPTIONAL];
+
+  // The `next_page_token` of a previous call.
+  string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for ReplayService.ListReplaySessions.
+message ListReplaySessionsResponse {
+  // The sessions on this page, oldest first.
+  repeated ReplaySession replay_sessions = 1;
+
+  // Passed as `page_token` to read the next page; empty on the last one.
+  string next_page_token = 2;
+}
+
+// The request for ReplayService.UpdateReplaySession.
+message UpdateReplaySessionRequest {
+  // The session, with `name` identifying it and the new pace set. A set
+  // `etag` must match the current one.
+  ReplaySession replay_session = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The fields to change: `speed` or `max_speed`.
+  google.protobuf.FieldMask update_mask = 2 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The request for ReplayService.DeleteReplaySession.
+message DeleteReplaySessionRequest {
+  // The session, as `replaySessions/{replay_session}`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/ReplaySession"}
+  ];
+
+  // If set, the delete happens only if it matches the current etag.
+  string etag = 2 [(google.api.field_behavior) = OPTIONAL];
+}

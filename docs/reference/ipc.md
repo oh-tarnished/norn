@@ -1,0 +1,219 @@
+# IPC
+
+How applications reach the Norn daemon (SPEC §5–7, §41). Two crates
+implement it:
+
+- **`norn-transport`** moves bytes. An `Endpoint` names a local address;
+  `bind`/`connect` turn it into a `Listener` or a `BoxIo` stream; `Incoming`
+  adds connection limits, backpressure, idle timeouts and abort. It imports
+  no other Norn crate.
+- **`norn-ipc`** runs gRPC on top: `serve`/`Server` host a tonic `Router` on
+  an endpoint with a bounded graceful drain, and `connect` returns a tonic
+  `Channel` through a custom connector. It also defines the `DataPlane`
+  seam where a shared-memory plane will plug in.
+
+Clients never learn which transport they are on: the endpoint string picks
+it, and everything above `norn-transport` sees only `AsyncRead + AsyncWrite`.
+
+## Transports per OS
+
+| OS | Default transport | Also available | Not available |
+| --- | --- | --- | --- |
+| Linux | Unix domain socket | loopback TCP (tests) | named pipes |
+| macOS | Unix domain socket | loopback TCP (tests) | named pipes |
+| Windows | named pipe | loopback TCP (tests) | Unix sockets* |
+
+\* Windows 10 has AF_UNIX, but tokio does not support it there, and named
+pipes are the native local IPC with a richer permission model. Asking for an
+unsupported transport fails with `TransportError::Unsupported`; it never
+falls back silently.
+
+Platform code lives only in `crates/transport/src/platform/`: `mod.rs`
+selects `unix.rs` or `windows.rs` with the crate's only `cfg`, and both
+export the same five functions (`bind_unix`, `connect_unix`, `bind_pipe`,
+`connect_pipe`, `default_endpoint`). Loopback TCP is portable and lives in
+`tcp.rs`.
+
+## Endpoint syntax
+
+`<scheme>:<address>`; `Display` and `FromStr` round-trip.
+
+| Form | Meaning |
+| --- | --- |
+| `unix:/run/user/1000/norn/norn.sock` | Unix socket; path must be absolute |
+| `pipe:\\.\pipe\norn` | named pipe; only local `\\.\pipe\` names |
+| `tcp:127.0.0.1:7171`, `tcp:[::1]:7171` | loopback TCP; port 0 binds an ephemeral port |
+
+Parsing is pure and works for every scheme on every OS, so configuration can
+be validated anywhere. Rejections are typed (`ParseEndpointError`): unknown
+scheme, relative path, remote or empty pipe name, unparsable or
+non-loopback TCP address.
+
+**Defaults** (`Endpoint::platform_default()`):
+
+- Unix: `$XDG_RUNTIME_DIR/norn/norn.sock`, else `$TMPDIR/norn/norn.sock`,
+  else `/tmp/norn-$USER/norn.sock`.
+- Windows: `\\.\pipe\norn-%USERNAME%` (or `\\.\pipe\norn` if the name has
+  characters outside `[A-Za-z0-9_.-]`), so users on one machine never
+  contend for a name.
+
+## Security model (SPEC §41)
+
+**Unix sockets.**
+
+1. The socket's directory must be owner-only. A missing directory is
+   created `0700` (parents included); an existing one with any group or
+   other bit set is refused (`InsecureDirectory`). Ownership need not be
+   checked separately: a `0700` directory we can create a socket in is ours
+   (or we are root).
+2. An occupied path is examined, never blindly unlinked: a socket that
+   refuses connections is stale (a crashed daemon) and is replaced; a socket
+   that accepts within one second is live and refused (`LiveSocket`);
+   anything that is not a socket is refused and left alone (`NotASocket`).
+3. After binding, the socket is `chmod 0600` regardless of umask.
+4. On drop, the socket file is removed only if the path still holds the
+   same device and inode we bound, so a successor's socket is never deleted.
+
+**Named pipes.**
+
+1. Every instance is created with a protected DACL, SDDL
+   `D:P(A;;GA;;;<user SID>)`: generic-all for the user running the daemon
+   and nothing else, not Administrators, not Everyone. (The default pipe
+   DACL grants Everyone read and Administrators full control.)
+2. `FILE_FLAG_FIRST_PIPE_INSTANCE` on the first instance: if another
+   process already serves the name, bind fails. This is the analogue of
+   refusing a live socket, and the defence against name squatting.
+3. `PIPE_REJECT_REMOTE_CLIENTS`: SMB clients are refused.
+4. Pipes are kernel objects; there is no stale file to clean up.
+
+**TCP** is loopback-only, enforced at parse time and again at bind and
+connect (`NotLoopback`). It has no OS identity check (any local user can
+connect), which is why it is a test fallback and never a default.
+
+**Unsafe.** None on Unix and none in `norn-ipc`. On Windows, building the
+descriptor and finding the user's SID requires Win32 FFI (`windows-sys`):
+std and tokio expose no safe API, and tokio accepts a descriptor only
+through the `unsafe` `create_with_security_attributes_raw`. All of it is in
+one module, `crates/transport/src/platform/windows/security.rs`, with a
+`SAFETY` comment on every block, RAII guards for every allocation and
+handle, and tests that run on the Windows CI runner.
+
+## Limits and backpressure (SPEC §16, §41)
+
+`Limits` is a builder over a meaningful `Default`, validated at bind:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `max_connections` | 64 (matches `norn_core` `max_clients`) | open connections at once; 1 ..= 65 536 |
+| `overflow` | `Queue` | what happens to the next client at capacity |
+| `idle_timeout` | 10 min | close a connection with no bytes in either direction |
+
+- **`Overflow::Queue`**: stop accepting until a slot frees. Arrivals wait
+  in the kernel's listen backlog (bounded by the OS, e.g. `SOMAXCONN`) or,
+  on Windows, in the client's bounded busy-pipe retry (1 s). Bursts are
+  delayed, not failed.
+- **`Overflow::Refuse`**: accept and close immediately. The client sees EOF
+  or a reset (at the gRPC level, `UNAVAILABLE`) and can retry or report.
+  `Incoming::refused()` counts them.
+- **Idle timeout** fails the pending read or write with `TimedOut`, so hyper
+  tears the connection down through its normal error path. HTTP/2 PING
+  frames count as traffic, so client keep-alives keep a quiet stream open.
+
+Each admitted `Connection` owns a semaphore permit; dropping it frees the
+slot. `ConnectionTracker` reports open connections and resolves when all are
+gone. Per-connection memory beyond this is hyper/h2's, bounded by its
+flow-control windows. The daemon sets `max_connections` from
+`norn_core::Limits::max_clients` and each connection's window from
+`MemoryBudgets::ipc_bytes` ([architecture.md, "Memory budgets"](architecture.md#memory-budgets), which also says
+what that does not bound).
+
+## Lifecycle and shutdown
+
+- `Server::bind` claims the endpoint (a second daemon fails here, not later)
+  and spawns nothing. A bound server can be inspected (e.g. its ephemeral
+  port) or dropped, which releases the endpoint.
+- `Server::serve(router, token)` runs until the `CancellationToken` is
+  cancelled. Then the endpoint is released at once (no new clients), every
+  connection gets HTTP/2 GOAWAY, and in-flight calls run to completion.
+- **Bounded drain.** If connections remain after `drain_timeout` (default
+  10 s), the server cancels its abort token: every remaining connection
+  fails its next read or write with `ConnectionAborted`, and `serve` returns
+  `ShutdownReport { aborted: n }`. If they still have not closed after a
+  further second, it returns `IpcError::DrainStuck`.
+- `serve` returns only after every connection task tonic spawned has ended.
+  Handler futures for calls on aborted connections run as tonic's own tasks
+  and finish on their own.
+- `serve(endpoint, router, token)` is the one-call form with defaults.
+
+## Client
+
+`connect(&endpoint)` returns a `tonic::transport::Channel` connected eagerly
+(a missing daemon fails here); `connect_lazy` defers to first use;
+`connect_with(&endpoint, tonic::transport::Endpoint)` takes caller-set
+timeouts, keep-alive and window sizes. All three dial through
+`norn_transport::connect`, so the same code works for `unix:`, `pipe:` and
+`tcp:`. A channel's clones share one HTTP/2 connection; tonic reconnects
+through the same endpoint after a drop.
+
+## Measured latency
+
+Unary `grpc.health.v1.Health/Check` (tiny request and response), sequential
+calls on one channel after 1 000 warm-up calls, release build. Reproduce
+with `cargo run --release -p norn-ipc --example latency -- 20000`.
+
+Apple M3 Max, macOS 27.0.1, rustc 1.99.1, tonic 0.14.9; two runs of 20 000
+calls each (run 1 / run 2):
+
+| Transport | p50 µs | p99 µs | mean µs | max µs |
+| --- | --- | --- | --- | --- |
+| Unix socket | 31.2 / 31.4 | 45.3 / 50.0 | 31.8 / 32.2 | 128 / 292 |
+| loopback TCP | 46.0 / 45.8 | 63.8 / 67.2 | 47.2 / 46.9 | 217 / 210 |
+
+Unix sockets are about a third faster at the median. Both are dominated by
+HTTP/2 and gRPC framing and task wake-ups rather than the kernel copy, which
+is why bulk data is meant for a separate data plane rather than a faster
+socket. Linux and Windows figures are not yet measured.
+
+## Data plane (seam only)
+
+SPEC §7 asks for shared memory where it pays, with regular IPC as fallback.
+Only the fallback exists: bulk batches travel as gRPC messages.
+`norn_ipc::DataPlane` is the seam (`kind()`, `max_frame()`, `send(frame)`),
+with a contract (bounded, ordered and lossless, crash-aware, `Send + Sync`)
+that a future `shared-memory` crate (wave 3) implements. `ControlPlaneOnly`
+is the fallback, and `negotiate(ours, theirs)` picks the best plane both
+sides offer, defaulting to the control plane. No framing is defined yet.
+
+Evaluated and deferred to the shared-memory piece:
+
+| Option | OS | Notes |
+| --- | --- | --- |
+| `memfd_create` + fd passing (`SCM_RIGHTS`) | Linux | anonymous, sealable (`F_SEAL_*`) so a client cannot shrink it under the daemon; nothing on disk; needs ancillary-data support on the socket |
+| POSIX `shm_open` + `mmap` | Linux, macOS | named, so it needs the same owner-only, stale and cleanup discipline as sockets; macOS limits names to 31 bytes |
+| file in the 0700 socket directory + `mmap` | Linux, macOS | inherits the socket's protections; the simplest portable choice; page-cache backed |
+| `CreateFileMapping` (pagefile-backed) | Windows | needs the same owner-only descriptor as pipes; handle shared by name or `DuplicateHandle` |
+
+All need `unsafe` for the mappings and a crash-safe ring protocol (SPEC §20:
+a producer dying mid-frame must be detected). They are deferred until
+measurements show gRPC batching cannot meet the 100 000 samples/s burst
+target (SPEC §17).
+
+## Dependencies (SPEC §39)
+
+| Crate | In | Why |
+| --- | --- | --- |
+| `tokio` (`net`, `time`, `sync`, `io-util`, `rt`) | transport, ipc | the runtime tonic needs; provides Unix sockets, named pipes and TCP itself |
+| `tokio-util` | transport, ipc | `CancellationToken` for shutdown and abort; already in tonic's graph |
+| `windows-sys` (Windows only) | transport | Win32 security-descriptor and token APIs; already in tokio's graph |
+| `tonic` (`transport`, `router`) | ipc | gRPC (SPEC §8) |
+| `hyper-util`, `tower`, `http`, `http-body`, `bytes`, `futures-core` | ipc | types tonic's custom-connector and custom-incoming hooks require; all already in tonic's graph |
+| `tonic-health` | ipc (dev only), server, cli | the standard `grpc.health.v1` service and client |
+
+No crate here links C; `xtask deps` checks it.
+
+## Windows status
+
+Not yet executed on Windows. `norn-transport`, `norn-ipc`, `norn-runtime`,
+`norn-server` and `norn-cli` type-check for `x86_64-pc-windows-gnu`, tests
+included, from macOS, which links and runs nothing. CI's Windows runner is the
+first execution.

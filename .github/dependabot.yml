@@ -1,0 +1,35 @@
+# One weekly minor/patch update per ecosystem; major updates stay separate.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      cargo:
+        update-types: [minor, patch]
+    ignore:
+      # Runtime upgrades need matching buf.gen.yaml plugins and regenerated code.
+      - dependency-name: prost
+        update-types: [version-update:semver-minor, version-update:semver-major]
+      - dependency-name: prost-types
+        update-types: [version-update:semver-minor, version-update:semver-major]
+      - dependency-name: tonic
+        update-types: [version-update:semver-minor, version-update:semver-major]
+      - dependency-name: tonic-prost
+        update-types: [version-update:semver-minor, version-update:semver-major]
+      - dependency-name: tonic-types
+        update-types: [version-update:semver-minor, version-update:semver-major]
+      - dependency-name: tonic-health
+        update-types: [version-update:semver-minor, version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        update-types: [minor, patch]

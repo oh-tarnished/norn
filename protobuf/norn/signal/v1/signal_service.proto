@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package norn.signal.v1;
+
+import "google/api/annotations.proto";
+import "google/api/client.proto";
+import "google/protobuf/empty.proto";
+import "norn/signal/v1/signal.proto";
+import "norn/signal/v1/signal_messages.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SignalServiceProto";
+option java_package = "local.norn.signal.v1";
+
+// SignalService keeps the catalogue of signals under each entity. Like
+// EntityService it holds metadata; samples flow through TelemetryService.
+service SignalService {
+  // The default host; see EntityService.
+  option (google.api.default_host) = "norn.local";
+
+  // Creates a signal under an entity, in an existing stream.
+  rpc CreateSignal(CreateSignalRequest) returns (Signal) {
+    option (google.api.http) = {
+      post: "/v1/{parent=entities/*}/signals"
+      body: "signal"
+    };
+    option (google.api.method_signature) = "parent,signal,signal_id";
+  }
+
+  // Reads one signal.
+  rpc GetSignal(GetSignalRequest) returns (Signal) {
+    option (google.api.http) = {get: "/v1/{name=entities/*/signals/*}"};
+    option (google.api.method_signature) = "name";
+  }
+
+  // Lists the signals of one entity, or of every entity with the AIP-159
+  // wildcard parent `entities/-`.
+  rpc ListSignals(ListSignalsRequest) returns (ListSignalsResponse) {
+    option (google.api.http) = {get: "/v1/{parent=entities/*}/signals"};
+    option (google.api.method_signature) = "parent";
+  }
+
+  // Changes the fields named in `update_mask`. Immutable fields cannot be
+  // named.
+  rpc UpdateSignal(UpdateSignalRequest) returns (Signal) {
+    option (google.api.http) = {
+      patch: "/v1/{signal.name=entities/*/signals/*}"
+      body: "signal"
+    };
+    option (google.api.method_signature) = "signal,update_mask";
+  }
+
+  // Deletes a signal that has no stored samples. FAILED_PRECONDITION with
+  // ERROR_REASON_RESOURCE_NOT_EMPTY otherwise: removing history is the
+  // stream's retention policy's job, never a side effect.
+  rpc DeleteSignal(DeleteSignalRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {delete: "/v1/{name=entities/*/signals/*}"};
+    option (google.api.method_signature) = "name";
+  }
+}

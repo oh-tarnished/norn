@@ -1,0 +1,41 @@
+[package]
+name = "norn-cli"
+description = "nornctl: the Norn command-line client, over the public gRPC API only."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "nornctl"
+path = "src/main.rs"
+
+# Each third-party crate is declared, with its reason, in the root Cargo.toml.
+# nornctl reaches the daemon only through the protocol (SPEC §33, §47).
+[dependencies]
+norn-protocol = { path = "../protocol" }
+norn-ipc = { path = "../ipc" }
+tonic = { workspace = true, features = ["codegen", "transport"] }
+# The grpc.health.v1 client for `status`.
+tonic-health = { workspace = true }
+# Timestamps in the samples `append` sends.
+prost-types = { workspace = true }
+tokio = { workspace = true, features = ["rt", "time"] }
+
+[dev-dependencies]
+# The integration test runs a real daemon in-process and nornctl against it.
+norn-server = { path = "../server" }
+norn-runtime = { path = "../runtime" }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
+tokio-util = { workspace = true }
+
+[[example]]
+name = "plain_client"
+# Only the public crates a third-party client would use, plus `macros`.
+
+[[example]]
+name = "query_client"
+
+[lints]
+workspace = true

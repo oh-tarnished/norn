@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package norn.admin.v1;
+
+import "google/api/annotations.proto";
+import "google/api/client.proto";
+import "norn/admin/v1/admin_messages.proto";
+import "norn/admin/v1/server.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AdminServiceProto";
+option java_package = "local.norn.admin.v1";
+
+// AdminService describes the daemon and negotiates the protocol with a
+// client (SPEC section 40). Health is the standard grpc.health.v1 service,
+// which the daemon also serves, rather than a Norn method.
+service AdminService {
+  // The default host; see norn.entity.v1.EntityService.
+  option (google.api.default_host) = "norn.local";
+
+  // Reads the daemon's description. Needs no negotiation first, so any
+  // client, however old, can learn what it is talking to.
+  rpc GetServer(GetServerRequest) returns (Server) {
+    option (google.api.http) = {get: "/v1/{name=server}"};
+    option (google.api.method_signature) = "name";
+  }
+
+  // Agrees a protocol version and checks required capabilities. A client
+  // calls it once per connection, before anything else. Fails with
+  // FAILED_PRECONDITION and ERROR_REASON_PROTOCOL_VERSION_UNSUPPORTED when
+  // the majors differ, or ERROR_REASON_CAPABILITY_UNAVAILABLE when a
+  // required capability is missing: an old client fails clearly instead of
+  // misbehaving.
+  rpc NegotiateProtocol(NegotiateProtocolRequest) returns (NegotiateProtocolResponse) {
+    option (google.api.http) = {
+      post: "/v1/{name=server}:negotiateProtocol"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name,client_version";
+  }
+}

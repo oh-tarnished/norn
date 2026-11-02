@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package norn.admin.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "norn/admin/v1/server.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AdminMessagesProto";
+option java_package = "local.norn.admin.v1";
+
+// The request for AdminService.GetServer.
+message GetServerRequest {
+  // Always `server`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Server"}
+  ];
+}
+
+// The request for AdminService.NegotiateProtocol.
+message NegotiateProtocolRequest {
+  // Always `server`.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/Server"}
+  ];
+
+  // The protocol version the client was built against.
+  ProtocolVersion client_version = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // Capabilities the client cannot work without. If any is missing the
+  // call fails, so the client stops before doing anything half-supported.
+  repeated Capability required_capabilities = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // The client's name and version, such as `nornctl/0.1.0`, for the
+  // daemon's logs. Never used to decide behaviour.
+  string user_agent = 4 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for AdminService.NegotiateProtocol.
+message NegotiateProtocolResponse {
+  // The version both sides will speak: the client's major, and the lower
+  // of the two minors. The client must not use anything newer.
+  ProtocolVersion protocol_version = 1;
+
+  // Every capability the daemon offers, a superset of the required ones.
+  repeated Capability capabilities = 2;
+
+  // The bounds the daemon enforces.
+  Limits limits = 3;
+
+  // The daemon's release, for display.
+  string server_version = 4;
+}

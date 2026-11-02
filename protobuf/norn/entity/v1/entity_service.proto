@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package norn.entity.v1;
+
+import "google/api/annotations.proto";
+import "google/api/client.proto";
+import "google/protobuf/empty.proto";
+import "norn/entity/v1/entity.proto";
+import "norn/entity/v1/entity_messages.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "EntityServiceProto";
+option java_package = "local.norn.entity.v1";
+
+// EntityService keeps the catalogue of entities. It holds metadata only:
+// observations are written through norn.telemetry.v1.TelemetryService and
+// read through norn.query.v1.QueryService.
+service EntityService {
+  // The default host. Norn is reached over local IPC, so this names the
+  // service rather than a network address.
+  option (google.api.default_host) = "norn.local";
+
+  // Creates an entity. ALREADY_EXISTS if the name is taken.
+  rpc CreateEntity(CreateEntityRequest) returns (Entity) {
+    option (google.api.http) = {
+      post: "/v1/entities"
+      body: "entity"
+    };
+    option (google.api.method_signature) = "entity,entity_id";
+  }
+
+  // Reads one entity.
+  rpc GetEntity(GetEntityRequest) returns (Entity) {
+    option (google.api.http) = {get: "/v1/{name=entities/*}"};
+    option (google.api.method_signature) = "name";
+  }
+
+  // Lists entities in name order.
+  rpc ListEntities(ListEntitiesRequest) returns (ListEntitiesResponse) {
+    option (google.api.http) = {get: "/v1/entities"};
+    option (google.api.method_signature) = "";
+  }
+
+  // Changes the fields named in `update_mask`.
+  rpc UpdateEntity(UpdateEntityRequest) returns (Entity) {
+    option (google.api.http) = {
+      patch: "/v1/{entity.name=entities/*}"
+      body: "entity"
+    };
+    option (google.api.method_signature) = "entity,update_mask";
+  }
+
+  // Deletes an entity that has no signals. FAILED_PRECONDITION with
+  // ERROR_REASON_RESOURCE_NOT_EMPTY otherwise: deleting an entity never
+  // deletes history as a side effect.
+  rpc DeleteEntity(DeleteEntityRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {delete: "/v1/{name=entities/*}"};
+    option (google.api.method_signature) = "name";
+  }
+}

@@ -1,0 +1,54 @@
+# Rust for crates/protocol, from protobuf/: `just gen`, which is `buf generate`
+# with this file. The output is committed, so building norn-protocol needs
+# neither buf, protoc nor a plugin.
+#
+# Local plugins rather than remote ones: committed output has to be
+# reproducible from a checkout, and a remote plugin's version is whatever
+# the registry serves that day. Install them with
+#   cargo install protoc-gen-prost@0.5.0 protoc-gen-tonic@0.5.0 \
+#     protoc-gen-prost-crate@0.5.0
+# which emit code for prost 0.14 and tonic 0.14.
+version: v2
+clean: true
+inputs:
+  - directory: protobuf
+plugins:
+  # Messages and enums. include_imports also generates the googleapis types
+  # the schema uses (google.longrunning.Operation, google.type.Interval).
+  # Well-known types (google.protobuf.*) map onto prost-types.
+  #
+  # google.rpc maps onto tonic-types instead, whose pb::Status and
+  # pb::ErrorInfo come with tonic's rich error model (ErrorDetails,
+  # StatusExt): the server builds AIP-193 errors with it directly, and
+  # ErrorInfo, which no schema file references, is available at all.
+  # include_imports still emits a google/rpc module that nothing uses;
+  # lib.rs does not re-export it. (buf's exclude_types would prune the
+  # fields that reference Status, so it cannot remove the module.)
+  - local: protoc-gen-prost
+    out: crates/protocol/src/generated
+    include_imports: true
+    opt:
+      - enable_type_names
+      - extern_path=.google.rpc=::tonic_types::pb
+      # googleapis comments quote proto and YAML in fenced blocks, which
+      # rustdoc would run as Rust doctests. These are annotation types no
+      # caller uses; the .proto files are their documentation.
+      - disable_comments=.google.api
+      - disable_comments=.google.longrunning.OperationInfo
+  # gRPC clients and servers. no_transport leaves out the clients' `connect`
+  # constructor, which hard-codes tonic's TCP transport: SPEC section 7 puts
+  # the transport in crates/transport and keeps the protocol independent of
+  # it, so a client is built over any tower Service instead.
+  - local: protoc-gen-tonic
+    out: crates/protocol/src/generated
+    include_imports: true
+    opt:
+      - no_transport
+      - extern_path=.google.rpc=::tonic_types::pb
+  # The module tree, so lib.rs includes one file.
+  - local: protoc-gen-prost-crate
+    out: crates/protocol/src/generated
+    include_imports: true
+    strategy: all
+    opt:
+      - no_features

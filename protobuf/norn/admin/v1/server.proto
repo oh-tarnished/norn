@@ -1,0 +1,172 @@
+syntax = "proto3";
+
+package norn.admin.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ServerProto";
+option java_package = "local.norn.admin.v1";
+
+// The daemon itself, a singleton (AIP-156): what it is, which protocol it
+// speaks, what it can do and the limits it enforces.
+message Server {
+  option (google.api.resource) = {
+    type: "norn.local/Server"
+    pattern: "server"
+    singular: "server"
+    plural: "servers"
+  };
+
+  // The resource name, always `server`.
+  string name = 1 [(google.api.field_behavior) = IDENTIFIER];
+
+  // The daemon's release, a semantic version such as `0.1.0`. For display
+  // and bug reports; clients decide compatibility by `protocol_version`.
+  string server_version = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The newest protocol version the daemon speaks. It also speaks every
+  // older minor version of the same major.
+  ProtocolVersion protocol_version = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // What this daemon offers, which depends on its build and configuration.
+  repeated Capability capabilities = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The bounds it enforces on every client.
+  Limits limits = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // When the daemon started.
+  google.protobuf.Timestamp start_time = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // What crash recovery found when this daemon started.
+  RecoveryReport recovery = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // What opening the temporal index found when this daemon started.
+  IndexReport index = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// What opening the temporal index found. The index is derived from segments,
+// so a rebuild costs time and never data.
+message IndexReport {
+  // Streams examined.
+  int32 stream_count = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Streams whose summary was missing, stale or damaged, and so rebuilt.
+  int32 rebuilt_stream_count = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Segments trusted from a summary, unread.
+  int64 reused_segment_count = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Segments whose directories were read.
+  int64 read_segment_count = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Unsealed segments served from memory.
+  int64 tail_segment_count = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Streams whose summary could not be written. Answers stay correct, and the
+  // next start reads more directories.
+  int32 unpersisted_stream_count = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// What startup recovery found and did, before the daemon served its first
+// call (SPEC section 20). A clean start has every count at zero.
+message RecoveryReport {
+  // Streams examined.
+  int32 stream_count = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Findings of any kind: repairs, housekeeping and damage.
+  int64 event_count = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Findings that report damaged data. Each is described in `findings`, up
+  // to its bound, and in the daemon's log.
+  int64 corruption_count = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Batches read back from write-ahead journals.
+  int64 replayed_batch_count = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Samples moved from journals into segments by this recovery.
+  int64 replayed_sample_count = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Journal samples already in a segment, and so not written again.
+  int64 duplicate_sample_count = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Human-readable findings, at most 64 of them, for logs only. Never parse
+  // them; `event_count` says whether any were left out.
+  repeated string findings = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// A protocol version (SPEC section 40). `major` equals the `vN` of every
+// norn.* package and changes only with a new package version, which is when
+// wire-incompatible changes happen. `minor` counts compatible additions
+// within a major: new methods, fields, enum values and capabilities.
+message ProtocolVersion {
+  // The major version; 1 for the norn.*.v1 packages.
+  int32 major = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The minor version within `major`.
+  int32 minor = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// The bounds the daemon enforces, published so clients size their work to
+// fit instead of discovering the bounds by failure (SPEC sections 16 and
+// 41). Exceeding one fails with ERROR_REASON_LIMIT_EXCEEDED or
+// ERROR_REASON_CAPACITY_EXHAUSTED.
+message Limits {
+  // The most samples in one AppendSamplesRequest.
+  int32 max_batch_samples = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The largest AppendSamplesRequest, in encoded bytes.
+  int64 max_batch_bytes = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The most batches one AppendSamples call may have unacknowledged at
+  // the level it asked for.
+  int32 max_pending_batches = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The most streams the daemon holds.
+  int32 max_streams = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The most replay sessions that may exist at once.
+  int32 max_replay_sessions = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The most SubscribeEvents calls open at once.
+  int32 max_subscriptions = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // How long a replay session may sit idle before the daemon deletes it.
+  google.protobuf.Duration replay_session_idle_timeout = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// Something a daemon may or may not offer. A client lists the ones it
+// cannot work without in NegotiateProtocolRequest and fails clearly at
+// connection time, not halfway through a task. New capabilities arrive in
+// minor versions; a client ignores numbers it does not know.
+enum Capability {
+  // Not set. Never sent.
+  CAPABILITY_UNSPECIFIED = 0;
+  // TelemetryService.AppendSamples.
+  CAPABILITY_APPEND_SAMPLES = 1;
+  // ACKNOWLEDGEMENT_LEVEL_PERSISTED is offered.
+  CAPABILITY_ACK_PERSISTED = 2;
+  // ACKNOWLEDGEMENT_LEVEL_DURABLE is offered: a durability boundary is
+  // configured.
+  CAPABILITY_ACK_DURABLE = 3;
+  // SubscribeEvents in SUBSCRIPTION_MODE_LIVE.
+  CAPABILITY_LIVE_SUBSCRIPTION = 4;
+  // ReplayService, and SubscribeEvents in SUBSCRIPTION_MODE_REPLAY.
+  CAPABILITY_REPLAY = 5;
+  // StateService.ComputeState.
+  CAPABILITY_STATE_AT = 6;
+  // QueryService.QuerySamples with raw samples.
+  CAPABILITY_QUERY_RANGE = 7;
+  // QueryService.QuerySamples with an aggregation.
+  CAPABILITY_QUERY_AGGREGATES = 8;
+  // StreamService.CompactStream.
+  CAPABILITY_COMPACTION = 9;
+  // StreamService.ExportStream.
+  CAPABILITY_EXPORT = 10;
+  // A shared-memory data plane beside gRPC for bulk samples. Transport
+  // selection is the IPC layer's; this only says it exists.
+  CAPABILITY_SHARED_MEMORY = 11;
+}

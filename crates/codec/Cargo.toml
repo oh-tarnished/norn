@@ -1,0 +1,23 @@
+[package]
+name = "norn-codec"
+description = "Norn's lossless column encodings and pure-Rust zstd block compression."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# SPEC §14 decision: zstd from a pure-Rust encoder at levels 3-6; the root
+# Cargo.toml and docs/reference/storage.md "Block compression" say why.
+structured-zstd = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+
+[[bench]]
+name = "shapes"
+harness = false

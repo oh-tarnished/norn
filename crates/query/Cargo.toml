@@ -1,0 +1,23 @@
+[package]
+name = "norn-query"
+description = "Norn's query engine: ranges and aggregates, streamed in bounded memory."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+# No third-party dependency (SPEC §39). Results are pulled page by page, so this
+# crate needs no async runtime, and the budget arrives through a trait.
+[dependencies]
+norn-core = { path = "../core" }
+# The largest block a payload column can decode to, for reserving before reading.
+norn-codec = { path = "../codec" }
+norn-storage = { path = "../storage" }
+norn-index = { path = "../index" }
+
+[dev-dependencies]
+proptest = { workspace = true }

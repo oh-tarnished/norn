@@ -1,0 +1,95 @@
+# Norn: a domain-independent temporal data engine. See docs/project/spec.md and docs/project/plan.md.
+#
+# Every crate under crates/, adapters/ and services/ is a member by glob, so
+# parallel work adds a crate without editing this file. Shared settings live
+# here; the foundation piece owns changes to them.
+#
+# AGPL-3.0-or-later, with a separate commercial licence; the public protocol
+# crate is Apache-2.0 (see README.md and LICENSE-COMMERCIAL.md).
+[workspace]
+resolver = "3"
+# adapters/* and services/* join once a crate exists there: Cargo rejects a
+# glob that matches nothing.
+members = ["crates/*", "xtask"]
+
+[workspace.package]
+license = "AGPL-3.0-or-later"
+version = "0.1.0"
+edition = "2024"
+# All crates build on Rust 1.99; rust-toolchain.toml pins the patch release.
+rust-version = "1.99"
+repository = "https://github.com/oh-tarnished/norn"
+
+# Every third-party crate the workspace uses is declared once, here, with the
+# reason it earns its place (SPEC §39).
+[workspace.dependencies]
+# Property tests for lossless round-trips (SPEC §36). Dev-only: no shipped
+# crate links it.
+proptest = { version = "1", default-features = false, features = ["std"] }
+# xtask reads `cargo metadata` output; std has no JSON parser. Tooling only.
+serde_json = "1"
+
+# --- Encoding (norn-codec).
+# SPEC §14 decision: zstd from a pure-Rust encoder at levels 3-6, emitting
+# standard frames. Pinned exactly: chosen after reading and measuring the
+# candidates (docs/reference/storage.md "Block compression"). Default features off: no SIMD
+# kernels beyond the scalar path, no dictionary builder, no legacy frames, no
+# xxhash (storage checksums chunks itself), so no transitive crate.
+structured-zstd = { version = "=0.2.6", default-features = false, features = ["std"] }
+
+# --- The wire protocol (norn-protocol); docs/reference/protocol.md justifies each.
+# Message encoding: the canonical protobuf runtime for Rust.
+prost = { version = "0.14", default-features = false, features = ["std", "derive"] }
+# google.protobuf well-known types (Timestamp, Duration, FieldMask, Empty).
+prost-types = { version = "0.14", default-features = false, features = ["std"] }
+# gRPC (SPEC §8). No default features: each crate enables only what it uses
+# (`codegen` for the stubs, `transport` and `router` for serving).
+tonic = { version = "0.14", default-features = false }
+# The prost codec the generated tonic stubs use.
+tonic-prost = { version = "0.14", default-features = false }
+# google.rpc.Status and ErrorInfo (AIP-193) inside a tonic::Status.
+tonic-types = { version = "0.14", default-features = false }
+# The standard grpc.health.v1 service: docs/reference/protocol.md makes health that, not a
+# Norn method.
+tonic-health = { version = "0.14", default-features = false }
+
+# --- Async runtime and IPC (norn-transport, norn-ipc, the daemon); docs/reference/ipc.md.
+# The runtime tonic requires; also Unix sockets, named pipes and signals.
+# No default features: each crate enables what it uses.
+tokio = { version = "1.54", default-features = false }
+# CancellationToken for shutdown and abort; already in tonic's graph.
+tokio-util = { version = "0.7", default-features = false }
+# hyper-util, tower, http, http-body, bytes, futures-core: the types tonic's
+# custom-connector and custom-incoming hooks require; all already in tonic's
+# graph, so naming them adds nothing to the build.
+hyper-util = { version = "0.1", default-features = false }
+tower = { version = "0.5", default-features = false }
+http = "1"
+http-body = "1"
+bytes = "1"
+futures-core = "0.3"
+# Windows only: the owner-only security descriptor for named pipes, which
+# std and tokio cannot build safely. Already in tokio's graph.
+windows-sys = { version = "0.61", default-features = false }
+
+# --- The daemon (norn-server) and nornctl.
+# Structured logging (SPEC §34): the standard facade, already in tonic's graph.
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+# Formats and filters tracing events onto stderr as text or JSON lines.
+tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt"] }
+# Typed reading of the daemon's TOML configuration file.
+serde = { version = "1", default-features = false, features = ["std", "derive"] }
+# The TOML parser: pure Rust, the format Cargo itself uses.
+toml = { version = "1", default-features = false, features = ["parse", "serde", "std"] }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+todo = "deny"
+dbg_macro = "deny"

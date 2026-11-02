@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package norn.state.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "norn/type/sample.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StateProto";
+option java_package = "local.norn.state.v1";
+
+// The request for StateService.ComputeState.
+message ComputeStateRequest {
+  // Whose signals to include, as `entities/{entity}`, or `entities/-` for
+  // every entity.
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {child_type: "norn.local/Signal"}
+  ];
+
+  // An AIP-160 filter selecting signals, as in ListSignals.
+  string filter = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // The instant whose state is wanted. Samples observed at exactly this
+  // time are included.
+  google.protobuf.Timestamp state_time = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // If set, a signal whose latest sample is older than `state_time` minus
+  // this is reported without a sample, as unknown rather than stale.
+  google.protobuf.Duration max_age = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // The most signal states to return; capped at 10000, 1000 when zero.
+  int32 page_size = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // The `next_page_token` of a previous call with otherwise equal fields.
+  // It pins the snapshot, so every page describes the same state even if
+  // late samples arrive between calls.
+  string page_token = 6 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for StateService.ComputeState.
+message ComputeStateResponse {
+  // One entry per selected signal, in signal name order.
+  repeated SignalState signal_states = 1;
+
+  // The instant described, echoed from the request.
+  google.protobuf.Timestamp state_time = 2;
+
+  // Passed as `page_token` to read the next page; empty on the last one.
+  string next_page_token = 3;
+}
+
+// What one signal's state was at the requested instant.
+message SignalState {
+  // The signal, as `entities/{entity}/signals/{signal}`.
+  string signal = 1 [(google.api.resource_reference) = {type: "norn.local/Signal"}];
+
+  // The latest sample with `observe_time` at or before the instant, ties
+  // broken by the highest `sequence`. Unset if there is none, or if it is
+  // older than `max_age`.
+  norn.type.Sample sample = 2;
+}

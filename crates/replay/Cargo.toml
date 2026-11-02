@@ -1,0 +1,25 @@
+[package]
+name = "norn-replay"
+description = "Norn's deterministic replay: a virtual clock, sessions, and the one event model."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+# No third-party dependency (SPEC §39): a session is a state machine that reads
+# through the query engine, and whoever owns the tasks drives it.
+[dependencies]
+norn-core = { path = "../core" }
+norn-query = { path = "../query" }
+# A seek reports the state at its target.
+norn-state = { path = "../state" }
+
+[dev-dependencies]
+# The query crate's test rig, shared by path, needs what it needs.
+norn-index = { path = "../index" }
+norn-storage = { path = "../storage" }
+proptest = { workspace = true }

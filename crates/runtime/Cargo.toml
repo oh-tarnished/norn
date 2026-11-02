@@ -1,0 +1,40 @@
+[package]
+name = "norn-runtime"
+description = "Norn's daemon lifecycle, health and memory budgets, with no network specifics."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Each is declared, with its reason, in the root Cargo.toml.
+[dependencies]
+norn-core = { path = "../core" }
+# The write path: the registry resolves streams; storage holds the data.
+norn-metadata = { path = "../metadata" }
+norn-storage = { path = "../storage" }
+# The temporal index, told of every chunk the write path stores.
+norn-index = { path = "../index" }
+# Reads: the engine, and the seams the write path and the budgets implement.
+norn-query = { path = "../query" }
+# StateAt, reached by the server through this crate.
+norn-state = { path = "../state" }
+# Replay sessions, which this crate drives on its clock and tasks.
+norn-replay = { path = "../replay" }
+# Journal segments are written uncompressed; the setting is norn-codec's type.
+norn-codec = { path = "../codec" }
+# Task ownership (JoinSet), watch channels for health and the fake clock,
+# Notify for budget waiters, and timers for the system clock.
+tokio = { workspace = true, features = ["sync", "rt", "time", "macros"] }
+# CancellationToken: how `run` is stopped and how it stops its tasks.
+tokio-util = { workspace = true }
+# Task failures and lifecycle transitions are logged, never printed.
+tracing = { workspace = true }
+
+[dev-dependencies]
+# The query crate's test rig, shared by path, needs what it needs.
+proptest = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
+
+[lints]
+workspace = true
