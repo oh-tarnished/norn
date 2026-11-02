@@ -1,0 +1,4 @@
+# Every text file is LF on every platform. On Windows, git would otherwise check
+# them out as CRLF, and tests that read a committed file through include_str!
+# would see different bytes from what was written.
+* text=auto eol=lf

@@ -12,7 +12,7 @@ gates:
 
 # Unit, integration and documentation tests, including the gate tests.
 test:
-    cargo test --workspace --locked
+    cargo test --workspace --locked --no-fail-fast
 
 # Benchmark smoke runs include real daemons over Unix sockets.
 [unix]
