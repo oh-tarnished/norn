@@ -10,11 +10,11 @@ only party who can grant a commercial licence. It is dual-licensed.
 | Embedding Norn in a product you distribute without source | Commercial licence | Paid |
 | Offering Norn, or a service built on it, over a network without publishing your source | Commercial licence | Paid |
 
-The `.proto` definitions under [`protobuf/`](./protobuf) and the Rust protocol
-crate [`norn-protocol`](./crates/protocol), including generated code, are
-**Apache-2.0**. Writing a proprietary application that *talks to* a Norn server
-over gRPC needs no commercial licence. The distinction is building on, or
-modifying, the server itself.
+Every part of Norn is under these terms, with no exception: the engine, the
+server, the client crates (`norn-ipc`, `norn-transport`), the protocol crate
+`norn-protocol` with its generated code, and the `.proto` definitions under
+[`protobuf/`](./protobuf). Building a proprietary client with any of them,
+including generating code from the `.proto` files, needs a commercial licence.
 
 ---
 
@@ -40,8 +40,8 @@ Running the unmodified server, for your own data or your customers', and
 calling it from your own proprietary applications, is ordinary use: the AGPL
 asks nothing of the applications that only talk to it.
 
-Note that **linking counts.** A Rust program that links Norn's engine or server
-crates (the Apache-2.0 `norn-protocol` crate is excepted) is a derived work,
+Note that **linking counts.** A Rust program that links any Norn crate,
+`norn-protocol`, `norn-ipc` and `norn-transport` included, is a derived work,
 and if that program is proprietary it needs a commercial licence.
 
 ## What a commercial licence grants

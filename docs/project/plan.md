@@ -55,6 +55,16 @@ calls `TelemetryService.AppendSamples`. Under SPEC section 47 the adapter uses
 only Norn's public client crates. Backpressure is honoured through a bounded
 buffer; nothing is dropped silently.
 
+## Pattern detection (owner's decision, 2026-11-02; after v0.1)
+
+GPU-accelerated pattern detection through GGML, which is C, is an accepted
+exception to SPEC section 1, on these terms: an opt-in feature, off by
+default; never in the core, engine crates or the default build; a separate
+program that reads through the public API, like the MCP server. Findings are
+written back as signals. Without the feature or a GPU, a CPU path still works.
+The deps gate allows it narrowly, with the reason beside the entry. Which
+patterns to detect is still to be decided.
+
 ## Documentation restructure (owner's request, 2026-11-02)
 
 Runs once the write path and index have merged, before query starts, so no
@@ -88,4 +98,4 @@ agent is editing the files being moved. Norn only.
 | 2 | done: daemon, storage, index, write path and metadata merged |
 | 3 | done: documentation restructure, query, StateAt and replay merged (checkpoints deferred by measurement) |
 | bacnet-rs | sink over IPC built and verified end to end, uncommitted in the bacnet-rs-norn worktree (feat/norn-sink) for the owner's review |
-| release | licence chosen (AGPL/commercial, Apache protocol); workflows prepared; push and hosted CI pending |
+| release | licence chosen (AGPL-3.0-or-later or commercial, every crate, no exception); workflows prepared; push and hosted CI pending |

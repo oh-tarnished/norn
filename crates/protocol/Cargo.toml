@@ -2,7 +2,7 @@
 name = "norn-protocol"
 description = "Norn's public wire protocol: Rust types and gRPC stubs generated from protobuf/."
 version.workspace = true
-license = "Apache-2.0"
+license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish = false

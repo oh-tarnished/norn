@@ -69,8 +69,8 @@ To preview locally, run `just release-build <host-target>` followed by
 
 ## Licence and contributions
 
-Norn uses AGPL-3.0-or-later with a separate commercial licence. The `.proto`
-definitions and `norn-protocol` crate are Apache-2.0. Read the
+Norn uses AGPL-3.0-or-later with a separate commercial licence, for every part
+of the repository with no exception. Read the
 [Contributor Licence Agreement](.github/CLA.md) before contributing and sign
 off every commit with `git commit -s`.
 

@@ -4,8 +4,8 @@
 # parallel work adds a crate without editing this file. Shared settings live
 # here; the foundation piece owns changes to them.
 #
-# AGPL-3.0-or-later, with a separate commercial licence; the public protocol
-# crate is Apache-2.0 (see README.md and LICENSE-COMMERCIAL.md).
+# Every crate is AGPL-3.0-or-later, with a separate commercial licence (see
+# README.md and LICENSE-COMMERCIAL.md). There is no permissive exception.
 [workspace]
 resolver = "3"
 # adapters/* and services/* join once a crate exists there: Cargo rejects a

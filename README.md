@@ -331,10 +331,10 @@ Norn is dual-licensed:
 - **[AGPL-3.0-or-later](LICENSE)** for open-source use.
 - **[Commercial](LICENSE-COMMERCIAL.md)** for proprietary use under a separate agreement.
 
-The `.proto` definitions under [`protobuf/`](protobuf) and the Rust protocol
-crate [`norn-protocol`](crates/protocol), including generated code, are
-**[Apache-2.0](protobuf/LICENSE)**. A proprietary application that only talks
-to Norn over gRPC needs no commercial licence.
+This covers every part of Norn, with no exception: the engine, the server, the
+client and protocol crates, their generated code, and the `.proto` definitions
+under [`protobuf/`](protobuf). A proprietary client built on any of them needs
+a commercial licence.
 
 Contributions follow the [Contributor Licence Agreement](.github/CLA.md);
 sign off each commit with `git commit -s`. Third-party dependencies retain

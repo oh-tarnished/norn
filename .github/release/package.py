@@ -30,7 +30,6 @@ def main():
         ):
             shutil.copy2(document, package)
         shutil.copytree("docs", package / "docs")
-        shutil.copy2("protobuf/LICENSE", package / "LICENSE-PROTOCOL")
         archive = Path(shutil.make_archive(
             str((dist / name).resolve()), "zip" if suffix else "gztar",
             root_dir=temporary, base_dir=name,

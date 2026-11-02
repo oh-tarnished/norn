@@ -27,6 +27,6 @@ and [configuration reference](https://github.com/oh-tarnished/norn/blob/main/doc
 [online documentation](https://github.com/oh-tarnished/norn#contents).
 
 Norn is [AGPL-3.0-or-later](https://github.com/oh-tarnished/norn/blob/main/LICENSE) with a separate
-[commercial licence](https://github.com/oh-tarnished/norn/blob/main/LICENSE-COMMERCIAL.md). The protocol definitions
-and `norn-protocol` crate are Apache-2.0. Licence files accompany each archive.
+[commercial licence](https://github.com/oh-tarnished/norn/blob/main/LICENSE-COMMERCIAL.md), every part of it with no
+exception. Licence files accompany each archive.
 The source for each release is available in GitHub’s source archives below.

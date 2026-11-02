@@ -30,7 +30,7 @@ unused-allowed-license = "allow"
 
 [licenses.private]
 # This allow-list governs third-party dependencies. Norn's unpublished
-# crates use AGPL-3.0-or-later; norn-protocol uses Apache-2.0 (README.md).
+# crates are all AGPL-3.0-or-later with a commercial option (README.md).
 ignore = true
 
 [bans]
