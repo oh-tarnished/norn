@@ -114,7 +114,8 @@ fn a_construction_sign_and_a_pictograph_with_its_selector_both_fail() {
 
 #[test]
 fn typographic_symbols_are_not_pictographs_and_pass() {
-    let readme = "Copyright \u{a9} 2026. 16,000 \u{d7} 1 Hz, 49.5 \u{b5}s, a \u{2192} b \u{2014} c.\n";
+    let readme =
+        "Copyright \u{a9} 2026. 16,000 \u{d7} 1 Hz, 49.5 \u{b5}s, a \u{2192} b \u{2014} c.\n";
     assert!(emoji::check(Some(readme)).verdict().is_ok());
 }
 

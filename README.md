@@ -47,21 +47,21 @@ before the release and what comes after it.
 
 **This page**
 
-1. [What it is and why](#what-it-is-and-why)
-2. [Features](#features)
-3. [Architecture](#architecture): [system](#the-whole-system),
-   [servers](#servers-always-on-and-optional), [write path](#the-write-path),
-   [read path](#the-read-path), [integrations](#adapters-mcp-and-bacnet-rs),
-   [storage](#storage-hierarchy)
-4. [Installation](#installation)
-5. [Quick start](#quick-start)
-6. [Configuration](#configuration)
-7. [Using Norn from your own code](#using-norn-from-your-own-code)
-8. [Connecting to bacnet-rs](#connecting-to-bacnet-rs)
-9. [Operations](#operations)
-10. [Performance](#performance)
-11. [Roadmap](#roadmap)
-12. [Contributing](#contributing), [Security](#security), [Licence](#licence)
+- [What it is and why](#what-it-is-and-why)
+- [Features](#features)
+- [Architecture](#architecture): [system](#the-whole-system),
+  [servers](#servers-always-on-and-optional), [write path](#the-write-path),
+  [read path](#the-read-path), [integrations](#adapters-mcp-and-bacnet-rs),
+  [storage](#storage-hierarchy)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Using Norn from your own code](#using-norn-from-your-own-code)
+- [Connecting to bacnet-rs](#connecting-to-bacnet-rs)
+- [Operations](#operations)
+- [Performance](#performance)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing), [Security](#security), [Licence](#licence)
 
 **Guides**
 
@@ -156,9 +156,9 @@ any domain.
 ### The whole system
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph clients["Clients"]
-        direction TB
+        direction LR
         ctl["nornctl"]
         app["Your program<br/>norn-ipc + norn-protocol"]
         bac["bacnet-norn<br/>BACnet capture"]
@@ -169,7 +169,6 @@ flowchart LR
     end
 
     subgraph daemon["norn daemon"]
-        direction TB
         grpc["gRPC API<br/>always on"]
         meta["Metadata registry<br/>streams, entities, signals"]
         write["Write path<br/>admission, budgets, acks"]
@@ -393,7 +392,7 @@ and the licences.
 Everything below was run against a fresh daemon built from commit 93a979c on macOS,
 and the output is copied as printed. Use two terminals.
 
-**1. Start the daemon.** It runs in the foreground and logs to stderr. With no flags it
+**Start the daemon.** It runs in the foreground and logs to stderr. With no flags it
 uses the per-user endpoint and data directory. (This run set `TMPDIR=/tmp/norn-demo/t`,
 which is where the default endpoint lives.)
 
@@ -406,7 +405,7 @@ $ norn
 
 One long `recovery finished` line is left out between the first two.
 
-**2. Check the connection.** `version` negotiates the protocol.
+**Check the connection.** `version` negotiates the protocol.
 
 ```console
 $ nornctl version
@@ -416,7 +415,7 @@ server_version: 0.1.0
 agreed_protocol: 1.4
 ```
 
-**3. Create a stream, an entity and two signals.** A stream is a sequence of
+**Create a stream, an entity and two signals.** A stream is a sequence of
 observations, an entity is a thing, and a signal is something measurable about it,
 with one value type.
 
@@ -431,7 +430,7 @@ $ nornctl signals create ahu-01 fan-speed plant double
 entities/ahu-01/signals/fan-speed
 ```
 
-**4. Append.** Each call prints its admission, then the level reached. The default
+**Append.** Each call prints its admission, then the level reached. The default
 level is `DURABLE`. `--at` sets the observation time.
 
 ```console
@@ -444,7 +443,7 @@ Five more were appended the same way: `fan-speed` 40 at 08:00:00, `supply-temp` 
 at 08:00:10, `fan-speed` 55 at 08:00:20, and `supply-temp` 21.9 at 08:00:30, sent
 twice with the same sequence number.
 
-**5. Query.** The resend is stored once.
+**Query.** The resend is stored once.
 
 ```console
 $ nornctl query ahu-01 --order time
@@ -459,7 +458,7 @@ $ nornctl query ahu-01 --agg max --window 30s --from 2026-11-02T08:00:00Z --to 2
 2026-11-02T08:00:30Z 2026-11-02T08:01:00Z entities/ahu-01/signals/supply-temp 21.9 count=1
 ```
 
-**6. State at an instant.** What every signal held at 08:00:15.
+**State at an instant.** What every signal held at 08:00:15.
 
 ```console
 $ nornctl state ahu-01 --at 2026-11-02T08:00:15Z
@@ -468,7 +467,7 @@ state_time: 2026-11-02T08:00:15Z
 2026-11-02T08:00:10Z entities/ahu-01/signals/supply-temp 21.4 GOOD seq=3
 ```
 
-**7. Replay.** A session starts paused; subscribing with `--resume` starts its clock.
+**Replay.** A session starts paused; subscribing with `--resume` starts its clock.
 `--speed max` plays as fast as the subscriber reads.
 
 ```console
@@ -484,7 +483,7 @@ $ nornctl subscribe replay morning --resume
 #7 2026-11-02T08:01:00Z ENDED
 ```
 
-**8. Where the samples are.** They are safe in the journal and still buffered: no
+**Where the samples are.** They are safe in the journal and still buffered: no
 chunk has been written yet, so `verify` has nothing to read.
 
 ```console
@@ -502,7 +501,7 @@ $ nornctl verify plant
 streams/plant segments=2 chunks=3 samples=6 bytes=633 damaged_chunks=0 damaged_samples=0
 ```
 
-**9. Compact, then verify.** Compaction merges neighbouring segments and re-encodes
+**Compact, then verify.** Compaction merges neighbouring segments and re-encodes
 each signal's chunks. `verify` then reads and checks every chunk again.
 
 ```console
@@ -512,7 +511,7 @@ $ nornctl verify plant
 streams/plant segments=1 chunks=2 samples=6 bytes=408 damaged_chunks=0 damaged_samples=0
 ```
 
-**10. Export.** An export never overwrites a file.
+**Export.** An export never overwrites a file.
 
 ```console
 $ nornctl export ahu-01 --format parquet --output ahu-01.parquet
@@ -532,7 +531,7 @@ $ nornctl query ahu-01 --agg count
 - - entities/ahu-01/signals/supply-temp 4 count=4
 ```
 
-**11. Shut down.** Ctrl-C or SIGTERM. In-flight calls drain and the exit status is 0.
+**Shut down.** Ctrl-C or SIGTERM. In-flight calls drain and the exit status is 0.
 
 ```text
 INFO shutdown requested signal="SIGTERM"
