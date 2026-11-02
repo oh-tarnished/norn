@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: dtolnay/rust-toolchain@1.120.0
       - uses: extractions/setup-just@v4
       - uses: Swatinem/rust-cache@v2
       - run: just gates
@@ -43,7 +43,7 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: dtolnay/rust-toolchain@1.120.0
         with:
           components: rustfmt, clippy
       - uses: extractions/setup-just@v4
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: dtolnay/rust-toolchain@1.120.0
       - uses: extractions/setup-just@v4
       - uses: taiki-e/install-action@v2
         with:
@@ -76,7 +76,7 @@ jobs:
         target: [armv7-unknown-linux-gnueabihf, aarch64-unknown-linux-gnu]
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: dtolnay/rust-toolchain@1.120.0
         with:
           targets: ${{ matrix.target }}
       - uses: extractions/setup-just@v4
