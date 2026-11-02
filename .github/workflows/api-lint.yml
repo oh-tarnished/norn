@@ -28,7 +28,7 @@ jobs:
         with:
           version: 1.75.0
           github_token: ${{ github.token }}
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
           cache: false
