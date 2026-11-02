@@ -33,3 +33,6 @@ updates:
     groups:
       actions:
         update-types: [minor, patch]
+    ignore:
+      # This tag selects Rust itself; upgrade it alongside rust-toolchain.toml.
+      - dependency-name: dtolnay/rust-toolchain
