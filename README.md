@@ -930,3 +930,8 @@ a commercial licence.
 Contributions follow the [Contributor Licence Agreement](.github/CLA.md);
 sign off each commit with `git commit -s`. Third-party dependencies retain
 their own licences; `deny.toml` keeps those dependencies permissively licensed.
+
+SPDX headers and [REUSE metadata](REUSE.toml) cover every project file, with
+Srikanth K named on Norn-authored material. Generated third-party boilerplate
+retains its original notices. Canonical licence texts are included in `LICENSES/`
+and in the release archives.
