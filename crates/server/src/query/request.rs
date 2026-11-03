@@ -3,7 +3,8 @@
 use norn_core::Timestamp;
 use norn_metadata::{Registry, SignalRecord};
 use norn_protocol::common::ErrorReason;
-use norn_protocol::query::{AggregateFunction, QuerySamplesRequest, SampleOrder};
+use norn_protocol::google::r#type::Interval;
+use norn_protocol::query::{AggregateFunction, Aggregation, QuerySamplesRequest, SampleOrder};
 use norn_runtime::query::{
     Filter, Function, Order, Output, Position, QuerySpec, Reduction, Target, TimeRange,
 };
@@ -18,11 +19,17 @@ use crate::status::{bad_field, error_info};
 const TOKEN: &str = "q1";
 
 /// Identifies a request, its token aside, so a token cannot resume another query.
-/// FNV-1a over the encoded message; a fingerprint and not a secret.
 pub(super) fn fingerprint(request: &QuerySamplesRequest) -> u64 {
     let mut bare = request.clone();
     bare.resume_token.clear();
-    bare.encode_to_vec()
+    print_of(&bare)
+}
+
+/// FNV-1a over `message` encoded: a fingerprint and not a secret. A caller clears
+/// the fields a token may differ in (the token itself, a page size) first.
+pub(crate) fn print_of(message: &impl Message) -> u64 {
+    message
+        .encode_to_vec()
         .iter()
         .fold(0xcbf2_9ce4_8422_2325, |h, b| {
             (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3)
@@ -30,11 +37,15 @@ pub(super) fn fingerprint(request: &QuerySamplesRequest) -> u64 {
 }
 
 /// The token for `position` in a query of `print`.
-pub(super) fn token(print: u64, position: &Position) -> String {
+pub(crate) fn token(print: u64, position: &Position) -> String {
     format!("{TOKEN}.{print:016x}.{}", position.encode())
 }
 
-fn position(text: &str, print: u64) -> Result<Option<Position>, Status> {
+/// The position `text`, a [`token`] of a query of `print`; `None` when empty.
+///
+/// # Errors
+/// `INVALID_ARGUMENT` with `ERROR_REASON_INVALID_TOKEN` for any other text.
+pub(crate) fn position(text: &str, print: u64) -> Result<Option<Position>, Status> {
     if text.is_empty() {
         return Ok(None);
     }
@@ -56,18 +67,20 @@ fn time(field: &str, t: Option<prost_types::Timestamp>) -> Result<Option<Timesta
         .transpose()
 }
 
-fn range(request: &QuerySamplesRequest) -> Result<TimeRange, Status> {
-    let (start, end) = request
-        .interval
-        .map_or((None, None), |i| (i.start_time, i.end_time));
+/// `interval`, the request field `field`, as a query's range.
+///
+/// # Errors
+/// `INVALID_ARGUMENT` for a time out of range or an interval ending before it starts.
+pub(crate) fn time_range(interval: Option<Interval>, field: &str) -> Result<TimeRange, Status> {
+    let (start, end) = interval.map_or((None, None), |i| (i.start_time, i.end_time));
     let range = TimeRange {
-        start: time("interval.start_time", start)?,
-        end: time("interval.end_time", end)?,
+        start: time(&format!("{field}.start_time"), start)?,
+        end: time(&format!("{field}.end_time"), end)?,
     };
     if let (Some(a), Some(b)) = (range.start, range.end)
         && a > b
     {
-        return Err(bad_field("interval", "must not end before it starts"));
+        return Err(bad_field(field, "must not end before it starts"));
     }
     Ok(range)
 }
@@ -87,15 +100,17 @@ fn function(number: i32) -> Result<Function, Status> {
     })
 }
 
-fn output(request: &QuerySamplesRequest) -> Result<Output, Status> {
-    let Some(a) = request.aggregation else {
-        return Ok(Output::Samples(
-            match SampleOrder::try_from(request.order) {
-                Ok(SampleOrder::ByTime) => Order::ByTime,
-                Ok(_) => Order::BySignal,
-                Err(_) => return Err(bad_field("order", "is not a SampleOrder")),
-            },
-        ));
+/// What `aggregation` and `order` ask a query to return.
+///
+/// # Errors
+/// `INVALID_ARGUMENT` for an unknown order or function, or a bad window.
+pub(crate) fn output(aggregation: Option<Aggregation>, order: i32) -> Result<Output, Status> {
+    let Some(a) = aggregation else {
+        return Ok(Output::Samples(match SampleOrder::try_from(order) {
+            Ok(SampleOrder::ByTime) => Order::ByTime,
+            Ok(_) => Order::BySignal,
+            Err(_) => return Err(bad_field("order", "is not a SampleOrder")),
+        }));
     };
     let window = a
         .window
@@ -110,6 +125,14 @@ fn output(request: &QuerySamplesRequest) -> Result<Output, Status> {
         function: function(a.aggregate_function)?,
         window,
     }))
+}
+
+/// `text` as a sample filter.
+///
+/// # Errors
+/// `INVALID_ARGUMENT` naming `sample_filter` when it does not parse.
+pub(crate) fn sample_filter(text: &str) -> Result<Filter, Status> {
+    Filter::parse(text).map_err(|e| bad_field("sample_filter", &e.reason))
 }
 
 /// The signals `parent` and `filter` select, as a query's targets.
@@ -140,13 +163,11 @@ pub(super) fn spec(
     request: QuerySamplesRequest,
     print: u64,
 ) -> Result<QuerySpec, Status> {
-    let filter =
-        Filter::parse(&request.sample_filter).map_err(|e| bad_field("sample_filter", &e.reason))?;
     Ok(QuerySpec {
         targets: targets(registry, &request.parent, &request.filter)?,
-        range: range(&request)?,
-        filter,
-        output: output(&request)?,
+        range: time_range(request.interval, "interval")?,
+        filter: sample_filter(&request.sample_filter)?,
+        output: output(request.aggregation, request.order)?,
         resume: position(&request.resume_token, print)?,
     })
 }

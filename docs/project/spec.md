@@ -203,10 +203,17 @@ Metadata; no BACnet structures in the core. (The `bacnet-rs` library supplies
 the protocol side, and by the §29 decision the adapter itself.)
 
 ## 31. MCP
-An optional, independent MCP server executable above Norn: AI agent → MCP
-server → Norn gRPC client → daemon. It never touches storage directly. Tools:
-list_entities, list_signals, get_signal_metadata, query_range, get_latest,
-state_at, find_events, replay, compare_periods, get_statistics.
+Optional MCP, served by the daemon: AI agent → MCP → the daemon's gRPC services,
+in-process. It never touches storage directly. Tools: list_entities, list_signals,
+get_signal_metadata, query_range, get_latest, state_at, find_events, replay,
+compare_periods, get_statistics.
+**Decision (owner, 2026-11-02):** RPC first. Every tool is a real RPC of the schema,
+usable by any gRPC client (`BrowseSamples` for query_range and get_latest,
+`FindEvents`, `ComputeStats`, `ComparePeriods`, `DriveReplaySession`, and the existing
+List, Get and `ComputeState`), and the MCP surface is generated from `(mcp.v1.*)`
+annotations by protoc-gen-mcp, with no hand-written tool definitions. MCP runs inside
+`norn` (runtime-rs's HybridServer, `[mcp] enabled`), read-only by construction; gRPC is
+always on. The separate `norn-mcp` executable is gone (docs/reference/mcp.md).
 
 ## 32. AI-oriented temporal operations (eventually)
 What happened between T1 and T2; what changed; state at T; state before event
@@ -249,7 +256,7 @@ A workspace: `README.md`, `CONTRIBUTING.md` and `SECURITY.md` at the root, and
 `docs/` as section 3 lays it out; `protobuf/`; `crates/` {core, protocol, ipc,
 transport, shared-memory, runtime, storage, codec, index, query, state, replay,
 metadata, server, cli}; `adapters/` {bacnet, modbus, opcua, mqtt, mcap,
-parquet}; `services/mcp/`; `tests/`; `benchmarks/`; `examples/`; `tools/`
+parquet}; `tests/`; `benchmarks/`; `examples/`; `tools/`
 (`tools/screenshots/` captures `docs/images/` from a real daemon). One focused responsibility per crate/module.
 
 ## 39. Dependencies

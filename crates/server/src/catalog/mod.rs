@@ -1,5 +1,6 @@
 //! `EntityService`, `SignalService` and `StreamService` over the registry.
 
+mod batch;
 mod entity;
 pub(crate) mod names;
 mod query;

@@ -21,6 +21,13 @@ pub mod google {
         // @@protoc_insertion_point(google.rpc)
     }
 }
+pub mod mcp {
+    // @@protoc_insertion_point(attribute:mcp.v1)
+    pub mod v1 {
+        include!("mcp/v1/mcp.v1.rs");
+        // @@protoc_insertion_point(mcp.v1)
+    }
+}
 pub mod norn {
     pub mod admin {
         // @@protoc_insertion_point(attribute:norn.admin.v1)

@@ -146,5 +146,42 @@ impl ::prost::Name for DeleteSignalRequest {
 const NAME: &'static str = "DeleteSignalRequest";
 const PACKAGE: &'static str = "norn.signal.v1";
 fn full_name() -> ::prost::alloc::string::String { "norn.signal.v1.DeleteSignalRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.signal.v1.DeleteSignalRequest".into() }}
+/// The request for SignalService.BatchCreateSignals (AIP-233).
+///
+/// At most 1000 requests, and the whole message at most 4 MiB; a larger batch
+/// fails with INVALID_ARGUMENT naming `requests`. The bound keeps one batch's
+/// memory, the time it holds the catalogue's lock, and recovery's work bounded.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchCreateSignalsRequest {
+    /// The owning entity, as `entities/{entity}`, or `entities/-` when the
+    /// signals belong to several. Each request's `parent` must equal it, or,
+    /// with `entities/-`, name its own entity.
+    #[prost(string, tag="1")]
+    pub parent: ::prost::alloc::string::String,
+    /// The signals to create, one CreateSignalRequest each, 1 to 1000 of them.
+    /// A request's own `validate_only` must be unset; set the batch's instead.
+    #[prost(message, repeated, tag="2")]
+    pub requests: ::prost::alloc::vec::Vec<CreateSignalRequest>,
+    /// Validate the whole batch and return what would be created, storing
+    /// nothing.
+    #[prost(bool, tag="3")]
+    pub validate_only: bool,
+}
+impl ::prost::Name for BatchCreateSignalsRequest {
+const NAME: &'static str = "BatchCreateSignalsRequest";
+const PACKAGE: &'static str = "norn.signal.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.signal.v1.BatchCreateSignalsRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.signal.v1.BatchCreateSignalsRequest".into() }}
+/// The response for SignalService.BatchCreateSignals.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchCreateSignalsResponse {
+    /// One signal per request, in request order: the new signal, or the stored
+    /// one when it already existed with the same value type and stream.
+    #[prost(message, repeated, tag="1")]
+    pub signals: ::prost::alloc::vec::Vec<Signal>,
+}
+impl ::prost::Name for BatchCreateSignalsResponse {
+const NAME: &'static str = "BatchCreateSignalsResponse";
+const PACKAGE: &'static str = "norn.signal.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.signal.v1.BatchCreateSignalsResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.signal.v1.BatchCreateSignalsResponse".into() }}
 include!("norn.signal.v1.tonic.rs");
 // @@protoc_insertion_point(module)

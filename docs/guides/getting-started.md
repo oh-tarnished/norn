@@ -8,20 +8,20 @@ commands on Linux and Windows too.
 
 ## Build
 
-Rust 1.99.1, pinned in `rust-toolchain.toml`. No C toolchain and no `protoc`: the generated code is
-committed.
+Rust 1.99.1, pinned in `rust-toolchain.toml`. No `protoc`: the generated code is committed. Building `norn` needs a C compiler,
+for `ring`, which runtime-rs's server brings; nothing else does.
 
 ```sh
-cargo build -p norn-server -p norn-cli -p norn-mcp
+cargo build -p norn-server -p norn-cli
 ```
 
-This gives you three binaries in `target/debug/`: `norn`, the daemon;
-`nornctl`, a client that uses only the public gRPC API; and `norn-mcp`, the MCP
-server for AI agents ([AI agents](ai-agents.md)). The commands below assume
+This gives you two binaries in `target/debug/`: `norn`, the daemon, which also
+serves AI agents over MCP when asked ([AI agents](ai-agents.md)); and `nornctl`, a
+client that uses only the public gRPC API. The commands below assume
 that directory is on your `PATH`.
 
 Or download a release archive for your platform from GitHub Releases and check it
-against its `.sha256` file. Each one carries `norn`, `nornctl` and `norn-mcp`
+against its `.sha256` file. Each one carries `norn` and `nornctl`
 (`.exe` on Windows) with this documentation; Linux builds need glibc 2.35 or newer.
 
 ## Start the daemon

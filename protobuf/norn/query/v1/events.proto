@@ -1,0 +1,129 @@
+syntax = "proto3";
+
+package norn.query.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/type/interval.proto";
+import "mcp/v1/annotations.proto";
+import "norn/type/quality.proto";
+import "norn/type/sample.proto";
+import "norn/type/value.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "EventsProto";
+option java_package = "local.norn.query.v1";
+
+// The request for QueryService.FindEvents.
+message FindEventsRequest {
+  // Whose signals to search, as `entities/{entity}`, or `entities/-` for
+  // every entity.
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {child_type: "norn.local/Signal"},
+    (mcp.v1.field) = {
+      examples: [
+        "entities/-",
+        "entities/ahu-01"
+      ]
+    }
+  ];
+
+  // An AIP-160 filter selecting signals, as in ListSignals.
+  string filter = 2 [
+    (google.api.field_behavior) = OPTIONAL,
+    (mcp.v1.field) = {
+      examples: ["id = \"supply-temp\""]
+    }
+  ];
+
+  // The half-open interval of `observe_time` to search, each end an RFC
+  // 3339 time in UTC. Either end may be unset.
+  google.type.Interval interval = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // An AIP-160 filter over each sample's `value` and `quality`, as in
+  // QuerySamples. Required for EVENT_KIND_MATCH. For the change kinds it
+  // narrows which samples count, so "previous" means the previous sample
+  // that passes it.
+  string sample_filter = 4 [
+    (google.api.field_behavior) = OPTIONAL,
+    (mcp.v1.field) = {
+      examples: [
+        "value > 80",
+        "quality.severity = QUALITY_SEVERITY_BAD"
+      ]
+    }
+  ];
+
+  // Which events to find.
+  EventKind kind = 5 [(google.api.field_behavior) = REQUIRED];
+
+  // The most events to return; capped at 1000, 100 when zero. A page also
+  // stops once it holds about 256 KiB, after its first event.
+  int32 page_size = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // The `next_page_token` of a previous call with otherwise equal fields,
+  // `page_size` and `max_value_bytes` aside.
+  string page_token = 7 [(google.api.field_behavior) = OPTIONAL];
+
+  // The longest string or bytes value returned whole, as in
+  // BrowseSamplesRequest. Values are always compared whole.
+  int32 max_value_bytes = 8 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for QueryService.FindEvents. Events come grouped by signal,
+// in signal name order, each signal's in time order: reading in storage
+// order needs only one previous sample in memory, whatever the selection.
+message FindEventsResponse {
+  // The events on this page.
+  repeated SampleEvent events = 1;
+
+  // Passed as `page_token` to read on; empty once the interval is searched.
+  // It carries the position of the last sample read and, for a change
+  // kind, that sample's value or quality, so the next page detects a
+  // change across the boundary exactly.
+  string next_page_token = 2;
+
+  // How many samples this call read, 1,000,000 at most.
+  int64 scanned_sample_count = 3;
+}
+
+// One event: a sample, and for a change, what it changed from.
+message SampleEvent {
+  // Why this sample is an event.
+  EventKind kind = 1;
+
+  // The sample.
+  norn.type.Sample sample = 2;
+
+  // For EVENT_KIND_VALUE_CHANGE, the previous sample's value.
+  norn.type.Value previous_value = 3;
+
+  // For EVENT_KIND_QUALITY_CHANGE, the previous sample's quality.
+  norn.type.Quality previous_quality = 4;
+
+  // A value above was cut to `max_value_bytes`.
+  bool value_truncated = 5;
+}
+
+// What makes a sample an event. Exactly one of these, chosen by the caller;
+// domain words such as "alarm" are built from them, such as MATCH with
+// `value > 80`.
+enum EventKind {
+  // Not set. Rejected.
+  EVENT_KIND_UNSPECIFIED = 0;
+
+  // The sample passes `sample_filter`.
+  EVENT_KIND_MATCH = 1;
+
+  // The sample's value differs, bit for bit, from the previous sample of
+  // its signal in the interval, in (time, sequence) order: -0.0 differs
+  // from 0.0, a NaN equals the same NaN, and an enum compares by number. A
+  // signal's first sample in the interval is the baseline and never a
+  // change; widen the interval to see one at its start.
+  EVENT_KIND_VALUE_CHANGE = 2;
+
+  // The sample's quality, severity or substatus, differs from the previous
+  // sample's, by the same rules.
+  EVENT_KIND_QUALITY_CHANGE = 3;
+}

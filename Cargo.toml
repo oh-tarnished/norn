@@ -1,6 +1,6 @@
 # Norn: a domain-independent temporal data engine. See docs/project/spec.md and docs/project/plan.md.
 #
-# Every crate under crates/, adapters/ and services/ is a member by glob, so
+# Every crate under crates/ and adapters/ is a member by glob, so
 # parallel work adds a crate without editing this file. Shared settings live
 # here; the foundation piece owns changes to them.
 #
@@ -8,7 +8,7 @@
 # README.md and LICENSE-COMMERCIAL.md). There is no permissive exception.
 [workspace]
 resolver = "3"
-members = ["crates/*", "adapters/*", "services/*", "xtask"]
+members = ["crates/*", "adapters/*", "xtask"]
 
 [workspace.package]
 license = "AGPL-3.0-or-later"
@@ -26,7 +26,7 @@ repository = "https://github.com/oh-tarnished/norn"
 proptest = { version = "1", default-features = false, features = ["std"] }
 # xtask reads `cargo metadata` output; std has no JSON parser. The adapters also
 # carry the entity and signal catalog in files as JSON, readable by any tool,
-# and norn-mcp's tool arguments and results are JSON by the MCP standard.
+# and an MCP tool's arguments and results are JSON by the MCP standard.
 serde_json = "1"
 
 # --- Encoding (norn-codec).
@@ -97,16 +97,31 @@ mcap = { version = "0.26", default-features = false }
 # SPEC §20 will not silently accept damage. Already in mcap's graph.
 crc32fast = "1"
 
-# --- The MCP server (norn-mcp); docs/reference/mcp.md.
-# The Model Context Protocol, the same SDK the owner's other servers use. No
-# default features: each crate names the transports it needs, and none brings TLS.
+# --- MCP inside the daemon (norn-server); docs/reference/mcp.md.
+# The Model Context Protocol, the SDK protoc-gen-mcp's Rust output and
+# tpp-agents are written against. No default features: none brings TLS.
 rmcp = { version = "3.8", default-features = false }
-# Each tool's input schema, derived from the type its arguments parse into, so
-# the two cannot disagree. Already in rmcp's graph.
-schemars = { version = "1", default-features = false, features = ["derive", "std"] }
-# Serves /mcp, and builds the 404 for any other path. Already in tonic's graph.
-hyper = { version = "1", default-features = false }
-http-body-util = "0.1"
+
+# --- The daemon's servers (norn-server); docs/reference/architecture.md, "runtime-rs".
+# runtime-rs's HybridServer: gRPC on a local socket or named pipe (never a TCP
+# port unless configured), its connection limits and drain, server reflection,
+# and the MCP runtime beside it, in-process. Default features off: no HTTP/3
+# (QUIC) and no A2A (reqwest, aws-lc). It still builds tonic with `tls-ring`
+# (ring, C) and records spans through OpenTelemetry; xtask's deps gate excuses
+# exactly that, beneath norn-server only (xtask/src/runtime_rs.rs). Apache-2.0,
+# compatible with Norn's AGPL. `tpp_grpc` because its library is named `grpc`.
+tpp_grpc = { package = "tpp-grpc", git = "https://github.com/the-protobuf-project/runtime-rs", rev = "cb5e59e49737d8aec549ecc9f4e7e78b11d40f9f", default-features = false }
+# MCP's transports (stdio, streamable HTTP on loopback TCP or a local socket)
+# and the vocabulary protoc-gen-mcp's Rust output is written against.
+tpp-agents = { git = "https://github.com/the-protobuf-project/runtime-rs", rev = "cb5e59e49737d8aec549ecc9f4e7e78b11d40f9f", default-features = false, features = ["mcp"] }
+# The generated MCP handlers' traits are async-trait's. Already in tonic's graph.
+async-trait = "0.1"
+# The generated handlers name axum for an HTTP transport Norn does not use;
+# already in tonic's graph (its `router` feature).
+axum = { version = "0.8", default-features = false }
+# A tool's arguments are its RPC's request as protobuf JSON; prost-reflect maps
+# JSON to and from the message by its descriptor. Already in tpp-grpc's graph.
+prost-reflect = { version = "0.16", default-features = false, features = ["serde"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"
@@ -119,3 +134,11 @@ panic = "deny"
 indexing_slicing = "deny"
 todo = "deny"
 dbg_macro = "deny"
+
+# TEMPORARY: runtime-rs's local-socket listener (Endpoint::unix/pipe,
+# GrpcLimits, with_grpc_layer, agents::listen) is uncommitted in a local
+# worktree. Remove this patch, and move the revs above to the pushed commit,
+# once runtime-rs is pushed.
+[patch."https://github.com/the-protobuf-project/runtime-rs"]
+tpp-grpc = { path = "../../the-protobuf-project/runtime/runtime-rs-ipc/grpc" }
+tpp-agents = { path = "../../the-protobuf-project/runtime/runtime-rs-ipc/agents" }

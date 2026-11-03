@@ -3,7 +3,9 @@
 //! Walks each workspace member's normal dependency graph (build and dev edges
 //! excluded: they never ship) and objects to any package that declares a
 //! `links` key or build-depends on a native-build helper. A crate may opt out
-//! only by appearing in [`ALLOW_C`] with its reason.
+//! only by appearing in [`ALLOW_C`] with its reason. The single exception for
+//! what runtime-rs brings beneath the daemon, and the rule that keeps it
+//! there, are [`crate::runtime_rs`]'s.
 
 use std::collections::{BTreeSet, VecDeque};
 
@@ -65,6 +67,11 @@ pub fn check(graph: &Graph, allow: &[(&str, &str)]) -> Findings {
             let Some(p) = graph.packages.get(&id) else {
                 continue;
             };
+            // Excused for this member only: another may reach it otherwise.
+            if crate::runtime_rs::excuses(graph, name, &p.name) {
+                findings.examined += 1;
+                continue;
+            }
             if !seen.insert(id.clone()) {
                 continue;
             }
@@ -87,5 +94,6 @@ pub fn check(graph: &Graph, allow: &[(&str, &str)]) -> Findings {
             }
         }
     }
+    crate::runtime_rs::check_contained(graph, &mut findings);
     findings
 }

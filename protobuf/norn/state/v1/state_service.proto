@@ -4,6 +4,7 @@ package norn.state.v1;
 
 import "google/api/annotations.proto";
 import "google/api/client.proto";
+import "mcp/v1/annotations.proto";
 import "norn/state/v1/state.proto";
 
 option java_multiple_files = true;
@@ -17,6 +18,12 @@ service StateService {
   // The default host; see norn.entity.v1.EntityService.
   option (google.api.default_host) = "norn.local";
 
+  // History grows with every sample: no client may share or reuse an
+  // answer.
+  option (mcp.v1.service) = {
+    cache: {scope: MCP_CACHE_SCOPE_PRIVATE}
+  };
+
   // Computes the state of the selected signals at an instant: for each, the
   // latest sample at or before it. Deterministic: the result equals what a
   // replay of every selected sample up to and including the instant would
@@ -25,6 +32,11 @@ service StateService {
   // `state_time` field. A custom method rather than a Get, because the
   // state is computed, not stored.
   rpc ComputeState(ComputeStateRequest) returns (ComputeStateResponse) {
+    option (mcp.v1.tool) = {
+      title: "Compute state"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {
       post: "/v1/{parent=entities/*}/signals:computeState"
       body: "*"

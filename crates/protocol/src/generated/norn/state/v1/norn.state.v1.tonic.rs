@@ -79,14 +79,6 @@ pub mod state_service_client {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
         }
-        /** Computes the state of the selected signals at an instant: for each, the
- latest sample at or before it. Deterministic: the result equals what a
- replay of every selected sample up to and including the instant would
- leave behind (SPEC section 36). This is SPEC's StateAt(T); AIP-136
- keeps prepositions out of method names, so the instant is the
- `state_time` field. A custom method rather than a Get, because the
- state is computed, not stored.
-*/
         pub async fn compute_state(
             &mut self,
             request: impl tonic::IntoRequest<super::ComputeStateRequest>,
@@ -126,14 +118,6 @@ pub mod state_service_server {
     /// Generated trait containing gRPC methods that should be implemented for use with StateServiceServer.
     #[async_trait]
     pub trait StateService: std::marker::Send + std::marker::Sync + 'static {
-        /** Computes the state of the selected signals at an instant: for each, the
- latest sample at or before it. Deterministic: the result equals what a
- replay of every selected sample up to and including the instant would
- leave behind (SPEC section 36). This is SPEC's StateAt(T); AIP-136
- keeps prepositions out of method names, so the instant is the
- `state_time` field. A custom method rather than a Get, because the
- state is computed, not stored.
-*/
         async fn compute_state(
             &self,
             request: tonic::Request<super::ComputeStateRequest>,

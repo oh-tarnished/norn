@@ -92,6 +92,23 @@ streams/plant samples=5
 `crates/server/tests/crash.rs` does this repeatedly mid-ingest and checks every
 `DURABLE` batch sample for sample. It kills the process; it does not cut power.
 
+The registry recovers the same way. A `BatchCreateEntities` or `BatchCreateSignals`
+call is one write to `metadata/metadata.log`, framed by a batch marker, and one fsync,
+so a crash keeps the whole batch or none of it. A batch cut short is a torn tail: kept
+beside the log as `metadata.log.torn-<offset>`, cut, and counted in `torn_bytes` in the
+`registry open` log line. Nothing acknowledged is lost, and the client's repeat of the
+batch, which is safe ([protocol](../reference/protocol.md#writing-a-client)), creates
+what is missing. `crates/metadata/tests/batch_recovery.rs` cuts a batch at its marker,
+in its middle and in its last record.
+
+### Upgrading and downgrading the registry log
+
+Protocol 1.6 daemons write the registry log as version 2, which adds the batch marker.
+The first start of a 1.6 daemon on a version 1 log rewrites its 16-byte header in place
+and changes nothing else. A daemon from before 1.6 then refuses the directory with
+`log version 2 is too new` rather than misreading a batch, so downgrading needs a copy
+of the data directory taken before the upgrade.
+
 ## Damage
 
 A checksum failure is reported and never silently repaired. Damage is found by
@@ -223,7 +240,7 @@ owner-only; the daemon refuses to start otherwise.
 
 CI builds, lints and tests every push on Linux, macOS and Windows. On Windows the
 tests run the daemon and `nornctl` over a named pipe, and so do the `compact`,
-`verify` and `retention` test and the `norn-mcp` suite, which have type-checked for
+`verify` and `retention` test, which have type-checked for
 Windows but not yet run on a Windows runner. Some tests run on Linux and macOS only,
 and this is why:
 
@@ -233,7 +250,7 @@ and this is why:
 | `crates/server/tests/startup.rs` | uses the same helper to spawn and kill a real `norn`, to check what a start reads after a kill |
 | `crates/server/tests/compaction_kill.rs` | kills a real daemon at every phase of a compaction; the child listens on a Unix socket, as the helper does |
 | `crates/server/tests/signals.rs` | SIGTERM and SIGINT, which Windows does not have |
-| `services/mcp/tests/lifecycle.rs`, one test | sends `norn-mcp` SIGTERM; a test cannot send a child Ctrl-C on Windows without sharing its console. The rest of the MCP suite runs on Windows |
+| `crates/server/tests/mcp_tools.rs`, `mcp_surface.rs` | MCP over a Unix socket, and `lsof` to prove no TCP port; MCP over a named pipe is served but not yet tested |
 | `crates/cli/tests/exchange_memory.rs` | samples `nornctl`'s resident memory with `ps -o rss=`, which Windows lacks |
 | `crates/cli/tests/history.rs` | written against a Unix socket; not yet ported to a named pipe |
 | `crates/transport/tests/unix_socket.rs` | Unix sockets themselves; named pipes are tested on Windows instead |

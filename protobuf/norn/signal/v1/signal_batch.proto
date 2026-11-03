@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package norn.signal.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "norn/signal/v1/signal.proto";
+import "norn/signal/v1/signal_messages.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SignalBatchProto";
+option java_package = "local.norn.signal.v1";
+
+// The request for SignalService.BatchCreateSignals (AIP-233).
+//
+// At most 1000 requests, and the whole message at most 4 MiB; a larger batch
+// fails with INVALID_ARGUMENT naming `requests`. The bound keeps one batch's
+// memory, the time it holds the catalogue's lock, and recovery's work bounded.
+message BatchCreateSignalsRequest {
+  // The owning entity, as `entities/{entity}`, or `entities/-` when the
+  // signals belong to several. Each request's `parent` must equal it, or,
+  // with `entities/-`, name its own entity.
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {child_type: "norn.local/Signal"}
+  ];
+
+  // The signals to create, one CreateSignalRequest each, 1 to 1000 of them.
+  // A request's own `validate_only` must be unset; set the batch's instead.
+  repeated CreateSignalRequest requests = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // Validate the whole batch and return what would be created, storing
+  // nothing.
+  bool validate_only = 3 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for SignalService.BatchCreateSignals.
+message BatchCreateSignalsResponse {
+  // One signal per request, in request order: the new signal, or the stored
+  // one when it already existed with the same value type and stream.
+  repeated Signal signals = 1;
+}

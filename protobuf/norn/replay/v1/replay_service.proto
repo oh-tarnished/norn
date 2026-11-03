@@ -5,7 +5,9 @@ package norn.replay.v1;
 import "google/api/annotations.proto";
 import "google/api/client.proto";
 import "google/protobuf/empty.proto";
+import "mcp/v1/annotations.proto";
 import "norn/replay/v1/replay_controls.proto";
+import "norn/replay/v1/replay_drive.proto";
 import "norn/replay/v1/replay_messages.proto";
 import "norn/replay/v1/replay_session.proto";
 
@@ -19,12 +21,31 @@ option java_package = "local.norn.replay.v1";
 // the session as it is after the transition, and fails with
 // FAILED_PRECONDITION and ERROR_REASON_REPLAY_STATE_CONFLICT when the
 // session's state forbids it.
+//
+// A session is a view of stored history, held in memory: creating, driving
+// or deleting one changes nothing stored. So those methods, and the reads,
+// carry read-only MCP tools; the controls that pace a session for its
+// subscribers do not, since a frozen session is driven with
+// DriveReplaySession instead.
 service ReplayService {
   // The default host; see norn.entity.v1.EntityService.
   option (google.api.default_host) = "norn.local";
 
-  // Creates a session, PAUSED at the start of its interval.
+  // A session's clock moves with every control: no client may share or
+  // reuse an answer.
+  option (mcp.v1.service) = {
+    cache: {scope: MCP_CACHE_SCOPE_PRIVATE}
+  };
+
+  // Creates a session, PAUSED at the start of its interval. Create it with
+  // speed 0 to drive it with DriveReplaySession, and delete it when done:
+  // sessions are bounded, and an idle one expires.
   rpc CreateReplaySession(CreateReplaySessionRequest) returns (ReplaySession) {
+    option (mcp.v1.tool) = {
+      title: "Create replay session"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {
       post: "/v1/replaySessions"
       body: "replay_session"
@@ -34,12 +55,22 @@ service ReplayService {
 
   // Reads a session, including its clock.
   rpc GetReplaySession(GetReplaySessionRequest) returns (ReplaySession) {
+    option (mcp.v1.tool) = {
+      title: "Get replay session"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {get: "/v1/{name=replaySessions/*}"};
     option (google.api.method_signature) = "name";
   }
 
   // Lists sessions in creation order.
   rpc ListReplaySessions(ListReplaySessionsRequest) returns (ListReplaySessionsResponse) {
+    option (mcp.v1.tool) = {
+      title: "List replay sessions"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {get: "/v1/replaySessions"};
     option (google.api.method_signature) = "";
   }
@@ -56,6 +87,11 @@ service ReplayService {
 
   // Deletes a session, stopping it first if it is not STOPPED.
   rpc DeleteReplaySession(DeleteReplaySessionRequest) returns (google.protobuf.Empty) {
+    option (mcp.v1.tool) = {
+      title: "Delete replay session"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {delete: "/v1/{name=replaySessions/*}"};
     option (google.api.method_signature) = "name";
   }
@@ -106,6 +142,24 @@ service ReplayService {
   rpc StopReplaySession(StopReplaySessionRequest) returns (ReplaySession) {
     option (google.api.http) = {
       post: "/v1/{name=replaySessions/*}:stop"
+      body: "*"
+    };
+    option (google.api.method_signature) = "name";
+  }
+
+  // Moves a frozen session's clock, by a step or a seek, and returns what
+  // the movement emitted, so a caller drives a replay one bounded call at a
+  // time without holding a subscription. The events are exactly what a
+  // subscriber attached for the movement receives: for a step, what
+  // QuerySamples gives in SAMPLE_ORDER_BY_TIME over the same stretch.
+  rpc DriveReplaySession(DriveReplaySessionRequest) returns (DriveReplaySessionResponse) {
+    option (mcp.v1.tool) = {
+      title: "Drive replay session"
+      read_only: true
+      open_world: false
+    };
+    option (google.api.http) = {
+      post: "/v1/{name=replaySessions/*}:drive"
       body: "*"
     };
     option (google.api.method_signature) = "name";

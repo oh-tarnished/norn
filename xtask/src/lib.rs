@@ -21,6 +21,7 @@ pub mod deps;
 pub mod docs;
 pub mod metadata;
 pub mod purity;
+pub mod runtime_rs;
 pub mod scan;
 pub mod size;
 

@@ -3,8 +3,9 @@
 use norn_metadata::{EntityPatch, EntityRecord, EntitySpec};
 use norn_protocol::entity::entity_service_server::EntityService;
 use norn_protocol::entity::{
-    CreateEntityRequest, DeleteEntityRequest, Entity, GetEntityRequest, ListEntitiesRequest,
-    ListEntitiesResponse, UpdateEntityRequest,
+    BatchCreateEntitiesRequest, BatchCreateEntitiesResponse, CreateEntityRequest,
+    DeleteEntityRequest, Entity, GetEntityRequest, ListEntitiesRequest, ListEntitiesResponse,
+    UpdateEntityRequest,
 };
 use tonic::{Request, Response, Status};
 
@@ -18,7 +19,7 @@ use crate::status::bad_field;
 const FILTERABLE: [&str; 1] = ["display_name"];
 const MUTABLE: [&str; 2] = ["display_name", "annotations"];
 
-fn to_wire(r: &EntityRecord) -> Entity {
+pub(super) fn to_wire(r: &EntityRecord) -> Entity {
     Entity {
         name: format!("entities/{}", r.descriptor.name),
         display_name: r.display_name.clone(),
@@ -42,6 +43,15 @@ impl EntityService for Catalog {
         let (id, mode, now) = (r.entity_id, write_mode(r.validate_only), self.clock.now());
         let made = self.mutate(move |g| g.create_entity(&id, spec, now, mode));
         Ok(Response::new(to_wire(&made.await?)))
+    }
+
+    async fn batch_create_entities(
+        &self,
+        request: Request<BatchCreateEntitiesRequest>,
+    ) -> Result<Response<BatchCreateEntitiesResponse>, Status> {
+        Ok(Response::new(
+            self.batch_entities(request.into_inner()).await?,
+        ))
     }
 
     async fn get_entity(

@@ -4,6 +4,7 @@ package norn.admin.v1;
 
 import "google/api/annotations.proto";
 import "google/api/client.proto";
+import "mcp/v1/annotations.proto";
 import "norn/admin/v1/admin_messages.proto";
 import "norn/admin/v1/server.proto";
 
@@ -18,9 +19,20 @@ service AdminService {
   // The default host; see norn.entity.v1.EntityService.
   option (google.api.default_host) = "norn.local";
 
+  // The daemon's state changes as it runs: no client may share or reuse an
+  // answer.
+  option (mcp.v1.service) = {
+    cache: {scope: MCP_CACHE_SCOPE_PRIVATE}
+  };
+
   // Reads the daemon's description. Needs no negotiation first, so any
   // client, however old, can learn what it is talking to.
   rpc GetServer(GetServerRequest) returns (Server) {
+    option (mcp.v1.tool) = {
+      title: "Get server"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {get: "/v1/{name=server}"};
     option (google.api.method_signature) = "name";
   }

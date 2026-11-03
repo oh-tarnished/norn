@@ -68,6 +68,12 @@ were picked, not measured; stage 15 revisits them. The daemon applies the limits
 of what exists (clients, IPC, ingest, entities, signals, streams, metadata) and
 publishes them through `GetServer`; the rest wait for the subsystems they bound.
 
+`max_entities` and `max_signals` bound `BatchCreateEntities` and `BatchCreateSignals`
+too: a batch that would pass either fails whole with `RESOURCE_EXHAUSTED`. One batch
+holds at most 1,000 requests. That bound is part of protocol 1.6, documented in the
+schema, and not a key: a client must be able to rely on it whatever the daemon's file
+says.
+
 Half of `ipc_bytes` is set aside for HTTP/2 flow-control windows, an equal share
 per client; the other half pays for messages being decoded ([architecture.md](../reference/architecture.md)).
 
@@ -89,6 +95,22 @@ compaction_window = "22:00-06:00"      # UTC; unset means any hour
 The window limits when background compaction starts; `nornctl compact` ignores it.
 These defaults were picked, not measured. The working memory comes from
 `chunk_cache_bytes`.
+
+## MCP
+
+Off by default; gRPC on the local endpoint is always on and needs no setting.
+
+```toml
+[mcp]
+enabled = true
+transports = ["unix:/run/user/1000/norn/mcp.sock"]  # stdio, http:127.0.0.1:PORT, unix:PATH, pipe:NAME
+hosts = []                                          # further Host names loopback HTTP answers
+```
+
+`--mcp TRANSPORT` on the command line adds a transport and enables MCP, so
+`norn --mcp stdio` is all an agent's client needs to launch. Enabled with no
+transport serves stdio. A non-loopback `http:` address is refused. The
+[MCP reference](../reference/mcp.md#running-it) has every rule.
 
 ## Logging
 

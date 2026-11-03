@@ -6,6 +6,7 @@ import "google/api/annotations.proto";
 import "google/api/client.proto";
 import "google/longrunning/operations.proto";
 import "google/protobuf/empty.proto";
+import "mcp/v1/annotations.proto";
 import "norn/stream/v1/stream.proto";
 import "norn/stream/v1/stream_maintenance.proto";
 import "norn/stream/v1/stream_messages.proto";
@@ -23,6 +24,12 @@ service StreamService {
   // The default host; see norn.entity.v1.EntityService.
   option (google.api.default_host) = "norn.local";
 
+  // A stream's totals change with every sample: no client may share or
+  // reuse an answer.
+  option (mcp.v1.service) = {
+    cache: {scope: MCP_CACHE_SCOPE_PRIVATE}
+  };
+
   // Creates a stream.
   rpc CreateStream(CreateStreamRequest) returns (Stream) {
     option (google.api.http) = {
@@ -34,12 +41,22 @@ service StreamService {
 
   // Reads one stream, with its current totals.
   rpc GetStream(GetStreamRequest) returns (Stream) {
+    option (mcp.v1.tool) = {
+      title: "Get stream"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {get: "/v1/{name=streams/*}"};
     option (google.api.method_signature) = "name";
   }
 
   // Lists streams in name order.
   rpc ListStreams(ListStreamsRequest) returns (ListStreamsResponse) {
+    option (mcp.v1.tool) = {
+      title: "List streams"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {get: "/v1/streams"};
     option (google.api.method_signature) = "";
   }

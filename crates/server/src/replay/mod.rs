@@ -1,5 +1,6 @@
 //! `norn.replay.v1.ReplayService`: sessions and their clocks.
 
+mod drive;
 mod list;
 pub(crate) mod request;
 pub(crate) mod wire;
@@ -9,11 +10,13 @@ use std::sync::Arc;
 use norn_metadata::Registry;
 use norn_protocol::replay::replay_service_server::ReplayService;
 use norn_protocol::replay::{
-    CreateReplaySessionRequest, DeleteReplaySessionRequest, GetReplaySessionRequest,
-    ListReplaySessionsRequest, ListReplaySessionsResponse, PauseReplaySessionRequest,
-    ReplaySession, ResumeReplaySessionRequest, SeekReplaySessionRequest, StepReplaySessionRequest,
+    CreateReplaySessionRequest, DeleteReplaySessionRequest, DriveReplaySessionRequest,
+    DriveReplaySessionResponse, GetReplaySessionRequest, ListReplaySessionsRequest,
+    ListReplaySessionsResponse, PauseReplaySessionRequest, ReplaySession,
+    ResumeReplaySessionRequest, SeekReplaySessionRequest, StepReplaySessionRequest,
     StopReplaySessionRequest, UpdateReplaySessionRequest,
 };
+use norn_runtime::query::Engine;
 use norn_runtime::replay::Control;
 use norn_runtime::sessions::Replays;
 use tonic::{Request, Response, Status};
@@ -31,13 +34,19 @@ use wire::{generation, id_of, session, status, valid_id};
 pub struct ReplaySessions {
     registry: Arc<Registry>,
     replays: Arc<Replays>,
+    queries: Arc<Engine>,
 }
 
 impl ReplaySessions {
-    /// A service creating sessions over `registry`'s signals in `replays`.
+    /// A service creating sessions over `registry`'s signals in `replays`, counting
+    /// what a drive would emit through `queries` before it moves anything.
     #[must_use]
-    pub fn new(registry: Arc<Registry>, replays: Arc<Replays>) -> Self {
-        Self { registry, replays }
+    pub fn new(registry: Arc<Registry>, replays: Arc<Replays>, queries: Arc<Engine>) -> Self {
+        Self {
+            registry,
+            replays,
+            queries,
+        }
     }
 
     async fn control(
@@ -172,5 +181,14 @@ impl ReplayService for ReplaySessions {
     ) -> Result<Response<ReplaySession>, Status> {
         let r = request.into_inner();
         self.control(&r.name, &r.etag, Control::Stop).await
+    }
+
+    async fn drive_replay_session(
+        &self,
+        request: Request<DriveReplaySessionRequest>,
+    ) -> Result<Response<DriveReplaySessionResponse>, Status> {
+        let shared = (&self.registry, &self.queries);
+        let r = request.into_inner();
+        Ok(Response::new(drive::drive(&self.replays, shared, r).await?))
     }
 }

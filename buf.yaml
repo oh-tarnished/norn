@@ -36,3 +36,9 @@ breaking:
     - WIRE_JSON
 deps:
   - buf.build/googleapis/googleapis
+  # The MCP annotations, (mcp.v1.service), (mcp.v1.tool) and (mcp.v1.field):
+  # which RPCs an AI agent may call, and how each is described. The MCP
+  # server inside the daemon is generated from them by protoc-gen-mcp
+  # (buf.gen.mcp.yaml), so an agent's tools are this schema's read methods
+  # and nothing else. Pinned to the release protoc-gen-mcp 1.7.8 reads.
+  - buf.build/the-protobuf-project/mcp:v1.7.3

@@ -42,6 +42,13 @@ mod version;
 
 pub use version::{PROTOCOL_VERSION, ProtocolVersion, VERSION_METADATA_KEY};
 
+/// Every file of `protobuf/` and the googleapis and MCP annotation files it imports,
+/// as an encoded `google.protobuf.FileDescriptorSet` without source info. Built by
+/// `just gen` (`buf build`) and checked by `just gen-check`. For server reflection,
+/// and for mapping a message to and from its canonical JSON by name. Borrowed: a
+/// `'static` slice in the binary, 73 KiB.
+pub const FILE_DESCRIPTOR_SET: &[u8] = include_bytes!("norn.binpb");
+
 /// `norn.admin.v1`: the daemon's description and protocol negotiation.
 pub use generated::norn::admin::v1 as admin;
 /// `norn.entity.v1`: the Entity resource and EntityService.

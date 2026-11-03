@@ -20,6 +20,8 @@ pub(crate) enum Op {
     PutStream(StreamRecord),
     DeleteStream(StreamId),
     NextIds([u64; 3]),
+    /// The next `n` records are one batch: replay applies all or none (log v2).
+    Begin(u64),
 }
 
 impl Op {
@@ -77,6 +79,10 @@ impl Op {
                 o.u8(7);
                 ids.iter().for_each(|i| o.u64(*i));
             }
+            Self::Begin(n) => {
+                o.u8(8);
+                o.u64(*n);
+            }
         }
         o.0
     }
@@ -131,6 +137,7 @@ impl Op {
             }
             6 => Self::DeleteStream(StreamId::new(i.u64()?)),
             7 => Self::NextIds([i.u64()?, i.u64()?, i.u64()?]),
+            8 => Self::Begin(i.u64()?),
             _ => return None,
         })
     }

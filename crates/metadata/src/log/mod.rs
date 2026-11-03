@@ -5,6 +5,12 @@
 //!                then records: length u32 | CRC-32C of payload u32 | payload
 //! ```
 //!
+//! Version 2 adds one record kind, a batch marker: `Begin(n)` says the next `n`
+//! records are one all-or-nothing batch, so a crash inside one cuts all of it.
+//! A version 1 log is a valid version 2 log, and opening one upgrades its header
+//! in place, so a daemon too old for batches refuses the log as
+//! `UnsupportedVersion` rather than misreading a marker.
+//!
 //! Chosen over rewriting a snapshot per change because a site creates 16,000
 //! signals at once: a rewrite per create would be quadratic in bytes and fsyncs.
 
@@ -19,7 +25,9 @@ use crate::error::MetadataError;
 use crate::op::Op;
 
 const MAGIC: &[u8; 8] = b"NORNMETA";
-const VERSION: u32 = 1;
+const VERSION: u32 = 2;
+/// The version before batches; read, and upgraded on open.
+const VERSION_1: u32 = 1;
 const HEADER_LEN: usize = 16;
 const RECORD_HEADER_LEN: usize = 8;
 
@@ -84,7 +92,7 @@ impl Log {
         File::open(path)
             .and_then(|mut f| f.read_to_end(&mut bytes))
             .map_err(io("read", path))?;
-        let (end, records) = replay::scan(&bytes, path, apply)?;
+        let (end, records, version) = replay::scan(&bytes, path, apply)?;
         let mut report = LogRecovery {
             records,
             ..LogRecovery::default()
@@ -104,6 +112,11 @@ impl Log {
             .open(path)
             .map_err(io("open", path))?;
         file.set_len(end as u64).map_err(io("truncate", path))?;
+        if version != VERSION {
+            // 16 bytes in the first sector: written whole or not at all.
+            file.write_all(&replay::header())
+                .map_err(io("write", path))?;
+        }
         file.seek(SeekFrom::End(0)).map_err(io("seek", path))?;
         file.sync_all().map_err(io("fsync", path))?;
         let log = Self {
@@ -114,12 +127,17 @@ impl Log {
         Ok((log, report))
     }
 
-    /// Writes one record to the OS. Not yet durable: the registry fsyncs.
-    pub(crate) fn append(&mut self, op: &Op) -> Result<(), MetadataError> {
+    /// Writes `ops` to the OS in one write; more than one gets a batch marker
+    /// first. Not yet durable: the registry fsyncs.
+    pub(crate) fn append_all(&mut self, ops: &[Op]) -> Result<(), MetadataError> {
         let mut buf = Vec::new();
-        frame(op, &mut buf);
+        if ops.len() > 1 {
+            frame(&Op::Begin(ops.len() as u64), &mut buf);
+            self.records += 1;
+        }
+        ops.iter().for_each(|op| frame(op, &mut buf));
         self.file.write_all(&buf).map_err(io("write", &self.path))?;
-        self.records += 1;
+        self.records += ops.len() as u64;
         Ok(())
     }
 

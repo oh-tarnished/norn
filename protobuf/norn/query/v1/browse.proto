@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package norn.query.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/type/interval.proto";
+import "mcp/v1/annotations.proto";
+import "norn/query/v1/query.proto";
+import "norn/type/sample.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "BrowseProto";
+option java_package = "local.norn.query.v1";
+
+// The request for QueryService.BrowseSamples. Every field but the last four
+// means what it means in QuerySamplesRequest.
+message BrowseSamplesRequest {
+  // Whose signals to read, as `entities/{entity}`, or `entities/-` for
+  // every entity.
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {child_type: "norn.local/Signal"},
+    (mcp.v1.field) = {
+      examples: [
+        "entities/-",
+        "entities/ahu-01"
+      ]
+    }
+  ];
+
+  // An AIP-160 filter selecting signals, as in ListSignals, whose fields
+  // include `id`: `id = "supply-temp"` under `entities/ahu-01` selects one.
+  string filter = 2 [
+    (google.api.field_behavior) = OPTIONAL,
+    (mcp.v1.field) = {
+      examples: [
+        "id = \"supply-temp\"",
+        "unit = \"degC\""
+      ]
+    }
+  ];
+
+  // The half-open interval of `observe_time` to read, each end an RFC 3339
+  // time in UTC. Either end may be unset; unset reads all history.
+  google.type.Interval interval = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // An AIP-160 filter over each sample's `value` and `quality`, such as
+  // `quality.severity = QUALITY_SEVERITY_GOOD AND value > 20.5`. Applied
+  // before aggregation.
+  string sample_filter = 4 [
+    (google.api.field_behavior) = OPTIONAL,
+    (mcp.v1.field) = {
+      examples: [
+        "value > 20.5",
+        "quality.severity = QUALITY_SEVERITY_BAD"
+      ]
+    }
+  ];
+
+  // What to compute. Unset returns the matching samples themselves.
+  Aggregation aggregation = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // The order of raw samples. Ignored with an aggregation.
+  SampleOrder order = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // The most results to return; capped at 1000, 100 when zero. A page also
+  // stops once it holds about 256 KiB, after its first result, so one call
+  // always moves forward.
+  int32 page_size = 7 [(google.api.field_behavior) = OPTIONAL];
+
+  // The `next_page_token` of a previous call with otherwise equal fields,
+  // `page_size` and `max_value_bytes` aside.
+  string page_token = 8 [(google.api.field_behavior) = OPTIONAL];
+
+  // The longest string or bytes value returned whole, in bytes; capped at
+  // 65536, 1024 when zero. A longer value is cut to that length (a string
+  // at a character boundary) and its result is listed in
+  // `truncated_indexes`, so no single value can make an answer unbounded
+  // and none is cut silently. QuerySamples never cuts.
+  int32 max_value_bytes = 9 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for QueryService.BrowseSamples. At most one of `samples` and
+// `aggregates` is non-empty, according to the request.
+message BrowseSamplesResponse {
+  // Raw samples, in the requested order.
+  repeated norn.type.Sample samples = 1;
+
+  // Aggregates, by signal then window.
+  repeated Aggregate aggregates = 2;
+
+  // Passed as `page_token` to read the next page; empty on the last one.
+  // It names the last result returned, not a count, so a sample arriving
+  // between calls cannot shift what the next page holds.
+  string next_page_token = 3;
+
+  // The positions, in `samples` or `aggregates`, of results whose value
+  // was cut to `max_value_bytes`.
+  repeated int32 truncated_indexes = 4;
+}

@@ -170,6 +170,39 @@ What these do and do not show:
 - Compaction's and retention's throughput in a live daemon was not benchmarked here.
   [storage.md](reference/storage.md#measurements) has compaction's own speed.
 
+## Provisioning
+
+A site's adapter creates its whole catalogue at start: bacnet-rs creates about
+60,000 signals for a 1,000-device site. Created one at a time, that took long
+enough that readings arriving meanwhile were dropped, so the registry got two
+changes (`crates/metadata/src/registry/commit.rs`, `batch.rs`):
+
+- **Group commit that wakes everyone.** One committer leads an fsync with no lock
+  held; when it returns, every waiter wakes at once and returns if its record is
+  covered. Before, waiters were released one at a time behind a mutex held across
+  the fsync, and throughput stopped rising past 16 concurrent creates.
+- **Batch creates.** `BatchCreateEntities` and `BatchCreateSignals` (protocol 1.6)
+  make up to 1,000 resources one log write and one fsync.
+
+`cargo bench -p norn-server --bench provision` starts a fresh release `norn` per
+scenario and creates 1,000 entities and 63,000 signals over real gRPC on a Unix
+socket, one resource per call over 8 to 64 connections, then in batches of 1,000
+and 500. **Target, not yet measured at full scale:** the table below is the smoke
+run `cargo test --all-targets` makes (4 entities, 100 signals, debug build, macOS),
+which shows only that every scenario works end to end:
+
+```text
+| Method | Connections | Entities | Signals | Signals/s | Total |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Create, one per call | 8 | 0.01 s | 0.13 s | 746 | 0.14 s |
+| Create, one per call | 16 | 0.01 s | 0.08 s | 1220 | 0.09 s |
+| Create, one per call | 32 | 0.01 s | 0.08 s | 1235 | 0.09 s |
+| Create, one per call | 64 | 0.01 s | 0.08 s | 1233 | 0.09 s |
+| BatchCreate, 1000 per call | 1 | 0.00 s | 0.01 s | 10231 | 0.01 s |
+| BatchCreate, 1000 per call | 4 | 0.00 s | 0.01 s | 10523 | 0.01 s |
+| BatchCreate, 500 per call | 8 | 0.00 s | 0.01 s | 10352 | 0.01 s |
+```
+
 ## Query
 
 `cargo bench -p norn-server --bench query`, release build, Apple M3 Max, a local SSD

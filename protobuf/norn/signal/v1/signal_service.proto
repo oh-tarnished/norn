@@ -5,7 +5,9 @@ package norn.signal.v1;
 import "google/api/annotations.proto";
 import "google/api/client.proto";
 import "google/protobuf/empty.proto";
+import "mcp/v1/annotations.proto";
 import "norn/signal/v1/signal.proto";
+import "norn/signal/v1/signal_batch.proto";
 import "norn/signal/v1/signal_messages.proto";
 
 option java_multiple_files = true;
@@ -18,6 +20,12 @@ service SignalService {
   // The default host; see EntityService.
   option (google.api.default_host) = "norn.local";
 
+  // The catalogue changes as clients create and update signals: no client
+  // may share or reuse an answer.
+  option (mcp.v1.service) = {
+    cache: {scope: MCP_CACHE_SCOPE_PRIVATE}
+  };
+
   // Creates a signal under an entity, in an existing stream.
   rpc CreateSignal(CreateSignalRequest) returns (Signal) {
     option (google.api.http) = {
@@ -27,8 +35,38 @@ service SignalService {
     option (google.api.method_signature) = "parent,signal,signal_id";
   }
 
+  // Creates up to 1000 signals in one call, all or none (AIP-233), with one
+  // durable registry commit for the whole batch: provisioning a site's tens
+  // of thousands of signals without a call and a commit each.
+  //
+  // Safe to repeat: a signal that already exists with the same value type and
+  // stream is returned as stored, its other fields left alone, so a client
+  // may send its whole catalogue at every start. ALREADY_EXISTS only if one
+  // exists with another value type or stream; nothing is created then.
+  //
+  // It writes, so it is no MCP tool: the hints below say so, and the daemon
+  // serves only tools hinted read-only.
+  rpc BatchCreateSignals(BatchCreateSignalsRequest) returns (BatchCreateSignalsResponse) {
+    option (mcp.v1.tool) = {
+      title: "Batch create signals"
+      read_only: false
+      destructive: false
+      idempotent: true
+      open_world: false
+    };
+    option (google.api.http) = {
+      post: "/v1/{parent=entities/*}/signals:batchCreate"
+      body: "*"
+    };
+  }
+
   // Reads one signal.
   rpc GetSignal(GetSignalRequest) returns (Signal) {
+    option (mcp.v1.tool) = {
+      title: "Get signal"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {get: "/v1/{name=entities/*/signals/*}"};
     option (google.api.method_signature) = "name";
   }
@@ -36,6 +74,11 @@ service SignalService {
   // Lists the signals of one entity, or of every entity with the AIP-159
   // wildcard parent `entities/-`.
   rpc ListSignals(ListSignalsRequest) returns (ListSignalsResponse) {
+    option (mcp.v1.tool) = {
+      title: "List signals"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {get: "/v1/{parent=entities/*}/signals"};
     option (google.api.method_signature) = "parent";
   }

@@ -12,6 +12,18 @@ implement it:
   `Channel` through a custom connector. It also defines the `DataPlane`
   seam where a shared-memory plane will plug in.
 
+**The daemon's side** is now runtime-rs's `HybridServer` (`crates/server/src/daemon/serve.rs`),
+on the same endpoints, with the same guarantees mapped onto its `GrpcLimits`: at most
+`max_clients` connections with the next queued, a 10-minute idle close, the drain bound,
+16 streams per connection and the flow-control windows below. Metered decoding, the
+version gate, and the gate holding calls until the daemon runs are layers around every
+service (`with_grpc_layer`), for socket and in-process callers alike. Its local listener
+makes a Unix socket 0600 in a 0700 directory, replaces a stale one and refuses a live
+one or a regular file, and a named pipe owner-only. `Daemon::bind` still claims the
+endpoint first with `norn-ipc`'s checks, then releases it to the server, so a second
+daemon fails before touching a database. `norn-ipc`'s `Server` remains for tests and
+any other host; clients keep using `norn-ipc::connect`.
+
 Clients never learn which transport they are on: the endpoint string picks
 it, and everything above `norn-transport` sees only `AsyncRead + AsyncWrite`.
 

@@ -43,4 +43,4 @@ print(json.dumps({"include": [{"target": t, "os": o} for t, o in platforms.items
   echo "title=Norn $version"
   echo "matrix=$matrix"
 } >> "${GITHUB_OUTPUT:?GITHUB_OUTPUT must name an output file}"
-echo "Releasing norn, nornctl and norn-mcp as $tag"
+echo "Releasing norn and nornctl as $tag"

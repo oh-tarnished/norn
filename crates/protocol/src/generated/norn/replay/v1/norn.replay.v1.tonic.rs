@@ -349,6 +349,38 @@ pub mod replay_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /** Moves a frozen session's clock, by a step or a seek, and returns what
+ the movement emitted, so a caller drives a replay one bounded call at a
+ time without holding a subscription. The events are exactly what a
+ subscriber attached for the movement receives: for a step, what
+ QuerySamples gives in SAMPLE_ORDER_BY_TIME over the same stretch.
+*/
+        pub async fn drive_replay_session(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DriveReplaySessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DriveReplaySessionResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.replay.v1.ReplayService/DriveReplaySession",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("norn.replay.v1.ReplayService", "DriveReplaySession"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -432,6 +464,19 @@ pub mod replay_service_server {
             &self,
             request: tonic::Request<super::StopReplaySessionRequest>,
         ) -> std::result::Result<tonic::Response<super::ReplaySession>, tonic::Status>;
+        /** Moves a frozen session's clock, by a step or a seek, and returns what
+ the movement emitted, so a caller drives a replay one bounded call at a
+ time without holding a subscription. The events are exactly what a
+ subscriber attached for the movement receives: for a step, what
+ QuerySamples gives in SAMPLE_ORDER_BY_TIME over the same stretch.
+*/
+        async fn drive_replay_session(
+            &self,
+            request: tonic::Request<super::DriveReplaySessionRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DriveReplaySessionResponse>,
+            tonic::Status,
+        >;
     }
     #[derive(Debug)]
     pub struct ReplayServiceServer<T> {
@@ -954,6 +999,52 @@ pub mod replay_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = StopReplaySessionSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.replay.v1.ReplayService/DriveReplaySession" => {
+                    #[allow(non_camel_case_types)]
+                    struct DriveReplaySessionSvc<T: ReplayService>(pub Arc<T>);
+                    impl<
+                        T: ReplayService,
+                    > tonic::server::UnaryService<super::DriveReplaySessionRequest>
+                    for DriveReplaySessionSvc<T> {
+                        type Response = super::DriveReplaySessionResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DriveReplaySessionRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ReplayService>::drive_replay_session(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DriveReplaySessionSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

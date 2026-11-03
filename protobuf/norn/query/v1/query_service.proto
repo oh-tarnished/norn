@@ -4,16 +4,27 @@ package norn.query.v1;
 
 import "google/api/annotations.proto";
 import "google/api/client.proto";
+import "mcp/v1/annotations.proto";
+import "norn/query/v1/browse.proto";
+import "norn/query/v1/events.proto";
 import "norn/query/v1/query.proto";
+import "norn/query/v1/stats.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "QueryServiceProto";
 option java_package = "local.norn.query.v1";
 
-// QueryService reads stored history: raw ranges and aggregates.
+// QueryService reads stored history: raw ranges, aggregates, the events in
+// them and their statistics. Nothing here writes.
 service QueryService {
   // The default host; see norn.entity.v1.EntityService.
   option (google.api.default_host) = "norn.local";
+
+  // History is this daemon's and grows with every sample: no client may
+  // share or reuse an answer.
+  option (mcp.v1.service) = {
+    cache: {scope: MCP_CACHE_SCOPE_PRIVATE}
+  };
 
   // Reads samples or aggregates of the selected signals (SPEC section 22).
   //
@@ -28,5 +39,75 @@ service QueryService {
       body: "*"
     };
     option (google.api.method_signature) = "parent,interval";
+  }
+
+  // Reads one bounded page of what QuerySamples streams: raw samples over
+  // an interval, or aggregates over windows, such as the newest sample of
+  // each signal (AGGREGATE_FUNCTION_LATEST). The rules are QuerySamples'.
+  // For a caller that wants an answer per call rather than a stream; repeat
+  // with `next_page_token` to read on, exactly, with nothing lost or
+  // repeated even when samples arrive between calls.
+  rpc BrowseSamples(BrowseSamplesRequest) returns (BrowseSamplesResponse) {
+    option (mcp.v1.tool) = {
+      title: "Browse samples"
+      read_only: true
+      open_world: false
+    };
+    option (google.api.http) = {
+      post: "/v1/{parent=entities/*}/signals:browseSamples"
+      body: "*"
+    };
+    option (google.api.method_signature) = "parent,interval";
+  }
+
+  // Finds when something happened: each sample passing a predicate, or
+  // each sample whose value or quality differs from the previous sample of
+  // its signal. Deterministic: nothing is inferred, ranked or judged.
+  // Reads at most a bounded number of samples per call; past it, the call
+  // returns what it found with a `next_page_token`, possibly with no
+  // events, so a search of a quiet year cannot hold the daemon.
+  rpc FindEvents(FindEventsRequest) returns (FindEventsResponse) {
+    option (mcp.v1.tool) = {
+      title: "Find events"
+      read_only: true
+      open_world: false
+    };
+    option (google.api.http) = {
+      post: "/v1/{parent=entities/*}/signals:findEvents"
+      body: "*"
+    };
+    option (google.api.method_signature) = "parent,interval,kind";
+  }
+
+  // Computes each selected signal's statistics over an interval: sample
+  // count, minimum, maximum, average and sum, and its first and last
+  // sample. Paginated by signal.
+  rpc ComputeStats(ComputeStatsRequest) returns (ComputeStatsResponse) {
+    option (mcp.v1.tool) = {
+      title: "Compute stats"
+      read_only: true
+      open_world: false
+    };
+    option (google.api.http) = {
+      post: "/v1/{parent=entities/*}/signals:computeStats"
+      body: "*"
+    };
+    option (google.api.method_signature) = "parent,interval";
+  }
+
+  // Computes each selected signal's statistics over two intervals, a
+  // baseline and a comparison, and the change from one to the other, such
+  // as this week against last. Paginated by signal.
+  rpc ComparePeriods(ComparePeriodsRequest) returns (ComparePeriodsResponse) {
+    option (mcp.v1.tool) = {
+      title: "Compare periods"
+      read_only: true
+      open_world: false
+    };
+    option (google.api.http) = {
+      post: "/v1/{parent=entities/*}/signals:comparePeriods"
+      body: "*"
+    };
+    option (google.api.method_signature) = "parent,baseline_interval,comparison_interval";
   }
 }

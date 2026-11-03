@@ -1,5 +1,7 @@
 //! The registry: the records in memory, the log on disk, and group commit.
 
+mod batch;
+mod batch_signals;
 mod commit;
 mod entity;
 mod signal;
@@ -9,16 +11,18 @@ mod state;
 mod stream;
 mod view;
 
+pub use batch::MAX_BATCH_CREATE;
 pub use spec::{EntityPatch, EntitySpec, SignalPatch, SignalSpec, StreamPatch, StreamSpec};
 pub use view::{RegistryView, SignalRoute};
 
 use std::fs::{self, File, OpenOptions, TryLockError};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64};
-use std::sync::{Mutex, PoisonError, RwLock};
+use std::sync::{Condvar, Mutex, PoisonError, RwLock};
 
 use norn_core::{Limits, MetadataLimits};
 
+use self::commit::Syncer;
 use self::state::State;
 use crate::error::MetadataError;
 use crate::log::{Log, LogRecovery};
@@ -40,9 +44,12 @@ pub enum Write {
 /// acknowledged mutation is already on disk.
 ///
 /// Durability: a mutation returns only after its record is fsynced. Others that
-/// run meanwhile share that fsync, so concurrent creates cost one disk flush
-/// between them. A change is visible to readers just before it is durable, so
-/// whoever makes data depend on a record calls [`Registry::commit`] first.
+/// run meanwhile share that fsync and all wake when it returns, so concurrent
+/// creates cost one disk flush between them, and throughput rises with
+/// concurrency. A batch ([`Registry::create_signals`]) is one write and one
+/// fsync, and survives a crash whole or not at all. A change is visible to
+/// readers just before it is durable, so whoever makes data depend on a record
+/// calls [`Registry::commit`] first.
 ///
 /// Memory: every record, bounded by the limits it was opened with. Concurrency:
 /// `Send + Sync`. Reads never touch the disk; mutations block on it, and must
@@ -51,7 +58,9 @@ pub enum Write {
 pub struct Registry {
     pub(crate) state: RwLock<State>,
     pub(crate) log: Mutex<Log>,
-    pub(crate) syncer: Mutex<File>,
+    pub(crate) syncer: Mutex<Syncer>,
+    /// Signalled whenever an fsync or a rewrite finishes.
+    pub(crate) durable: Condvar,
     pub(crate) written: AtomicU64,
     pub(crate) synced: AtomicU64,
     pub(crate) poisoned: AtomicBool,
@@ -99,7 +108,8 @@ impl Registry {
         let registry = Self {
             state: RwLock::new(state),
             log: Mutex::new(log),
-            syncer: Mutex::new(syncer),
+            syncer: Mutex::new(Syncer::new(syncer)),
+            durable: Condvar::new(),
             written: AtomicU64::new(0),
             synced: AtomicU64::new(0),
             poisoned: AtomicBool::new(false),

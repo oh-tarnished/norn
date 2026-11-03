@@ -1,7 +1,14 @@
-//! `norn.query.v1.QueryService`: `QuerySamples`.
+//! `norn.query.v1.QueryService`: `QuerySamples`, and the unary, bounded reads over
+//! the same engine: `BrowseSamples`, `FindEvents`, `ComputeStats`, `ComparePeriods`.
 
+mod browse;
+mod compare;
+mod events;
+pub(crate) mod pull;
 pub(crate) mod reply;
 pub(crate) mod request;
+mod stats;
+mod token;
 
 use std::pin::Pin;
 use std::sync::Arc;
@@ -9,7 +16,11 @@ use std::task::{Context, Poll};
 
 use norn_metadata::Registry;
 use norn_protocol::query::query_service_server::QueryService;
-use norn_protocol::query::{QuerySamplesRequest, QuerySamplesResponse};
+use norn_protocol::query::{
+    BrowseSamplesRequest, BrowseSamplesResponse, ComparePeriodsRequest, ComparePeriodsResponse,
+    ComputeStatsRequest, ComputeStatsResponse, FindEventsRequest, FindEventsResponse,
+    QuerySamplesRequest, QuerySamplesResponse,
+};
 use norn_runtime::query::{Charge, Engine, Query, Result as QueryResult};
 use tokio::sync::mpsc;
 use tonic::codegen::tokio_stream::Stream;
@@ -53,6 +64,22 @@ impl Queries {
     #[must_use]
     pub fn new(registry: Arc<Registry>, engine: Arc<Engine>) -> Self {
         Self { registry, engine }
+    }
+
+    /// Runs a unary read on the blocking pool: it lists signals, waits on the
+    /// budget and reads the disk, none of which may sit on an async thread.
+    async fn unary<Q: Send + 'static, A: Send + 'static>(
+        &self,
+        request: Request<Q>,
+        read: fn(&Registry, &Arc<Engine>, Q) -> Result<A, Status>,
+    ) -> Result<Response<A>, Status> {
+        let request = request.into_inner();
+        let (registry, engine) = (Arc::clone(&self.registry), Arc::clone(&self.engine));
+        let answer = tokio::task::spawn_blocking(move || read(&registry, &engine, request));
+        let answer = answer
+            .await
+            .map_err(|_| Status::internal("a query panicked"))?;
+        answer.map(Response::new)
     }
 }
 
@@ -105,5 +132,33 @@ impl QueryService for Queries {
         let (out, pages) = mpsc::channel(QUEUED_PAGES);
         tokio::spawn(pump(query, print, out));
         Ok(Response::new(Pages(pages)))
+    }
+
+    async fn browse_samples(
+        &self,
+        request: Request<BrowseSamplesRequest>,
+    ) -> Result<Response<BrowseSamplesResponse>, Status> {
+        self.unary(request, browse::browse).await
+    }
+
+    async fn find_events(
+        &self,
+        request: Request<FindEventsRequest>,
+    ) -> Result<Response<FindEventsResponse>, Status> {
+        self.unary(request, events::find).await
+    }
+
+    async fn compute_stats(
+        &self,
+        request: Request<ComputeStatsRequest>,
+    ) -> Result<Response<ComputeStatsResponse>, Status> {
+        self.unary(request, compare::compute).await
+    }
+
+    async fn compare_periods(
+        &self,
+        request: Request<ComparePeriodsRequest>,
+    ) -> Result<Response<ComparePeriodsResponse>, Status> {
+        self.unary(request, compare::compare).await
     }
 }

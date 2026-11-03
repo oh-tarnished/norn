@@ -206,5 +206,393 @@ impl SampleOrder {
         }
     }
 }
+/// The request for QueryService.BrowseSamples. Every field but the last four
+/// means what it means in QuerySamplesRequest.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BrowseSamplesRequest {
+    /// Whose signals to read, as `entities/{entity}`, or `entities/-` for
+    /// every entity.
+    #[prost(string, tag="1")]
+    pub parent: ::prost::alloc::string::String,
+    /// An AIP-160 filter selecting signals, as in ListSignals, whose fields
+    /// include `id`: `id = "supply-temp"` under `entities/ahu-01` selects one.
+    #[prost(string, tag="2")]
+    pub filter: ::prost::alloc::string::String,
+    /// The half-open interval of `observe_time` to read, each end an RFC 3339
+    /// time in UTC. Either end may be unset; unset reads all history.
+    #[prost(message, optional, tag="3")]
+    pub interval: ::core::option::Option<super::super::super::google::r#type::Interval>,
+    /// An AIP-160 filter over each sample's `value` and `quality`, such as
+    /// `quality.severity = QUALITY_SEVERITY_GOOD AND value > 20.5`. Applied
+    /// before aggregation.
+    #[prost(string, tag="4")]
+    pub sample_filter: ::prost::alloc::string::String,
+    /// What to compute. Unset returns the matching samples themselves.
+    #[prost(message, optional, tag="5")]
+    pub aggregation: ::core::option::Option<Aggregation>,
+    /// The order of raw samples. Ignored with an aggregation.
+    #[prost(enumeration="SampleOrder", tag="6")]
+    pub order: i32,
+    /// The most results to return; capped at 1000, 100 when zero. A page also
+    /// stops once it holds about 256 KiB, after its first result, so one call
+    /// always moves forward.
+    #[prost(int32, tag="7")]
+    pub page_size: i32,
+    /// The `next_page_token` of a previous call with otherwise equal fields,
+    /// `page_size` and `max_value_bytes` aside.
+    #[prost(string, tag="8")]
+    pub page_token: ::prost::alloc::string::String,
+    /// The longest string or bytes value returned whole, in bytes; capped at
+    /// 65536, 1024 when zero. A longer value is cut to that length (a string
+    /// at a character boundary) and its result is listed in
+    /// `truncated_indexes`, so no single value can make an answer unbounded
+    /// and none is cut silently. QuerySamples never cuts.
+    #[prost(int32, tag="9")]
+    pub max_value_bytes: i32,
+}
+impl ::prost::Name for BrowseSamplesRequest {
+const NAME: &'static str = "BrowseSamplesRequest";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.BrowseSamplesRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.BrowseSamplesRequest".into() }}
+/// The response for QueryService.BrowseSamples. At most one of `samples` and
+/// `aggregates` is non-empty, according to the request.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BrowseSamplesResponse {
+    /// Raw samples, in the requested order.
+    #[prost(message, repeated, tag="1")]
+    pub samples: ::prost::alloc::vec::Vec<super::super::r#type::Sample>,
+    /// Aggregates, by signal then window.
+    #[prost(message, repeated, tag="2")]
+    pub aggregates: ::prost::alloc::vec::Vec<Aggregate>,
+    /// Passed as `page_token` to read the next page; empty on the last one.
+    /// It names the last result returned, not a count, so a sample arriving
+    /// between calls cannot shift what the next page holds.
+    #[prost(string, tag="3")]
+    pub next_page_token: ::prost::alloc::string::String,
+    /// The positions, in `samples` or `aggregates`, of results whose value
+    /// was cut to `max_value_bytes`.
+    #[prost(int32, repeated, tag="4")]
+    pub truncated_indexes: ::prost::alloc::vec::Vec<i32>,
+}
+impl ::prost::Name for BrowseSamplesResponse {
+const NAME: &'static str = "BrowseSamplesResponse";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.BrowseSamplesResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.BrowseSamplesResponse".into() }}
+/// The request for QueryService.FindEvents.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct FindEventsRequest {
+    /// Whose signals to search, as `entities/{entity}`, or `entities/-` for
+    /// every entity.
+    #[prost(string, tag="1")]
+    pub parent: ::prost::alloc::string::String,
+    /// An AIP-160 filter selecting signals, as in ListSignals.
+    #[prost(string, tag="2")]
+    pub filter: ::prost::alloc::string::String,
+    /// The half-open interval of `observe_time` to search, each end an RFC
+    /// 3339 time in UTC. Either end may be unset.
+    #[prost(message, optional, tag="3")]
+    pub interval: ::core::option::Option<super::super::super::google::r#type::Interval>,
+    /// An AIP-160 filter over each sample's `value` and `quality`, as in
+    /// QuerySamples. Required for EVENT_KIND_MATCH. For the change kinds it
+    /// narrows which samples count, so "previous" means the previous sample
+    /// that passes it.
+    #[prost(string, tag="4")]
+    pub sample_filter: ::prost::alloc::string::String,
+    /// Which events to find.
+    #[prost(enumeration="EventKind", tag="5")]
+    pub kind: i32,
+    /// The most events to return; capped at 1000, 100 when zero. A page also
+    /// stops once it holds about 256 KiB, after its first event.
+    #[prost(int32, tag="6")]
+    pub page_size: i32,
+    /// The `next_page_token` of a previous call with otherwise equal fields,
+    /// `page_size` and `max_value_bytes` aside.
+    #[prost(string, tag="7")]
+    pub page_token: ::prost::alloc::string::String,
+    /// The longest string or bytes value returned whole, as in
+    /// BrowseSamplesRequest. Values are always compared whole.
+    #[prost(int32, tag="8")]
+    pub max_value_bytes: i32,
+}
+impl ::prost::Name for FindEventsRequest {
+const NAME: &'static str = "FindEventsRequest";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.FindEventsRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.FindEventsRequest".into() }}
+/// The response for QueryService.FindEvents. Events come grouped by signal,
+/// in signal name order, each signal's in time order: reading in storage
+/// order needs only one previous sample in memory, whatever the selection.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FindEventsResponse {
+    /// The events on this page.
+    #[prost(message, repeated, tag="1")]
+    pub events: ::prost::alloc::vec::Vec<SampleEvent>,
+    /// Passed as `page_token` to read on; empty once the interval is searched.
+    /// It carries the position of the last sample read and, for a change
+    /// kind, that sample's value or quality, so the next page detects a
+    /// change across the boundary exactly.
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+    /// How many samples this call read, 1,000,000 at most.
+    #[prost(int64, tag="3")]
+    pub scanned_sample_count: i64,
+}
+impl ::prost::Name for FindEventsResponse {
+const NAME: &'static str = "FindEventsResponse";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.FindEventsResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.FindEventsResponse".into() }}
+/// One event: a sample, and for a change, what it changed from.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SampleEvent {
+    /// Why this sample is an event.
+    #[prost(enumeration="EventKind", tag="1")]
+    pub kind: i32,
+    /// The sample.
+    #[prost(message, optional, tag="2")]
+    pub sample: ::core::option::Option<super::super::r#type::Sample>,
+    /// For EVENT_KIND_VALUE_CHANGE, the previous sample's value.
+    #[prost(message, optional, tag="3")]
+    pub previous_value: ::core::option::Option<super::super::r#type::Value>,
+    /// For EVENT_KIND_QUALITY_CHANGE, the previous sample's quality.
+    #[prost(message, optional, tag="4")]
+    pub previous_quality: ::core::option::Option<super::super::r#type::Quality>,
+    /// A value above was cut to `max_value_bytes`.
+    #[prost(bool, tag="5")]
+    pub value_truncated: bool,
+}
+impl ::prost::Name for SampleEvent {
+const NAME: &'static str = "SampleEvent";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.SampleEvent".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.SampleEvent".into() }}
+/// What makes a sample an event. Exactly one of these, chosen by the caller;
+/// domain words such as "alarm" are built from them, such as MATCH with
+/// `value > 80`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum EventKind {
+    /// Not set. Rejected.
+    Unspecified = 0,
+    /// The sample passes `sample_filter`.
+    Match = 1,
+    /// The sample's value differs, bit for bit, from the previous sample of
+    /// its signal in the interval, in (time, sequence) order: -0.0 differs
+    /// from 0.0, a NaN equals the same NaN, and an enum compares by number. A
+    /// signal's first sample in the interval is the baseline and never a
+    /// change; widen the interval to see one at its start.
+    ValueChange = 2,
+    /// The sample's quality, severity or substatus, differs from the previous
+    /// sample's, by the same rules.
+    QualityChange = 3,
+}
+impl EventKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "EVENT_KIND_UNSPECIFIED",
+            Self::Match => "EVENT_KIND_MATCH",
+            Self::ValueChange => "EVENT_KIND_VALUE_CHANGE",
+            Self::QualityChange => "EVENT_KIND_QUALITY_CHANGE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "EVENT_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "EVENT_KIND_MATCH" => Some(Self::Match),
+            "EVENT_KIND_VALUE_CHANGE" => Some(Self::ValueChange),
+            "EVENT_KIND_QUALITY_CHANGE" => Some(Self::QualityChange),
+            _ => None,
+        }
+    }
+}
+/// The request for QueryService.ComputeStats.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ComputeStatsRequest {
+    /// Whose signals to summarise, as `entities/{entity}`, or `entities/-`
+    /// for every entity.
+    #[prost(string, tag="1")]
+    pub parent: ::prost::alloc::string::String,
+    /// An AIP-160 filter selecting signals, as in ListSignals.
+    #[prost(string, tag="2")]
+    pub filter: ::prost::alloc::string::String,
+    /// The half-open interval of `observe_time`, each end an RFC 3339 time in
+    /// UTC. Either end may be unset.
+    #[prost(message, optional, tag="3")]
+    pub interval: ::core::option::Option<super::super::super::google::r#type::Interval>,
+    /// An AIP-160 filter over each sample's `value` and `quality`, as in
+    /// QuerySamples: only matching samples count.
+    #[prost(string, tag="4")]
+    pub sample_filter: ::prost::alloc::string::String,
+    /// The most signals to return; capped at 50, 20 when zero.
+    #[prost(int32, tag="5")]
+    pub page_size: i32,
+    /// The `next_page_token` of a previous call with otherwise equal fields,
+    /// `page_size` and `max_value_bytes` aside.
+    #[prost(string, tag="6")]
+    pub page_token: ::prost::alloc::string::String,
+    /// The longest string or bytes value returned whole, as in
+    /// BrowseSamplesRequest.
+    #[prost(int32, tag="7")]
+    pub max_value_bytes: i32,
+}
+impl ::prost::Name for ComputeStatsRequest {
+const NAME: &'static str = "ComputeStatsRequest";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.ComputeStatsRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.ComputeStatsRequest".into() }}
+/// The response for QueryService.ComputeStats.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ComputeStatsResponse {
+    /// One entry per selected signal, in signal name order.
+    #[prost(message, repeated, tag="1")]
+    pub signal_stats: ::prost::alloc::vec::Vec<SignalStats>,
+    /// Passed as `page_token` to read the next page; empty on the last one.
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+impl ::prost::Name for ComputeStatsResponse {
+const NAME: &'static str = "ComputeStatsResponse";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.ComputeStatsResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.ComputeStatsResponse".into() }}
+/// The request for QueryService.ComparePeriods.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ComparePeriodsRequest {
+    /// Whose signals to compare, as `entities/{entity}`, or `entities/-` for
+    /// every entity.
+    #[prost(string, tag="1")]
+    pub parent: ::prost::alloc::string::String,
+    /// An AIP-160 filter selecting signals, as in ListSignals.
+    #[prost(string, tag="2")]
+    pub filter: ::prost::alloc::string::String,
+    /// The period compared against, such as last week. Both ends required.
+    #[prost(message, optional, tag="3")]
+    pub baseline_interval: ::core::option::Option<super::super::super::google::r#type::Interval>,
+    /// The period compared, such as this week. Both ends required.
+    #[prost(message, optional, tag="4")]
+    pub comparison_interval: ::core::option::Option<super::super::super::google::r#type::Interval>,
+    /// An AIP-160 filter over each sample's `value` and `quality`, applied to
+    /// both periods.
+    #[prost(string, tag="5")]
+    pub sample_filter: ::prost::alloc::string::String,
+    /// The most signals to return; capped at 50, 20 when zero.
+    #[prost(int32, tag="6")]
+    pub page_size: i32,
+    /// The `next_page_token` of a previous call with otherwise equal fields,
+    /// `page_size` and `max_value_bytes` aside.
+    #[prost(string, tag="7")]
+    pub page_token: ::prost::alloc::string::String,
+    /// The longest string or bytes value returned whole, as in
+    /// BrowseSamplesRequest.
+    #[prost(int32, tag="8")]
+    pub max_value_bytes: i32,
+}
+impl ::prost::Name for ComparePeriodsRequest {
+const NAME: &'static str = "ComparePeriodsRequest";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.ComparePeriodsRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.ComparePeriodsRequest".into() }}
+/// The response for QueryService.ComparePeriods.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ComparePeriodsResponse {
+    /// One entry per selected signal, in signal name order.
+    #[prost(message, repeated, tag="1")]
+    pub period_comparisons: ::prost::alloc::vec::Vec<PeriodComparison>,
+    /// Passed as `page_token` to read the next page; empty on the last one.
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+impl ::prost::Name for ComparePeriodsResponse {
+const NAME: &'static str = "ComparePeriodsResponse";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.ComparePeriodsResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.ComparePeriodsResponse".into() }}
+/// One signal over two periods.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PeriodComparison {
+    /// The signal, as `entities/{entity}/signals/{signal}`.
+    #[prost(string, tag="1")]
+    pub signal: ::prost::alloc::string::String,
+    /// Its statistics over `baseline_interval`.
+    #[prost(message, optional, tag="2")]
+    pub baseline: ::core::option::Option<SignalStats>,
+    /// Its statistics over `comparison_interval`.
+    #[prost(message, optional, tag="3")]
+    pub comparison: ::core::option::Option<SignalStats>,
+    /// The comparison minus the baseline.
+    #[prost(message, optional, tag="4")]
+    pub change: ::core::option::Option<StatsChange>,
+}
+impl ::prost::Name for PeriodComparison {
+const NAME: &'static str = "PeriodComparison";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.PeriodComparison".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.PeriodComparison".into() }}
+/// What one signal's matching samples were over an interval. Each comes from
+/// the query engine's own reductions, by the rules QuerySamples documents:
+/// floats order by IEEE 754 total order, integers sum exactly. Several reads,
+/// not one snapshot: on a signal still receiving samples, an interval that
+/// reaches the present can see a sample in one figure and not another.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SignalStats {
+    /// The signal, as `entities/{entity}/signals/{signal}`.
+    #[prost(string, tag="1")]
+    pub signal: ::prost::alloc::string::String,
+    /// How many samples matched. Zero leaves every other field unset.
+    #[prost(int64, tag="2")]
+    pub sample_count: i64,
+    /// The smallest value, for a type that orders.
+    #[prost(message, optional, tag="3")]
+    pub min_value: ::core::option::Option<super::super::r#type::Value>,
+    /// The largest value, for a type that orders.
+    #[prost(message, optional, tag="4")]
+    pub max_value: ::core::option::Option<super::super::r#type::Value>,
+    /// The arithmetic mean, for a numeric signal.
+    #[prost(double, optional, tag="5")]
+    pub average: ::core::option::Option<f64>,
+    /// The sum, for a numeric signal.
+    #[prost(double, optional, tag="6")]
+    pub sum: ::core::option::Option<f64>,
+    /// When the earliest matching sample was observed.
+    #[prost(message, optional, tag="7")]
+    pub first_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// The earliest matching sample's value.
+    #[prost(message, optional, tag="8")]
+    pub first_value: ::core::option::Option<super::super::r#type::Value>,
+    /// When the newest matching sample was observed.
+    #[prost(message, optional, tag="9")]
+    pub last_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// The newest matching sample's value.
+    #[prost(message, optional, tag="10")]
+    pub last_value: ::core::option::Option<super::super::r#type::Value>,
+    /// A value above was cut to `max_value_bytes`.
+    #[prost(bool, tag="11")]
+    pub value_truncated: bool,
+}
+impl ::prost::Name for SignalStats {
+const NAME: &'static str = "SignalStats";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.SignalStats".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.SignalStats".into() }}
+/// A comparison minus a baseline, in IEEE 754 arithmetic. A figure is unset
+/// unless both periods have it as a number.
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct StatsChange {
+    /// The change in sample count.
+    #[prost(int64, tag="1")]
+    pub sample_count: i64,
+    /// The change in the minimum.
+    #[prost(double, optional, tag="2")]
+    pub min_value: ::core::option::Option<f64>,
+    /// The change in the maximum.
+    #[prost(double, optional, tag="3")]
+    pub max_value: ::core::option::Option<f64>,
+    /// The change in the average.
+    #[prost(double, optional, tag="4")]
+    pub average: ::core::option::Option<f64>,
+    /// The change in the sum.
+    #[prost(double, optional, tag="5")]
+    pub sum: ::core::option::Option<f64>,
+}
+impl ::prost::Name for StatsChange {
+const NAME: &'static str = "StatsChange";
+const PACKAGE: &'static str = "norn.query.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.query.v1.StatsChange".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.query.v1.StatsChange".into() }}
 include!("norn.query.v1.tonic.rs");
 // @@protoc_insertion_point(module)

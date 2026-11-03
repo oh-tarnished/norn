@@ -3,8 +3,9 @@
 use norn_metadata::{SignalPatch, SignalRecord, SignalSpec};
 use norn_protocol::signal::signal_service_server::SignalService;
 use norn_protocol::signal::{
-    CreateSignalRequest, DeleteSignalRequest, GetSignalRequest, ListSignalsRequest,
-    ListSignalsResponse, Signal, UpdateSignalRequest,
+    BatchCreateSignalsRequest, BatchCreateSignalsResponse, CreateSignalRequest,
+    DeleteSignalRequest, GetSignalRequest, ListSignalsRequest, ListSignalsResponse, Signal,
+    UpdateSignalRequest,
 };
 use tonic::{Request, Response, Status};
 
@@ -19,7 +20,7 @@ use crate::status::bad_field;
 const MUTABLE: [&str; 3] = ["display_name", "unit", "annotations"];
 
 impl Catalog {
-    fn signal_to_wire(&self, entity: &str, r: &SignalRecord) -> Signal {
+    pub(super) fn signal_to_wire(&self, entity: &str, r: &SignalRecord) -> Signal {
         let stream = self.registry.stream_name(r.stream).unwrap_or_default();
         Signal {
             name: format!("entities/{entity}/signals/{}", r.descriptor.name),
@@ -60,6 +61,15 @@ impl SignalService for Catalog {
         let owner = entity.clone();
         let made = self.mutate(move |g| g.create_signal(&owner, &id, spec, now, mode));
         Ok(Response::new(self.signal_to_wire(&entity, &made.await?)))
+    }
+
+    async fn batch_create_signals(
+        &self,
+        request: Request<BatchCreateSignalsRequest>,
+    ) -> Result<Response<BatchCreateSignalsResponse>, Status> {
+        Ok(Response::new(
+            self.batch_signals(request.into_inner()).await?,
+        ))
     }
 
     async fn get_signal(

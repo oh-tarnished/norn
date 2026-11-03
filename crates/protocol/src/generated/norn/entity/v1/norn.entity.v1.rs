@@ -131,5 +131,38 @@ impl ::prost::Name for DeleteEntityRequest {
 const NAME: &'static str = "DeleteEntityRequest";
 const PACKAGE: &'static str = "norn.entity.v1";
 fn full_name() -> ::prost::alloc::string::String { "norn.entity.v1.DeleteEntityRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.entity.v1.DeleteEntityRequest".into() }}
+/// The request for EntityService.BatchCreateEntities (AIP-233). Entities are
+/// top-level resources, so there is no parent.
+///
+/// At most 1000 requests, and the whole message at most 4 MiB; a larger batch
+/// fails with INVALID_ARGUMENT naming `requests`. The bound keeps one batch's
+/// memory, the time it holds the catalogue's lock, and recovery's work bounded.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchCreateEntitiesRequest {
+    /// The entities to create, one CreateEntityRequest each, 1 to 1000 of them.
+    /// A request's own `validate_only` must be unset; set the batch's instead.
+    #[prost(message, repeated, tag="1")]
+    pub requests: ::prost::alloc::vec::Vec<CreateEntityRequest>,
+    /// Validate the whole batch and return what would be created, storing
+    /// nothing.
+    #[prost(bool, tag="2")]
+    pub validate_only: bool,
+}
+impl ::prost::Name for BatchCreateEntitiesRequest {
+const NAME: &'static str = "BatchCreateEntitiesRequest";
+const PACKAGE: &'static str = "norn.entity.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.entity.v1.BatchCreateEntitiesRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.entity.v1.BatchCreateEntitiesRequest".into() }}
+/// The response for EntityService.BatchCreateEntities.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BatchCreateEntitiesResponse {
+    /// One entity per request, in request order: the new entity, or the stored
+    /// one when it already existed.
+    #[prost(message, repeated, tag="1")]
+    pub entities: ::prost::alloc::vec::Vec<Entity>,
+}
+impl ::prost::Name for BatchCreateEntitiesResponse {
+const NAME: &'static str = "BatchCreateEntitiesResponse";
+const PACKAGE: &'static str = "norn.entity.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.entity.v1.BatchCreateEntitiesResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.entity.v1.BatchCreateEntitiesResponse".into() }}
 include!("norn.entity.v1.tonic.rs");
 // @@protoc_insertion_point(module)

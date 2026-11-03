@@ -12,6 +12,10 @@ ignore = [
     # paste is unmaintained, with no fix to take. A macro used only while
     # compiling mcap (0.26 is the newest): nothing of it runs or ships.
     { id = "RUSTSEC-2024-0436", reason = "compile-time macro of mcap; nothing of it ships" },
+    # rustls-pemfile is unmaintained (its parsers moved into rustls-pki-types).
+    # tpp-grpc reads a certificate with it only in with_certificates, which norn
+    # never calls: the daemon listens on a local endpoint without TLS.
+    { id = "RUSTSEC-2025-0134", reason = "tpp-grpc's certificate loading; norn configures no TLS" },
 ]
 
 [licenses]
@@ -35,7 +39,14 @@ unused-allowed-license = "allow"
 # CC0-1.0 is a public-domain dedication, compatible with the AGPL and the
 # commercial licence. Only this crate: it is a build-time hash in const-random's
 # proc macro, under ahash under arrow, and none of it is linked into a binary.
-exceptions = [{ crate = "tiny-keccak", allow = ["CC0-1.0"] }]
+#
+# MIT-0 is MIT without the attribution clause: more permissive than MIT. Only
+# borrow-or-share, through prost-protovalidate -> fluent-uri under tpp-grpc's
+# request validation, which norn-server links.
+exceptions = [
+    { crate = "tiny-keccak", allow = ["CC0-1.0"] },
+    { crate = "borrow-or-share", allow = ["MIT-0"] },
+]
 
 [licenses.private]
 # This allow-list governs third-party dependencies. Norn's unpublished
@@ -51,4 +62,9 @@ allow-wildcard-paths = true
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
-allow-git = []
+# runtime-rs (tpp-grpc, tpp-agents: the daemon's HybridServer and MCP), and
+# the HTTP transcoder it is built with, pinned by runtime-rs to a tag. Apache-2.0.
+allow-git = [
+    "https://github.com/the-protobuf-project/runtime-rs",
+    "https://github.com/the-protobuf-project/http",
+]

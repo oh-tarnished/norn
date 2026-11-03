@@ -62,18 +62,22 @@ api-lint:
 api-lint-tools:
     go install github.com/googleapis/api-linter/v2/cmd/api-linter@v2.3.1
 
-# Regenerate crates/protocol/src/generated from protobuf/. The output is
-# committed, so building needs neither buf nor protoc. Needs the plugins
-# buf.gen.yaml names (cargo install protoc-gen-prost@0.5.0
-# protoc-gen-tonic@0.5.0 protoc-gen-prost-crate@0.5.0).
+# Regenerate crates/protocol/src/generated, and the daemon's MCP handlers in
+# crates/server/src/mcp/generated, from protobuf/. The output is committed, so
+# building needs neither buf nor protoc. Needs the plugins buf.gen.yaml and
+# buf.gen.mcp.yaml name (`just gen-tools`).
 gen:
     buf generate
+    buf generate --template buf.gen.mcp.yaml
+    buf build --exclude-source-info -o crates/protocol/src/norn.binpb
     buf build --path protobuf/norn/type/sample.proto --as-file-descriptor-set \
         --exclude-source-info -o adapters/mcap/src/generated/norn_type_sample.binpb
 
-# Install the local code generators declared by buf.gen.yaml.
+# Install the local code generators declared by buf.gen.yaml and
+# buf.gen.mcp.yaml (protoc-gen-mcp is Go: requires Go, its bin on PATH).
 gen-tools:
     cargo install --locked protoc-gen-prost@0.5.0 protoc-gen-tonic@0.5.0 protoc-gen-prost-crate@0.5.0
+    go install github.com/the-protobuf-project/mcp/plugin/cmd/protoc-gen-mcp@v1.7.8
 
 # Fails when the committed generated code is not what protobuf/ produces: a
 # .proto edited without `just gen` ships a crate that disagrees with it.
@@ -84,6 +88,10 @@ gen-check:
     trap 'rm -rf "$generated"' EXIT
     buf generate --output "$generated"
     diff -ru crates/protocol/src/generated "$generated/crates/protocol/src/generated"
+    buf generate --template buf.gen.mcp.yaml --output "$generated"
+    diff -ru crates/server/src/mcp/generated "$generated/crates/server/src/mcp/generated"
+    buf build --exclude-source-info -o "$generated/norn.binpb"
+    cmp crates/protocol/src/norn.binpb "$generated/norn.binpb"
     buf build --path protobuf/norn/type/sample.proto --as-file-descriptor-set \
         --exclude-source-info -o "$generated/sample.binpb"
     cmp adapters/mcap/src/generated/norn_type_sample.binpb "$generated/sample.binpb"
@@ -103,7 +111,7 @@ release-plan:
 
 # Build and package the daemon and CLI for an installed Rust target.
 release-build target:
-    cargo build --release --locked -p norn-server -p norn-cli -p norn-mcp --target "{{ target }}"
+    cargo build --release --locked -p norn-server -p norn-cli --target "{{ target }}"
 
 release-package target version:
     {{ python }} .github/release/package.py "{{ target }}" "{{ version }}"

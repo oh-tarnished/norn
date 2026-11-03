@@ -50,7 +50,7 @@ pub use error::{MetadataError, ResourceKind};
 pub use log::LogRecovery;
 pub use record::{EntityRecord, Retention, SignalRecord, StreamRecord};
 pub use registry::{
-    EntityPatch, EntitySpec, Registry, RegistryView, SignalPatch, SignalRoute, SignalSpec,
-    StreamPatch, StreamSpec, Write,
+    EntityPatch, EntitySpec, MAX_BATCH_CREATE, Registry, RegistryView, SignalPatch, SignalRoute,
+    SignalSpec, StreamPatch, StreamSpec, Write,
 };
 pub use resource::{MAX_DISPLAY_NAME_CHARS, check_display_name, check_resource_id};

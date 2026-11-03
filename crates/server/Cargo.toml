@@ -39,6 +39,15 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["json"] }
 serde = { workspace = true }
 toml = { workspace = true }
+# The server: gRPC on a local socket or pipe through runtime-rs's HybridServer,
+# and MCP inside it (docs/reference/mcp.md). See the root Cargo.toml for each.
+tpp_grpc = { workspace = true }
+tpp-agents = { workspace = true }
+rmcp = { workspace = true, features = ["server"] }
+async-trait = { workspace = true }
+axum = { workspace = true }
+serde_json = { workspace = true }
+prost-reflect = { workspace = true }
 
 [dev-dependencies]
 # Tests read back what the daemon stored; a client never does this.
@@ -46,6 +55,9 @@ norn-storage = { path = "../storage" }
 norn-core = { path = "../core" }
 # A query's answer is the same before and after compaction, on generated data.
 proptest = { workspace = true }
+# Real MCP clients against the real `norn` binary, over stdio and a Unix socket.
+rmcp = { workspace = true, features = ["client", "transport-streamable-http-client-unix-socket"] }
+tokio = { workspace = true, features = ["process", "io-util"] }
 
 [lints]
 workspace = true
@@ -64,4 +76,8 @@ harness = false
 
 [[bench]]
 name = "startup"
+harness = false
+
+[[bench]]
+name = "provision"
 harness = false

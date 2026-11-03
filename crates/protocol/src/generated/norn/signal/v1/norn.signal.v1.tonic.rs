@@ -100,6 +100,46 @@ pub mod signal_service_client {
                 .insert(GrpcMethod::new("norn.signal.v1.SignalService", "CreateSignal"));
             self.inner.unary(req, path, codec).await
         }
+        /** Creates up to 1000 signals in one call, all or none (AIP-233), with one
+ durable registry commit for the whole batch: provisioning a site's tens
+ of thousands of signals without a call and a commit each.
+
+ Safe to repeat: a signal that already exists with the same value type and
+ stream is returned as stored, its other fields left alone, so a client
+ may send its whole catalogue at every start. ALREADY_EXISTS only if one
+ exists with another value type or stream; nothing is created then.
+
+ It writes, so it is no MCP tool: the hints below say so, and the daemon
+ serves only tools hinted read-only.
+*/
+        pub async fn batch_create_signals(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchCreateSignalsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchCreateSignalsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.signal.v1.SignalService/BatchCreateSignals",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("norn.signal.v1.SignalService", "BatchCreateSignals"),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /** Reads one signal.
+*/
         pub async fn get_signal(
             &mut self,
             request: impl tonic::IntoRequest<super::GetSignalRequest>,
@@ -216,6 +256,27 @@ pub mod signal_service_server {
             &self,
             request: tonic::Request<super::CreateSignalRequest>,
         ) -> std::result::Result<tonic::Response<super::Signal>, tonic::Status>;
+        /** Creates up to 1000 signals in one call, all or none (AIP-233), with one
+ durable registry commit for the whole batch: provisioning a site's tens
+ of thousands of signals without a call and a commit each.
+
+ Safe to repeat: a signal that already exists with the same value type and
+ stream is returned as stored, its other fields left alone, so a client
+ may send its whole catalogue at every start. ALREADY_EXISTS only if one
+ exists with another value type or stream; nothing is created then.
+
+ It writes, so it is no MCP tool: the hints below say so, and the daemon
+ serves only tools hinted read-only.
+*/
+        async fn batch_create_signals(
+            &self,
+            request: tonic::Request<super::BatchCreateSignalsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchCreateSignalsResponse>,
+            tonic::Status,
+        >;
+        /** Reads one signal.
+*/
         async fn get_signal(
             &self,
             request: tonic::Request<super::GetSignalRequest>,
@@ -352,6 +413,52 @@ pub mod signal_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateSignalSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.signal.v1.SignalService/BatchCreateSignals" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchCreateSignalsSvc<T: SignalService>(pub Arc<T>);
+                    impl<
+                        T: SignalService,
+                    > tonic::server::UnaryService<super::BatchCreateSignalsRequest>
+                    for BatchCreateSignalsSvc<T> {
+                        type Response = super::BatchCreateSignalsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BatchCreateSignalsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as SignalService>::batch_create_signals(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = BatchCreateSignalsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

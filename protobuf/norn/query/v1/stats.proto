@@ -1,0 +1,184 @@
+syntax = "proto3";
+
+package norn.query.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+import "google/type/interval.proto";
+import "mcp/v1/annotations.proto";
+import "norn/type/value.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StatsProto";
+option java_package = "local.norn.query.v1";
+
+// The request for QueryService.ComputeStats.
+message ComputeStatsRequest {
+  // Whose signals to summarise, as `entities/{entity}`, or `entities/-`
+  // for every entity.
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {child_type: "norn.local/Signal"},
+    (mcp.v1.field) = {
+      examples: [
+        "entities/-",
+        "entities/ahu-01"
+      ]
+    }
+  ];
+
+  // An AIP-160 filter selecting signals, as in ListSignals.
+  string filter = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // The half-open interval of `observe_time`, each end an RFC 3339 time in
+  // UTC. Either end may be unset.
+  google.type.Interval interval = 3 [(google.api.field_behavior) = OPTIONAL];
+
+  // An AIP-160 filter over each sample's `value` and `quality`, as in
+  // QuerySamples: only matching samples count.
+  string sample_filter = 4 [(google.api.field_behavior) = OPTIONAL];
+
+  // The most signals to return; capped at 50, 20 when zero.
+  int32 page_size = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // The `next_page_token` of a previous call with otherwise equal fields,
+  // `page_size` and `max_value_bytes` aside.
+  string page_token = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // The longest string or bytes value returned whole, as in
+  // BrowseSamplesRequest.
+  int32 max_value_bytes = 7 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for QueryService.ComputeStats.
+message ComputeStatsResponse {
+  // One entry per selected signal, in signal name order.
+  repeated SignalStats signal_stats = 1;
+
+  // Passed as `page_token` to read the next page; empty on the last one.
+  string next_page_token = 2;
+}
+
+// The request for QueryService.ComparePeriods.
+message ComparePeriodsRequest {
+  // Whose signals to compare, as `entities/{entity}`, or `entities/-` for
+  // every entity.
+  string parent = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {child_type: "norn.local/Signal"},
+    (mcp.v1.field) = {
+      examples: [
+        "entities/-",
+        "entities/ahu-01"
+      ]
+    }
+  ];
+
+  // An AIP-160 filter selecting signals, as in ListSignals.
+  string filter = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // The period compared against, such as last week. Both ends required.
+  google.type.Interval baseline_interval = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // The period compared, such as this week. Both ends required.
+  google.type.Interval comparison_interval = 4 [(google.api.field_behavior) = REQUIRED];
+
+  // An AIP-160 filter over each sample's `value` and `quality`, applied to
+  // both periods.
+  string sample_filter = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // The most signals to return; capped at 50, 20 when zero.
+  int32 page_size = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // The `next_page_token` of a previous call with otherwise equal fields,
+  // `page_size` and `max_value_bytes` aside.
+  string page_token = 7 [(google.api.field_behavior) = OPTIONAL];
+
+  // The longest string or bytes value returned whole, as in
+  // BrowseSamplesRequest.
+  int32 max_value_bytes = 8 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for QueryService.ComparePeriods.
+message ComparePeriodsResponse {
+  // One entry per selected signal, in signal name order.
+  repeated PeriodComparison period_comparisons = 1;
+
+  // Passed as `page_token` to read the next page; empty on the last one.
+  string next_page_token = 2;
+}
+
+// One signal over two periods.
+message PeriodComparison {
+  // The signal, as `entities/{entity}/signals/{signal}`.
+  string signal = 1 [(google.api.resource_reference) = {type: "norn.local/Signal"}];
+
+  // Its statistics over `baseline_interval`.
+  SignalStats baseline = 2;
+
+  // Its statistics over `comparison_interval`.
+  SignalStats comparison = 3;
+
+  // The comparison minus the baseline.
+  StatsChange change = 4;
+}
+
+// What one signal's matching samples were over an interval. Each comes from
+// the query engine's own reductions, by the rules QuerySamples documents:
+// floats order by IEEE 754 total order, integers sum exactly. Several reads,
+// not one snapshot: on a signal still receiving samples, an interval that
+// reaches the present can see a sample in one figure and not another.
+message SignalStats {
+  // The signal, as `entities/{entity}/signals/{signal}`.
+  string signal = 1 [(google.api.resource_reference) = {type: "norn.local/Signal"}];
+
+  // How many samples matched. Zero leaves every other field unset.
+  int64 sample_count = 2;
+
+  // The smallest value, for a type that orders.
+  norn.type.Value min_value = 3;
+
+  // The largest value, for a type that orders.
+  norn.type.Value max_value = 4;
+
+  // The arithmetic mean, for a numeric signal.
+  optional double average = 5;
+
+  // The sum, for a numeric signal.
+  optional double sum = 6;
+
+  // When the earliest matching sample was observed.
+  google.protobuf.Timestamp first_time = 7;
+
+  // The earliest matching sample's value.
+  norn.type.Value first_value = 8;
+
+  // When the newest matching sample was observed.
+  google.protobuf.Timestamp last_time = 9;
+
+  // The newest matching sample's value.
+  norn.type.Value last_value = 10;
+
+  // A value above was cut to `max_value_bytes`.
+  bool value_truncated = 11;
+}
+
+// A comparison minus a baseline, in IEEE 754 arithmetic. A figure is unset
+// unless both periods have it as a number.
+message StatsChange {
+  // The change in sample count.
+  int64 sample_count = 1;
+
+  // The change in the minimum.
+  optional double min_value = 2;
+
+  // The change in the maximum.
+  optional double max_value = 3;
+
+  // The change in the average.
+  optional double average = 4;
+
+  // The change in the sum.
+  optional double sum = 5;
+}

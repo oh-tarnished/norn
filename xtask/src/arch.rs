@@ -90,10 +90,6 @@ pub const LAYERS: &[(&str, &[&str])] = &[
             "norn-adapter-mcap",
         ],
     ),
-    (
-        "norn-mcp",
-        &["norn-core", "norn-protocol", "norn-transport", "norn-ipc"],
-    ),
     // Adapters are clients too (SPEC §29, §47): the contract speaks the protocol,
     // and a format knows only the contract and the protocol's types. The server
     // cannot import any of them, which is why ExportStream stays UNIMPLEMENTED

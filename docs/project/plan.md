@@ -40,7 +40,7 @@ parallel.
 | 3 | replay | 11 | `replay`: virtual clock, pause/seek/step/speed, live/replay unification |
 | 3 | shared memory | 12 | `shared-memory`: ring buffer, fallback |
 | 4 | adapters | 13 | `adapters/{bacnet,mcap,parquet,csv}` (BACnet through bacnet-rs) |
-| 4 | MCP + CLI | 14, 33 | `services/mcp`, `crates/cli` (`nornctl`) |
+| 4 | MCP + CLI | 14, 33 | MCP in `crates/server`, `crates/cli` (`nornctl`) |
 | 5 | performance | 15, 35 | `benchmarks/`: 16,000 signals × 1 Hz, bursts, the 504-billion-sample/year extrapolation |
 | 5 | hardening | 16, 36 | fuzzing, crash and corruption tests, Windows validation, security review |
 

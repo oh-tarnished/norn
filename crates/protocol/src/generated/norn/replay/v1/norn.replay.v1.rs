@@ -215,6 +215,104 @@ impl ReplayState {
         }
     }
 }
+/// The request for ReplayService.DriveReplaySession.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DriveReplaySessionRequest {
+    /// The session, as `replaySessions/{replay_session}`. It must be frozen
+    /// (speed 0) and PAUSED or ENDED, as a session created with speed 0 is.
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// If set, the call succeeds only if it matches the current etag.
+    #[prost(string, tag="5")]
+    pub etag: ::prost::alloc::string::String,
+    /// The most events to return; capped at 1000, 100 when zero. A seek's
+    /// state events past it are counted in `omitted_event_count`, never
+    /// hidden.
+    #[prost(int32, tag="6")]
+    pub max_events: i32,
+    /// The longest string or bytes value returned whole, in bytes; capped at
+    /// 65536, 1024 when zero. A longer value is cut, and its event says so.
+    #[prost(int32, tag="7")]
+    pub max_value_bytes: i32,
+    /// How to move the clock. Exactly one is required.
+    #[prost(oneof="drive_replay_session_request::Movement", tags="2, 3, 4")]
+    pub movement: ::core::option::Option<drive_replay_session_request::Movement>,
+}
+/// Nested message and enum types in `DriveReplaySessionRequest`.
+pub mod drive_replay_session_request {
+    /// How to move the clock. Exactly one is required.
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Movement {
+        /// Step: emit exactly this many next samples, or fewer if the interval
+        /// ends first. Positive, and at most `max_events`.
+        #[prost(int32, tag="2")]
+        EventCount(i32),
+        /// Step: advance the clock by this much virtual time, emitting every
+        /// sample passed. Positive. Refused, before the clock moves, when it
+        /// would emit more than `max_events` samples.
+        #[prost(message, tag="3")]
+        Duration(::prost_types::Duration),
+        /// Seek: move the clock to this time within the interval, emitting each
+        /// selected signal's newest sample before it as a state event.
+        #[prost(message, tag="4")]
+        SeekTime(::prost_types::Timestamp),
+    }
+}
+impl ::prost::Name for DriveReplaySessionRequest {
+const NAME: &'static str = "DriveReplaySessionRequest";
+const PACKAGE: &'static str = "norn.replay.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.replay.v1.DriveReplaySessionRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.replay.v1.DriveReplaySessionRequest".into() }}
+/// The response for ReplayService.DriveReplaySession.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DriveReplaySessionResponse {
+    /// The events the movement emitted, in the order subscribers received
+    /// them: the replay order of QuerySamples' SAMPLE_ORDER_BY_TIME.
+    #[prost(message, repeated, tag="1")]
+    pub replay_events: ::prost::alloc::vec::Vec<ReplayEvent>,
+    /// The session after the movement. Its state is ENDED when the clock
+    /// reached the interval's end; seek back, or delete it.
+    #[prost(message, optional, tag="2")]
+    pub replay_session: ::core::option::Option<ReplaySession>,
+    /// Events emitted past `max_events`.
+    #[prost(int64, tag="3")]
+    pub omitted_event_count: i64,
+}
+impl ::prost::Name for DriveReplaySessionResponse {
+const NAME: &'static str = "DriveReplaySessionResponse";
+const PACKAGE: &'static str = "norn.replay.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.replay.v1.DriveReplaySessionResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.replay.v1.DriveReplaySessionResponse".into() }}
+/// One event a replay emitted, as SubscribeEvents delivers it, without the
+/// clock events.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReplayEvent {
+    /// The session's virtual clock when the event was emitted.
+    #[prost(message, optional, tag="1")]
+    pub clock_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// A value above was cut to `max_value_bytes`.
+    #[prost(bool, tag="4")]
+    pub value_truncated: bool,
+    /// What was emitted.
+    #[prost(oneof="replay_event::Payload", tags="2, 3")]
+    pub payload: ::core::option::Option<replay_event::Payload>,
+}
+/// Nested message and enum types in `ReplayEvent`.
+pub mod replay_event {
+    /// What was emitted.
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Payload {
+        /// A recorded sample, emitted as the clock passed it.
+        #[prost(message, tag="2")]
+        Sample(super::super::super::r#type::Sample),
+        /// After a seek, a signal's newest sample before the seek time: its
+        /// state at the clock.
+        #[prost(message, tag="3")]
+        StateSample(super::super::super::r#type::Sample),
+    }
+}
+impl ::prost::Name for ReplayEvent {
+const NAME: &'static str = "ReplayEvent";
+const PACKAGE: &'static str = "norn.replay.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.replay.v1.ReplayEvent".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.replay.v1.ReplayEvent".into() }}
 /// The request for ReplayService.CreateReplaySession.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateReplaySessionRequest {

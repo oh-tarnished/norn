@@ -8,6 +8,8 @@ mod args;
 mod engine;
 mod error;
 mod file;
+mod log;
+mod mcp;
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -18,6 +20,8 @@ use norn_ipc::Endpoint;
 pub use args::{Invocation, USAGE, parse_args};
 pub use error::ConfigError;
 pub use file::MAX_FILE_BYTES;
+pub use log::{LogConfig, LogFormat, LogLevel};
+pub use mcp::{McpConfig, McpTransport};
 
 /// How long in-flight calls may finish after shutdown is requested, before
 /// their connections are aborted (norn-ipc's drain bound). Default 10 s.
@@ -35,6 +39,7 @@ pub struct DaemonConfig {
     pub(crate) data_dir: Option<PathBuf>,
     pub(crate) drain_timeout: Option<Duration>,
     pub(crate) log: LogConfig,
+    pub(crate) mcp: McpConfig,
 }
 
 impl DaemonConfig {
@@ -75,6 +80,19 @@ impl DaemonConfig {
         self
     }
 
+    /// Replaces the MCP settings.
+    #[must_use]
+    pub fn mcp(mut self, mcp: McpConfig) -> Self {
+        self.mcp = mcp;
+        self
+    }
+
+    /// The MCP settings.
+    #[must_use]
+    pub fn mcp_settings(&self) -> &McpConfig {
+        &self.mcp
+    }
+
     /// The engine configuration: memory budgets and limits.
     #[must_use]
     pub fn engine(&self) -> &Config {
@@ -113,76 +131,5 @@ impl DaemonConfig {
     #[must_use]
     pub fn logging(&self) -> &LogConfig {
         &self.log
-    }
-}
-
-/// Where and how the daemon logs. Logs always go to stderr; a supervisor
-/// (systemd, launchd, a service manager) owns files and rotation.
-///
-/// `Default`: level `info`, text format, records cut at 4 KiB.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[non_exhaustive]
-pub struct LogConfig {
-    /// The most verbose level written.
-    pub level: LogLevel,
-    /// Human-readable text or JSON lines.
-    pub format: LogFormat,
-    /// The longest record written, in bytes; longer ones are cut and marked
-    /// `[truncated]`. Bounds what one event can cost (SPEC §34).
-    pub max_record_bytes: usize,
-}
-
-impl Default for LogConfig {
-    fn default() -> Self {
-        Self {
-            level: LogLevel::Info,
-            format: LogFormat::Text,
-            max_record_bytes: 4096,
-        }
-    }
-}
-
-/// A log level, most severe first.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[allow(missing_docs, reason = "the variant names are the documentation")]
-pub enum LogLevel {
-    Error,
-    Warn,
-    Info,
-    Debug,
-    Trace,
-}
-
-/// The log record format.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LogFormat {
-    /// One human-readable line per event.
-    Text,
-    /// One JSON object per line, for log collectors.
-    Json,
-}
-
-impl std::str::FromStr for LogLevel {
-    type Err = ConfigError;
-    fn from_str(s: &str) -> Result<Self, ConfigError> {
-        Ok(match s {
-            "error" => Self::Error,
-            "warn" => Self::Warn,
-            "info" => Self::Info,
-            "debug" => Self::Debug,
-            "trace" => Self::Trace,
-            _ => return Err(ConfigError::invalid("log.level", s)),
-        })
-    }
-}
-
-impl std::str::FromStr for LogFormat {
-    type Err = ConfigError;
-    fn from_str(s: &str) -> Result<Self, ConfigError> {
-        match s {
-            "text" => Ok(Self::Text),
-            "json" => Ok(Self::Json),
-            _ => Err(ConfigError::invalid("log.format", s)),
-        }
     }
 }

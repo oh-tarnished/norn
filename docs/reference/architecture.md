@@ -36,15 +36,16 @@ workspace crate without a row fails the gate. Dev-dependencies are exempt.
 | `norn-state` | core, storage, index, query | exists (uses core, query) |
 | `norn-replay` | core, storage, index, query, state | exists (uses core, query, state) |
 | `norn-runtime` | core, codec, metadata, storage, index, query, state, replay | exists (uses core, codec, metadata, storage, index, query, state, replay) |
-| `norn-server` | core, protocol, transport, ipc, shared-memory, metadata, runtime | exists (uses core, protocol, ipc, metadata, runtime) |
+| `norn-server` | core, protocol, transport, ipc, shared-memory, metadata, runtime | exists (uses core, protocol, ipc, metadata, runtime); serves MCP |
 | `norn-cli` | core, protocol, transport, ipc, adapter, adapter-csv, adapter-parquet, adapter-mcap | exists (uses protocol, ipc, the adapters) |
-| `norn-mcp` | core, protocol, transport, ipc | exists (uses protocol, ipc) |
 | `norn-adapter` | core, protocol, transport, ipc | exists (uses protocol) |
 | `norn-adapter-csv`, `-parquet`, `-mcap` | adapter, protocol | exists |
 | `norn-adapter-testkit` | adapter, protocol | exists, dev-only |
 | `xtask` | nothing | exists |
 
-Clients (CLI, MCP, adapters) reach Norn only through the protocol, never the
+Clients (CLI, adapters) reach Norn only through the protocol, and so does MCP: it runs
+inside the daemon but calls the gRPC services through the in-process loopback, never
+the runtime, never the
 storage API (SPEC §47), which is why their rows stop at `ipc`. The adapters are
 clients too: the contract speaks the protocol, and each format knows only the
 contract. The server imports none of them, so `ExportStream` stays unimplemented
@@ -56,10 +57,20 @@ contract. The server imports none of them, so `ExportStream` stays unimplemented
 on any package with a `links` key or a `cc`, `cmake`, `pkg-config`, `vcpkg`
 or `bindgen` build-dependency. The allow-list (`ALLOW_C`) is empty.
 
+One exception, `xtask/src/runtime_rs.rs`: `norn-server` serves through runtime-rs's
+`tpp-grpc` and `tpp-agents`, which build tonic with `tls-ring` and record spans through
+OpenTelemetry. `ring` (C) is excused only where it is reached through the runtime
+(for `norn-server`) or the shared `rustls` crates its features select, and only while
+the runtime is in the graph; OpenTelemetry and the runtime crates only beneath
+`norn-server`. The engine (core, codec, storage, index, query, state, replay, runtime,
+metadata) must reach none of it, not even rustls; `xtask/tests/runtime_gates.rs`
+proves each rule bites and checks this repository. Norn configures no TLS. Building
+`norn` therefore needs a C compiler; nothing else does.
+
 The graph is the one Cargo resolves for the targets Norn builds (`deps::PLATFORMS`:
 the release matrix and CI's cross-compiles, Windows included), not for every platform a
 dependency's manifest mentions. A dependency only Haiku or wasm32 would compile, such as
-`iana-time-zone-haiku` under `chrono` (reached by `norn-mcp` through `schemars` and by the adapters through `arrow`), is
+`iana-time-zone-haiku` under `chrono` (reached by the adapters through `arrow`), is
 linked by no build of Norn. A test fails if a target that ships is missing from the list.
 
 ## The core (exists)

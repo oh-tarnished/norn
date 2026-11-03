@@ -100,6 +100,47 @@ pub mod entity_service_client {
                 .insert(GrpcMethod::new("norn.entity.v1.EntityService", "CreateEntity"));
             self.inner.unary(req, path, codec).await
         }
+        /** Creates up to 1000 entities in one call, all or none (AIP-233), with one
+ durable registry commit for the whole batch.
+
+ Safe to repeat: an entity that already exists is returned as stored, its
+ fields left alone, so a client may send its whole catalogue at every
+ start.
+
+ It writes, so it is no MCP tool: the hints below say so, and the daemon
+ serves only tools hinted read-only.
+*/
+        pub async fn batch_create_entities(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BatchCreateEntitiesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchCreateEntitiesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.entity.v1.EntityService/BatchCreateEntities",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "norn.entity.v1.EntityService",
+                        "BatchCreateEntities",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /** Reads one entity.
+*/
         pub async fn get_entity(
             &mut self,
             request: impl tonic::IntoRequest<super::GetEntityRequest>,
@@ -214,6 +255,25 @@ pub mod entity_service_server {
             &self,
             request: tonic::Request<super::CreateEntityRequest>,
         ) -> std::result::Result<tonic::Response<super::Entity>, tonic::Status>;
+        /** Creates up to 1000 entities in one call, all or none (AIP-233), with one
+ durable registry commit for the whole batch.
+
+ Safe to repeat: an entity that already exists is returned as stored, its
+ fields left alone, so a client may send its whole catalogue at every
+ start.
+
+ It writes, so it is no MCP tool: the hints below say so, and the daemon
+ serves only tools hinted read-only.
+*/
+        async fn batch_create_entities(
+            &self,
+            request: tonic::Request<super::BatchCreateEntitiesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BatchCreateEntitiesResponse>,
+            tonic::Status,
+        >;
+        /** Reads one entity.
+*/
         async fn get_entity(
             &self,
             request: tonic::Request<super::GetEntityRequest>,
@@ -348,6 +408,52 @@ pub mod entity_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateEntitySvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.entity.v1.EntityService/BatchCreateEntities" => {
+                    #[allow(non_camel_case_types)]
+                    struct BatchCreateEntitiesSvc<T: EntityService>(pub Arc<T>);
+                    impl<
+                        T: EntityService,
+                    > tonic::server::UnaryService<super::BatchCreateEntitiesRequest>
+                    for BatchCreateEntitiesSvc<T> {
+                        type Response = super::BatchCreateEntitiesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BatchCreateEntitiesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as EntityService>::batch_create_entities(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = BatchCreateEntitiesSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

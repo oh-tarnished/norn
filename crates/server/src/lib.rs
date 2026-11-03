@@ -2,7 +2,9 @@
 //!
 //! # Layer contract
 //!
-//! - **Owns**: loading the daemon's configuration (TOML file and flags over
+//! - **Owns**: serving through runtime-rs's `HybridServer`, gRPC always and MCP
+//!   when `[mcp]` asks, its tools generated from the schema ([`read_only_tool_names`]);
+//!   loading the daemon's configuration (TOML file and flags over
 //!   norn-core's defaults, [`DaemonConfig`]); the [`Daemon`], which binds a
 //!   local endpoint and serves gRPC as a task of a `norn-runtime`
 //!   [`Runtime`](norn_runtime::Runtime); `AdminService` ([`Admin`]);
@@ -25,7 +27,8 @@
 //!   in `signal/`.
 //! - **May import**: `norn-core`, `norn-protocol`, `norn-transport`,
 //!   `norn-ipc`, `norn-shared-memory`, `norn-metadata`, `norn-runtime`;
-//!   third-party: `tonic`, `tonic-health`, `prost`, `prost-types`, `tokio`,
+//!   third-party: `tpp-grpc`, `tpp-agents`, `rmcp`, `prost-reflect`, `async-trait`,
+//!   `axum`, `serde_json`, `tonic`, `tonic-health`, `prost`, `prost-types`, `tokio`,
 //!   `tokio-util`, `tower`, `http`, `http-body`, `bytes`, `tracing`,
 //!   `tracing-subscriber`, `serde`, `toml`.
 //! - **Spans**: none yet. Events: `ipc drained`, `shutdown requested`,
@@ -46,7 +49,9 @@ mod events;
 mod health;
 mod info;
 pub mod logging;
+mod mcp;
 mod metered;
+mod opening;
 mod operations;
 mod query;
 mod replay;
@@ -59,11 +64,14 @@ mod version_gate;
 
 pub use admin::Admin;
 pub use catalog::Catalog;
-pub use config::{ConfigError, DaemonConfig, LogConfig, LogFormat, LogLevel};
+pub use config::{
+    ConfigError, DaemonConfig, LogConfig, LogFormat, LogLevel, McpConfig, McpTransport,
+};
 pub use daemon::{Daemon, DaemonError};
 pub use events::{Events, Subscriptions};
 pub use health::serving_status;
 pub use info::{MAX_MESSAGE_BYTES, SERVER_VERSION, capabilities, max_batch_bytes, server_resource};
+pub use mcp::read_only_tool_names;
 pub use metered::{Meter, MeterLayer};
 pub use operations::OperationsService;
 pub use query::Queries;

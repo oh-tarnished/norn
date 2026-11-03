@@ -111,6 +111,124 @@ pub mod query_service_client {
                 .insert(GrpcMethod::new("norn.query.v1.QueryService", "QuerySamples"));
             self.inner.server_streaming(req, path, codec).await
         }
+        /** Reads one bounded page of what QuerySamples streams: raw samples over
+ an interval, or aggregates over windows, such as the newest sample of
+ each signal (AGGREGATE_FUNCTION_LATEST). The rules are QuerySamples'.
+ For a caller that wants an answer per call rather than a stream; repeat
+ with `next_page_token` to read on, exactly, with nothing lost or
+ repeated even when samples arrive between calls.
+*/
+        pub async fn browse_samples(
+            &mut self,
+            request: impl tonic::IntoRequest<super::BrowseSamplesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BrowseSamplesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.query.v1.QueryService/BrowseSamples",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("norn.query.v1.QueryService", "BrowseSamples"));
+            self.inner.unary(req, path, codec).await
+        }
+        /** Finds when something happened: each sample passing a predicate, or
+ each sample whose value or quality differs from the previous sample of
+ its signal. Deterministic: nothing is inferred, ranked or judged.
+ Reads at most a bounded number of samples per call; past it, the call
+ returns what it found with a `next_page_token`, possibly with no
+ events, so a search of a quiet year cannot hold the daemon.
+*/
+        pub async fn find_events(
+            &mut self,
+            request: impl tonic::IntoRequest<super::FindEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::FindEventsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.query.v1.QueryService/FindEvents",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("norn.query.v1.QueryService", "FindEvents"));
+            self.inner.unary(req, path, codec).await
+        }
+        /** Computes each selected signal's statistics over an interval: sample
+ count, minimum, maximum, average and sum, and its first and last
+ sample. Paginated by signal.
+*/
+        pub async fn compute_stats(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ComputeStatsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ComputeStatsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.query.v1.QueryService/ComputeStats",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("norn.query.v1.QueryService", "ComputeStats"));
+            self.inner.unary(req, path, codec).await
+        }
+        /** Computes each selected signal's statistics over two intervals, a
+ baseline and a comparison, and the change from one to the other, such
+ as this week against last. Paginated by signal.
+*/
+        pub async fn compare_periods(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ComparePeriodsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ComparePeriodsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.query.v1.QueryService/ComparePeriods",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("norn.query.v1.QueryService", "ComparePeriods"));
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -145,6 +263,56 @@ pub mod query_service_server {
             request: tonic::Request<super::QuerySamplesRequest>,
         ) -> std::result::Result<
             tonic::Response<Self::QuerySamplesStream>,
+            tonic::Status,
+        >;
+        /** Reads one bounded page of what QuerySamples streams: raw samples over
+ an interval, or aggregates over windows, such as the newest sample of
+ each signal (AGGREGATE_FUNCTION_LATEST). The rules are QuerySamples'.
+ For a caller that wants an answer per call rather than a stream; repeat
+ with `next_page_token` to read on, exactly, with nothing lost or
+ repeated even when samples arrive between calls.
+*/
+        async fn browse_samples(
+            &self,
+            request: tonic::Request<super::BrowseSamplesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::BrowseSamplesResponse>,
+            tonic::Status,
+        >;
+        /** Finds when something happened: each sample passing a predicate, or
+ each sample whose value or quality differs from the previous sample of
+ its signal. Deterministic: nothing is inferred, ranked or judged.
+ Reads at most a bounded number of samples per call; past it, the call
+ returns what it found with a `next_page_token`, possibly with no
+ events, so a search of a quiet year cannot hold the daemon.
+*/
+        async fn find_events(
+            &self,
+            request: tonic::Request<super::FindEventsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::FindEventsResponse>,
+            tonic::Status,
+        >;
+        /** Computes each selected signal's statistics over an interval: sample
+ count, minimum, maximum, average and sum, and its first and last
+ sample. Paginated by signal.
+*/
+        async fn compute_stats(
+            &self,
+            request: tonic::Request<super::ComputeStatsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ComputeStatsResponse>,
+            tonic::Status,
+        >;
+        /** Computes each selected signal's statistics over two intervals, a
+ baseline and a comparison, and the change from one to the other, such
+ as this week against last. Paginated by signal.
+*/
+        async fn compare_periods(
+            &self,
+            request: tonic::Request<super::ComparePeriodsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ComparePeriodsResponse>,
             tonic::Status,
         >;
     }
@@ -266,6 +434,186 @@ pub mod query_service_server {
                                 max_encoding_message_size,
                             );
                         let res = grpc.server_streaming(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.query.v1.QueryService/BrowseSamples" => {
+                    #[allow(non_camel_case_types)]
+                    struct BrowseSamplesSvc<T: QueryService>(pub Arc<T>);
+                    impl<
+                        T: QueryService,
+                    > tonic::server::UnaryService<super::BrowseSamplesRequest>
+                    for BrowseSamplesSvc<T> {
+                        type Response = super::BrowseSamplesResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::BrowseSamplesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as QueryService>::browse_samples(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = BrowseSamplesSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.query.v1.QueryService/FindEvents" => {
+                    #[allow(non_camel_case_types)]
+                    struct FindEventsSvc<T: QueryService>(pub Arc<T>);
+                    impl<
+                        T: QueryService,
+                    > tonic::server::UnaryService<super::FindEventsRequest>
+                    for FindEventsSvc<T> {
+                        type Response = super::FindEventsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::FindEventsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as QueryService>::find_events(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = FindEventsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.query.v1.QueryService/ComputeStats" => {
+                    #[allow(non_camel_case_types)]
+                    struct ComputeStatsSvc<T: QueryService>(pub Arc<T>);
+                    impl<
+                        T: QueryService,
+                    > tonic::server::UnaryService<super::ComputeStatsRequest>
+                    for ComputeStatsSvc<T> {
+                        type Response = super::ComputeStatsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ComputeStatsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as QueryService>::compute_stats(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ComputeStatsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.query.v1.QueryService/ComparePeriods" => {
+                    #[allow(non_camel_case_types)]
+                    struct ComparePeriodsSvc<T: QueryService>(pub Arc<T>);
+                    impl<
+                        T: QueryService,
+                    > tonic::server::UnaryService<super::ComparePeriodsRequest>
+                    for ComparePeriodsSvc<T> {
+                        type Response = super::ComparePeriodsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ComparePeriodsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as QueryService>::compare_periods(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ComparePeriodsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)

@@ -1,0 +1,33 @@
+# The MCP server's tools, from the (mcp.v1.tool) annotations in protobuf/:
+# `just gen`, which runs `buf generate --template buf.gen.mcp.yaml`. One
+# handler per service lands in crates/server/src/mcp/generated, and the
+# daemon serves the read-only tools of all of them as one MCP endpoint.
+# The output is committed, like the protocol crate's, so building needs
+# neither buf nor the plugin.
+#
+# A file of its own rather than a plugin in buf.gen.yaml: protoc-gen-mcp is
+# a Go program and wants a Go import path for every file, which only
+# managed mode can supply, and managed mode would rewrite file options for
+# the Rust plugins too. Nothing Go is generated from it.
+#
+# Local and pinned for the reason buf.gen.yaml gives: protoc-gen-mcp 1.7.8,
+# whose Rust output targets rmcp 3. CI installs that release.
+version: v2
+clean: true
+managed:
+  enabled: true
+  disable:
+    - module: buf.build/googleapis/googleapis
+    - module: buf.build/the-protobuf-project/mcp
+  override:
+    - file_option: go_package_prefix
+      value: norn.local/gen
+inputs:
+  - directory: protobuf
+plugins:
+  - local: protoc-gen-mcp
+    out: crates/server/src/mcp/generated
+    strategy: all
+    opt:
+      - lang=rust
+      - paths=source_relative

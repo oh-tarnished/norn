@@ -5,7 +5,9 @@ package norn.entity.v1;
 import "google/api/annotations.proto";
 import "google/api/client.proto";
 import "google/protobuf/empty.proto";
+import "mcp/v1/annotations.proto";
 import "norn/entity/v1/entity.proto";
+import "norn/entity/v1/entity_batch.proto";
 import "norn/entity/v1/entity_messages.proto";
 
 option java_multiple_files = true;
@@ -20,6 +22,12 @@ service EntityService {
   // service rather than a network address.
   option (google.api.default_host) = "norn.local";
 
+  // The catalogue changes as clients create and update entities: no client
+  // may share or reuse an answer.
+  option (mcp.v1.service) = {
+    cache: {scope: MCP_CACHE_SCOPE_PRIVATE}
+  };
+
   // Creates an entity. ALREADY_EXISTS if the name is taken.
   rpc CreateEntity(CreateEntityRequest) returns (Entity) {
     option (google.api.http) = {
@@ -29,14 +37,47 @@ service EntityService {
     option (google.api.method_signature) = "entity,entity_id";
   }
 
+  // Creates up to 1000 entities in one call, all or none (AIP-233), with one
+  // durable registry commit for the whole batch.
+  //
+  // Safe to repeat: an entity that already exists is returned as stored, its
+  // fields left alone, so a client may send its whole catalogue at every
+  // start.
+  //
+  // It writes, so it is no MCP tool: the hints below say so, and the daemon
+  // serves only tools hinted read-only.
+  rpc BatchCreateEntities(BatchCreateEntitiesRequest) returns (BatchCreateEntitiesResponse) {
+    option (mcp.v1.tool) = {
+      title: "Batch create entities"
+      read_only: false
+      destructive: false
+      idempotent: true
+      open_world: false
+    };
+    option (google.api.http) = {
+      post: "/v1/entities:batchCreate"
+      body: "*"
+    };
+  }
+
   // Reads one entity.
   rpc GetEntity(GetEntityRequest) returns (Entity) {
+    option (mcp.v1.tool) = {
+      title: "Get entity"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {get: "/v1/{name=entities/*}"};
     option (google.api.method_signature) = "name";
   }
 
   // Lists entities in name order.
   rpc ListEntities(ListEntitiesRequest) returns (ListEntitiesResponse) {
+    option (mcp.v1.tool) = {
+      title: "List entities"
+      read_only: true
+      open_world: false
+    };
     option (google.api.http) = {get: "/v1/entities"};
     option (google.api.method_signature) = "";
   }

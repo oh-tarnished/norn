@@ -16,10 +16,9 @@ use norn_runtime::ingest::{Ingest, IngestRecovery};
 use norn_runtime::maintenance::Maintenance;
 use norn_runtime::sessions::Replays;
 use norn_runtime::{Reservation, Runtime, RuntimeError, Subsystem};
-use tonic::transport::server::Router;
 use tonic_health::ServingStatus;
 use tonic_health::server::HealthReporter;
-use tower::layer::util::{Identity, Stack};
+use tpp_grpc::HybridServer;
 
 use super::DaemonError;
 use crate::admin::Admin;
@@ -27,27 +26,17 @@ use crate::catalog::Catalog;
 use crate::config::DaemonConfig;
 use crate::events::Subscriptions;
 use crate::health::report;
-use crate::info::{
-    MAX_MESSAGE_BYTES, connection_window, max_batch_bytes, server_resource, stream_window,
-};
+use crate::info::{MAX_MESSAGE_BYTES, connection_window, max_batch_bytes, server_resource};
 use crate::metered::{MeterLayer, MeterLimits};
 use crate::operations::OperationsService;
 use crate::query::Queries;
 use crate::replay::ReplaySessions;
 use crate::state::States;
 use crate::telemetry::Telemetry;
-use crate::version_gate::VersionGateLayer;
-
-/// Concurrent calls per connection (HTTP/2 `MAX_CONCURRENT_STREAMS`). Picked,
-/// not measured; stage 15 revisits it. Excess calls wait on the client side. It
-/// divides the connection window, so more calls means slower large messages.
-const MAX_STREAMS_PER_CONNECTION: u32 = 16;
-
-pub(super) type Services = Router<Stack<MeterLayer, Stack<VersionGateLayer, Identity>>>;
 
 /// What `build_router` makes, for the daemon to hold and run.
 pub(super) struct Built {
-    pub(super) router: Services,
+    pub(super) server: HybridServer,
     /// The flow-control reservation, held for life.
     pub(super) windows: Reservation,
     pub(super) reporter: HealthReporter,
@@ -106,6 +95,7 @@ pub(super) async fn build_router(
     config: &DaemonConfig,
     runtime: &Runtime,
     database: Database,
+    wiring: super::serve::Wiring,
 ) -> Result<Built, DaemonError> {
     let engine = config.engine();
     let Database {
@@ -136,7 +126,7 @@ pub(super) async fn build_router(
         .ok_or(DaemonError::IndexMissing)?;
     let queries = Queries::new(Arc::clone(&registry), Arc::clone(&reading));
     let clock = Arc::clone(runtime.clock());
-    let states = States::new(Arc::clone(&registry), reading, clock);
+    let states = States::new(Arc::clone(&registry), Arc::clone(&reading), clock);
     let replay_budget = runtime.budgets().get(Subsystem::Replay).clone();
     ingest.live().charge_to(replay_budget.clone());
     let replaying = ingest
@@ -144,7 +134,7 @@ pub(super) async fn build_router(
         .ok_or(DaemonError::IndexMissing)?;
     let clock = Arc::clone(runtime.clock());
     let replays = Arc::new(Replays::new(replaying, engine, Arc::clone(&clock)));
-    let sessions = ReplaySessions::new(Arc::clone(&registry), Arc::clone(&replays));
+    let sessions = ReplaySessions::new(Arc::clone(&registry), Arc::clone(&replays), reading);
     let limit = engine.limits().max_subscriptions;
     let shared = (
         Arc::clone(&registry),
@@ -166,26 +156,21 @@ pub(super) async fn build_router(
     };
     let meter = MeterLayer::new(ipc, limits);
     let window = connection_window(engine.memory().ipc_bytes / 2, engine.limits().max_clients);
-    let router = tonic::transport::Server::builder()
-        .initial_connection_window_size(window)
-        .initial_stream_window_size(stream_window(window, MAX_STREAMS_PER_CONNECTION))
-        .max_concurrent_streams(MAX_STREAMS_PER_CONNECTION)
-        .layer(VersionGateLayer)
-        .layer(meter)
-        .add_service(health)
-        .add_service(admin)
-        .add_service(EntityServiceServer::new(catalog.clone()))
-        .add_service(SignalServiceServer::new(catalog.clone()))
-        .add_service(StreamServiceServer::new(catalog))
-        .add_service(TelemetryServiceServer::new(telemetry))
-        .add_service(QueryServiceServer::new(queries))
-        .add_service(ReplayServiceServer::new(sessions))
-        .add_service(StateServiceServer::new(states))
-        .add_service(OperationsServer::new(OperationsService::new(Arc::clone(
-            &maintenance,
-        ))));
+    let services = super::serve::Registered {
+        health,
+        admin,
+        entities: EntityServiceServer::new(catalog.clone()),
+        signals: SignalServiceServer::new(catalog.clone()),
+        streams: StreamServiceServer::new(catalog),
+        telemetry: TelemetryServiceServer::new(telemetry),
+        queries: QueryServiceServer::new(queries),
+        replays: ReplayServiceServer::new(sessions),
+        states: StateServiceServer::new(states),
+        operations: OperationsServer::new(OperationsService::new(Arc::clone(&maintenance))),
+    };
+    let server = super::serve::build(config, wiring, services, meter, window);
     Ok(Built {
-        router,
+        server,
         windows,
         reporter,
         replays,

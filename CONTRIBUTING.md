@@ -60,7 +60,7 @@ CI accepts both `main` and `master`. Dependabot uses the repository's default
 branch. Branch protection and auto-merge settings are configured on GitHub.
 
 A `vX.Y.Z` tag matching every workspace package version, or a manual Release
-workflow run, builds `norn`, `nornctl` and `norn-mcp` for Linux x86-64/AArch64, macOS
+workflow run, builds `norn` and `nornctl` for Linux x86-64/AArch64, macOS
 Intel/Apple Silicon and Windows x86-64. It attaches archives, documentation
 and SHA-256 checksums to a GitHub release. Linux builds target glibc 2.35.
 Prerelease versions create prereleases. There is no crate or Homebrew publish.

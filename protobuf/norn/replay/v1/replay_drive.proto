@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package norn.replay.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "norn/replay/v1/replay_session.proto";
+import "norn/type/sample.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ReplayDriveProto";
+option java_package = "local.norn.replay.v1";
+
+// The request for ReplayService.DriveReplaySession.
+message DriveReplaySessionRequest {
+  // The session, as `replaySessions/{replay_session}`. It must be frozen
+  // (speed 0) and PAUSED or ENDED, as a session created with speed 0 is.
+  string name = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.resource_reference) = {type: "norn.local/ReplaySession"}
+  ];
+
+  // How to move the clock. Exactly one is required.
+  oneof movement {
+    // Step: emit exactly this many next samples, or fewer if the interval
+    // ends first. Positive, and at most `max_events`.
+    int32 event_count = 2;
+    // Step: advance the clock by this much virtual time, emitting every
+    // sample passed. Positive. Refused, before the clock moves, when it
+    // would emit more than `max_events` samples.
+    google.protobuf.Duration duration = 3;
+    // Seek: move the clock to this time within the interval, emitting each
+    // selected signal's newest sample before it as a state event.
+    google.protobuf.Timestamp seek_time = 4;
+  }
+
+  // If set, the call succeeds only if it matches the current etag.
+  string etag = 5 [(google.api.field_behavior) = OPTIONAL];
+
+  // The most events to return; capped at 1000, 100 when zero. A seek's
+  // state events past it are counted in `omitted_event_count`, never
+  // hidden.
+  int32 max_events = 6 [(google.api.field_behavior) = OPTIONAL];
+
+  // The longest string or bytes value returned whole, in bytes; capped at
+  // 65536, 1024 when zero. A longer value is cut, and its event says so.
+  int32 max_value_bytes = 7 [(google.api.field_behavior) = OPTIONAL];
+}
+
+// The response for ReplayService.DriveReplaySession.
+message DriveReplaySessionResponse {
+  // The events the movement emitted, in the order subscribers received
+  // them: the replay order of QuerySamples' SAMPLE_ORDER_BY_TIME.
+  repeated ReplayEvent replay_events = 1;
+
+  // The session after the movement. Its state is ENDED when the clock
+  // reached the interval's end; seek back, or delete it.
+  ReplaySession replay_session = 2;
+
+  // Events emitted past `max_events`.
+  int64 omitted_event_count = 3;
+}
+
+// One event a replay emitted, as SubscribeEvents delivers it, without the
+// clock events.
+message ReplayEvent {
+  // The session's virtual clock when the event was emitted.
+  google.protobuf.Timestamp clock_time = 1;
+
+  // What was emitted.
+  oneof payload {
+    // A recorded sample, emitted as the clock passed it.
+    norn.type.Sample sample = 2;
+    // After a seek, a signal's newest sample before the seek time: its
+    // state at the clock.
+    norn.type.Sample state_sample = 3;
+  }
+
+  // A value above was cut to `max_value_bytes`.
+  bool value_truncated = 4;
+}

@@ -86,6 +86,8 @@ impl State {
                     self.signals.remove(&key);
                 }
             }
+            // Replay unwraps batches; a marker never reaches the state.
+            Op::Begin(_) => {}
             Op::NextIds(ids) => {
                 for (slot, id) in ids.into_iter().enumerate() {
                     self.bump(slot, id.saturating_sub(1));

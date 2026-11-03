@@ -52,7 +52,7 @@ the default. `SIGNAL` is a full name such as `entities/ahu-01/signals/supply-tem
 $ nornctl status
 health: SERVING
 server_version: 0.1.0
-protocol: 1.4
+protocol: 1.6
 capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUERY_RANGE CAPABILITY_QUERY_AGGREGATES CAPABILITY_STATE_AT CAPABILITY_LIVE_SUBSCRIPTION CAPABILITY_REPLAY CAPABILITY_COMPACTION CAPABILITY_RETENTION CAPABILITY_VERIFY CAPABILITY_ACK_DURABLE
 start_time: 1793625130.214140000
 limits.max_batch_samples: 10000
@@ -85,9 +85,9 @@ the last start: see [operations](../guides/operations.md#crash-recovery).
 ```console
 $ nornctl version
 client: nornctl/0.1.0
-client_protocol: 1.4
+client_protocol: 1.6
 server_version: 0.1.0
-agreed_protocol: 1.4
+agreed_protocol: 1.6
 ```
 
 Unlike `status`, this negotiates, so an incompatible daemon fails here with its

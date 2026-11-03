@@ -1,4 +1,4 @@
-//! The `norn` command line. Hand-parsed: six flags do not earn a parser
+//! The `norn` command line. Hand-parsed: seven flags do not earn a parser
 //! dependency (SPEC §39).
 
 use std::ffi::OsString;
@@ -20,6 +20,8 @@ options:
                        (default: the platform's per-user endpoint)
   --data-dir PATH      keep the database in PATH (default: per-user,
                        docs/guides/configuration.md)
+  --mcp TRANSPORT      also serve MCP: stdio, http:127.0.0.1:PORT, unix:PATH or
+                       pipe:NAME. Repeatable (docs/reference/mcp.md)
   --log-level LEVEL    error, warn, info (default), debug or trace
   --log-format FORMAT  text (default) or json
   -h, --help           print this text
@@ -55,6 +57,7 @@ where
     let mut data_dir = None;
     let mut level = None;
     let mut format = None;
+    let mut mcp = Vec::new();
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         let arg = text(arg)?;
@@ -68,6 +71,7 @@ where
             "--config" => file = Some(PathBuf::from(value("--config")?)),
             "--listen" => listen = Some(text(value("--listen")?)?),
             "--data-dir" => data_dir = Some(PathBuf::from(value("--data-dir")?)),
+            "--mcp" => mcp.push(text(value("--mcp")?)?),
             "--log-level" => level = Some(text(value("--log-level")?)?),
             "--log-format" => format = Some(text(value("--log-format")?)?),
             other => return Err(ConfigError::Usage(format!("unknown argument {other}"))),
@@ -85,6 +89,13 @@ where
     }
     if let Some(dir) = data_dir {
         config = config.data_dir(dir);
+    }
+    for transport in mcp {
+        let parsed = transport
+            .parse()
+            .map_err(|e| ConfigError::invalid("--mcp", e))?;
+        config.mcp.enabled = true;
+        config.mcp.transports.push(parsed);
     }
     if let Some(level) = level {
         config.log.level = level.parse()?;

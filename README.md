@@ -65,15 +65,17 @@ before the release and what comes after it.
 
 **Guides**
 
-- [Getting started](docs/guides/getting-started.md): build, run, create, append, list
-- [Configuration](docs/guides/configuration.md): every key and its default
-- [Ingesting data](docs/guides/ingesting-data.md): batches, acknowledgements, backpressure
-- [Querying](docs/guides/querying.md): ranges, filters, aggregates, resuming
-- [Replay and state](docs/guides/replay.md): state at an instant, replay, live subscriptions
-- [Import and export](docs/guides/import-export.md): CSV, Parquet, Arrow, MCAP, both ways
-- [Operations](docs/guides/operations.md): stopping, data directory, recovery, damage
-- [Troubleshooting](docs/guides/troubleshooting.md): real errors and what they mean
-- [AI agents](docs/guides/ai-agents.md): `norn-mcp`, which is being replaced: see [MCP](#mcp)
+| Guide                                             | What it covers                             | State     |
+| ------------------------------------------------- | ------------------------------------------ | --------- |
+| [Getting started](docs/guides/getting-started.md) | build, run, create, append, list           | works     |
+| [Configuration](docs/guides/configuration.md)     | every key and its default                  | works     |
+| [Ingesting data](docs/guides/ingesting-data.md)   | batches, acknowledgements, backpressure    | works     |
+| [Operations](docs/guides/operations.md)           | stopping, data directory, recovery, damage | partly    |
+| [Troubleshooting](docs/guides/troubleshooting.md) | real errors and what they mean             | works     |
+| [Querying](docs/guides/querying.md)               | ranges, filters, aggregates, resuming      | works     |
+| [Replay and state](docs/guides/replay.md)         | state at T, replay, live subscriptions     | works     |
+| [Import and export](docs/guides/import-export.md) | CSV, Parquet, Arrow, MCAP, both ways       | works     |
+| [AI agents](docs/guides/ai-agents.md)             | `norn --mcp stdio`, a client config        | works     |
 
 **Reference**
 
@@ -378,9 +380,16 @@ and the licences.
 Everything below was run against a fresh daemon built from commit 93a979c on macOS,
 and the output is copied as printed. Use two terminals.
 
-**Start the daemon.** It runs in the foreground and logs to stderr. With no flags it
-uses the per-user endpoint and data directory. (This run set `TMPDIR=/tmp/norn-demo/t`,
-which is where the default endpoint lives.)
+```sh
+cargo build -p norn-server -p norn-cli
+./target/debug/norn
+```
+
+Release archives for Linux, macOS and Windows carry the same two binaries: `norn`, the
+daemon, which also serves MCP when asked, and `nornctl`
+([getting started](docs/guides/getting-started.md#build)).
+
+Then, in another terminal, with `target/debug` on your `PATH`:
 
 ```console
 $ norn
@@ -398,14 +407,29 @@ $ nornctl version
 client: nornctl/0.1.0
 client_protocol: 1.4
 server_version: 0.1.0
-agreed_protocol: 1.4
-```
-
-**Create a stream, an entity and two signals.** A stream is a sequence of
-observations, an entity is a thing, and a signal is something measurable about it,
-with one value type.
-
-```console
+protocol: 1.6
+capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUERY_RANGE CAPABILITY_QUERY_AGGREGATES CAPABILITY_STATE_AT CAPABILITY_LIVE_SUBSCRIPTION CAPABILITY_REPLAY CAPABILITY_COMPACTION CAPABILITY_RETENTION CAPABILITY_VERIFY CAPABILITY_ACK_DURABLE
+start_time: 1793625040.270890000
+limits.max_batch_samples: 10000
+limits.max_batch_bytes: 4194304
+limits.max_pending_batches: 256
+limits.max_streams: 1024
+limits.max_replay_sessions: 16
+limits.max_subscriptions: 256
+recovery.streams: 0
+recovery.events: 0
+recovery.corruptions: 0
+recovery.replayed_samples: 0
+recovery.clean_streams: 0
+recovery.verified_segments: 0
+recovery.vouched_segments: 0
+compaction.runs: 0
+compaction.segments: 0
+compaction.saved_bytes: 0
+compaction.failures: 0
+retention.segments: 0
+retention.samples: 0
+retention.bytes: 0
 $ nornctl streams create plant
 streams/plant
 $ nornctl entities create ahu-01
@@ -416,8 +440,79 @@ $ nornctl signals create ahu-01 fan-speed plant double
 entities/ahu-01/signals/fan-speed
 ```
 
-**Append.** Each call prints its admission, then the level reached. The default
-level is `DURABLE`. `--at` sets the observation time.
+A sample is queryable the moment it is acknowledged, and `state` shows what every
+signal held at an instant. `buffered` is how many are not in
+a chunk yet: they are safe in the journal and reach one within a minute. The
+[getting started guide](docs/guides/getting-started.md) walks through this, and
+[querying](docs/guides/querying.md) goes further.
+
+## How it works
+
+### One API, over local IPC
+
+Everything goes through the public gRPC API, and `nornctl` has no private door.
+Protobuf under [`protobuf/`](protobuf) is the source of truth, and clients negotiate a
+protocol version, now 1.6. Every collection has the AIP standard methods; entities and
+signals also have `BatchCreateEntities` and `BatchCreateSignals`, up to 1,000 a call,
+all or nothing, with one durable commit per batch. A batch is safe to repeat: what
+already exists is returned as stored, so an adapter sends its whole catalogue at every
+start. That is how a 1,000-device BACnet site provisions about 60,000 signals without
+dropping readings.
+
+![nornctl version output](docs/images/nornctl-version.svg)
+
+More: [protocol](docs/reference/protocol.md), [IPC](docs/reference/ipc.md).
+
+### Entities, signals and streams
+
+An entity is a thing, a signal is something measurable about it, and a stream is
+the sequence its samples go into. Domain meaning lives in opaque metadata.
+
+![Creating a stream, an entity and a signal with nornctl](docs/images/nornctl-signals.svg)
+
+More: [getting started](docs/guides/getting-started.md#create-a-stream-an-entity-and-a-signal).
+
+### Appends say how far they got
+
+Every batch hears an outcome (`ACCEPT`, `BUFFER`, `THROTTLE`, `REJECT`) and then the
+level it reached (`BUFFERED`, `PERSISTED`, `DURABLE`). Memory is budgeted per
+subsystem; when a budget runs out clients are slowed or refused, and telemetry is
+never dropped silently.
+
+![Appending samples at three acknowledgement levels](docs/images/nornctl-append.svg)
+
+More: [ingesting data](docs/guides/ingesting-data.md).
+
+### Stored in compressed, checksummed chunks
+
+Samples are journalled, then encoded per signal into chunks (delta-of-delta
+timestamps, Gorilla floats, dictionaries and more, with pure-Rust zstd at levels 3
+to 6). Chunks sit in sealed segment files, and a sparse temporal index finds them
+without opening a segment.
+
+![Stream sample counts before and after a chunk is stored](docs/images/nornctl-streams.svg)
+
+More: [storage](docs/reference/storage.md).
+
+### Queries see everything acknowledged
+
+A query merges chunks with what is still in memory, so a sample is visible as soon as
+it is acknowledged, exactly once across the moment it reaches a chunk. Ranges, filters
+on value and quality, and `LATEST`, `FIRST`, `LAST`, `COUNT`, `MIN`, `MAX`, `AVERAGE`,
+`SUM` and `RATE` over fixed windows stream in bounded memory, and resume from a token.
+A damaged chunk is an error, never a gap.
+
+![Reading samples and an average back](docs/images/nornctl-query.svg)
+
+More: [querying](docs/guides/querying.md), [query](docs/reference/query.md).
+
+### History, at any instant and played back
+
+`nornctl state` shows what every signal held at an instant, straight from the index:
+no checkpoints, since measurement showed they would be slower. A replay session plays a
+stretch of history on a virtual clock you pause, seek, step and speed up, emitting the
+same events in the same order every time; a seek first tells you the state there. Live
+data arrives through the same subscription and event format.
 
 ```console
 $ nornctl append plant entities/ahu-01/signals/supply-temp 21.0 --at 2026-11-02T08:00:00Z --sequence 1
@@ -472,11 +567,24 @@ $ nornctl subscribe replay morning --resume
 **Where the samples are.** They are safe in the journal and still buffered: no
 chunk has been written yet, so `verify` has nothing to read.
 
-```console
-$ nornctl streams
-streams/plant samples=5 buffered=5
-$ nornctl verify plant
-streams/plant segments=0 chunks=0 samples=0 bytes=0 damaged_chunks=0 damaged_samples=0
+### AI agents read history through MCP
+
+The `norn` daemon serves MCP beside gRPC when asked: `norn --mcp stdio` for a client
+that launches it, or a Unix socket, named pipe or loopback-only HTTP for a daemon that
+runs on its own (`[mcp] enabled` in the configuration file). The tools are generated
+from the schema's `(mcp.v1.tool)` annotations, and only the 17 read-only methods are
+served: catalogue reads, `BrowseSamples`, `FindEvents`, `ComputeStats`,
+`ComparePeriods`, `ComputeState` and step-by-step replay through
+`DriveReplaySession`. Writes, the batch creates included, are annotated
+`read_only: false` and have no tool. Each call passes the same validation and limits
+as gRPC, and a failure is a result carrying a stable reason.
+
+```json
+{
+  "mcpServers": {
+    "norn": { "command": "/path/to/norn", "args": ["--mcp", "stdio"] }
+  }
+}
 ```
 
 A clean stop (Ctrl-C) stores the buffers as chunks. After restarting `norn`, one more
@@ -755,72 +863,31 @@ Caveats:
 
 ## Roadmap
 
-### v0.1
-
-Version 0.1.0 is everything marked Done in [Features](#features): ingest with
-backpressure and durable acknowledgements, compressed and checksummed storage, the
-temporal index, queries, `StateAt`, replay and live subscriptions, crash recovery,
-compaction, retention and verification, import and export in four formats, and
-`nornctl`. The licence is settled.
-
-Release steps left:
-
-1. CI green on Linux, macOS and Windows at one commit. At the time of writing, the
-   Windows test job fails on `main`.
-2. Decide whether v0.1.0 waits for MCP inside the daemon. The release recipe still
-   packages `norn-mcp` today.
-3. Tag `v0.1.0`. The release workflow checks the tag against the workspace version,
-   runs the gates, builds the five targets and publishes the archives with checksums.
-
-### Next
-
-Use the release against BACnet on a real recording flow: `bacnet-norn` with
-`[capture] sink = "norn"` recording a building into a v0.1.0 daemon, then reading it
-back with queries, `StateAt` and replay.
-
-### Discussed, not committed
-
-- **Shared memory (iceoryx2).** A data plane on iceoryx2 was built and measured on a
-  separate branch. It does not beat gRPC at the target rates: every plane met 16,000
-  and 120,000 samples/s; `DURABLE` latency is about 20 ms on every plane, which is
-  group commit and fsync; and the `BUFFERED` gain is about 0.25 ms. It wins only on
-  `DURABLE` peak throughput, which no target needs yet. It stays out of v0.1.
-- **GPU pattern detection with GGML.** A separate, optional program that reads through
-  the public API, runs detector algorithms and writes its findings back as signals,
-  with a CPU path when there is no GPU. GGML is C, so it would be a narrow, accepted
-  exception: never in the core, the engine or the default build. Which patterns to
-  detect is not decided.
-
-### Later
-
-- Fuzzing and a security review.
-- The full benchmark matrix, and defaults set from measurements.
-- Modbus, OPC-UA and MQTT adapters.
-
-### By stage
-
 One row per stage of [the specification](docs/project/spec.md#48-implementation-order).
-Done means built and tested. Tests that need Unix signals or Unix sockets run on Linux
-and macOS only; [operations](docs/guides/operations.md#platforms) lists them.
+`done`, `in progress` or `planned`. `done` means built and tested: CI builds, lints and
+tests every push on Linux, macOS and Windows, and cross-compiles ARMv7 and AArch64
+Linux. It was last green on all three at 7526100, before stages 13 and 14 and the
+daemon's compaction and retention, which have been tested on macOS only so far. Tests that need Unix signals or Unix sockets run on Linux and macOS only;
+[operations](docs/guides/operations.md#platforms) lists them.
 
-| Stage | Subject       | Scope                                                       | State       | Today                                                                                           |
-| ----- | ------------- | ----------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------- |
-| 1     | Foundation    | workspace, docs, core types, errors, config, gates          | Done        |                                                                                                 |
-| 2     | Protocol      | Protobuf, gRPC, buf, AIP lint, versioning                   | Done        | protocol 1.4; `ExportStream` unimplemented by decision: export is client-side                   |
-| 3     | IPC           | Unix sockets, named pipes, transport, framing               | Done        | named pipes tested on Windows in CI                                                             |
-| 4     | Basic daemon  | lifecycle, config, health                                   | Done        |                                                                                                 |
-| 5     | Storage       | format, chunks, segments, checksums, recovery               | Done        | compaction, retention, `verify` and a clean-start marker run in the daemon                      |
-| 6     | Encoding      | timestamp, integer, float, boolean, enum, zstd              | Done        |                                                                                                 |
-| 7     | Index         | sparse temporal index, rebuild                              | Done        | a per-signal summary answers for silent signals                                                 |
-| 8     | Write path    | append, batch, backpressure, durability                     | Done        | live subscribers fed from the commit thread, never waited for                                   |
-| 9     | Query         | range, latest, aggregates                                   | Done        | measured at 200 signals, not 16,000                                                             |
-| 10    | State         | checkpoints, `StateAt`                                      | Done        | `StateAt` from the index; checkpoints measured and deferred                                     |
-| 11    | Replay        | virtual clock, pause, seek, speed                           | Done        | sessions live in memory and end at a restart                                                    |
-| 12    | Shared memory | ring buffer, fallback                                       | Planned     | the `DataPlane` seam only here; an iceoryx2 plane measured on a branch, out of v0.1             |
-| 13    | Adapters      | BACnet, MCAP, Parquet, others                               | Done        | CSV, Parquet, Arrow IPC, MCAP; BACnet in bacnet-rs, under review; no Modbus, OPC-UA, MQTT       |
-| 14    | MCP           | MCP server and the rest of `nornctl`                        | In progress | moving into the daemon, generated from `.proto` annotations; no `inspect`, `stats`, `benchmark` |
-| 15    | Optimisation  | measured defaults, the full benchmark matrix                | Planned     | write path, storage, index, query and IPC measured once                                         |
-| 16    | Hardening     | fuzzing, crash, corruption, cross-platform, security review | In progress | crash and corruption tests exist (Unix only); CI on three platforms; no fuzzing, no review      |
+| Stage | Subject       | Scope                                                       | State | Today                                                               |
+| ----- | ------------- | ----------------------------------------------------------- | ----- | ------------------------------------------------------------------- |
+| 1     | Foundation    | workspace, docs, core types, errors, config, gates          | done  |                                                                     |
+| 2     | Protocol      | Protobuf, gRPC, buf, AIP lint, versioning                   | done  | 1.6; `ExportStream` unimplemented by decision: export is client-side |
+| 3     | IPC           | Unix sockets, named pipes, transport, framing               | done  | named pipes run in CI on `windows-latest`: `nornctl` against a real daemon, and the owner-only DACL |
+| 4     | Basic daemon  | lifecycle, config, health                                   | done  |                                                                     |
+| 5     | Storage       | format, chunks, segments, checksums, recovery               | done  | compaction, retention, `verify` and a clean-start marker run in the daemon |
+| 6     | Encoding      | timestamp, integer, float, boolean, enum, zstd              | done  |                                                                     |
+| 7     | Index         | sparse temporal index, rebuild                              | done  | a per-signal summary answers for silent signals                     |
+| 8     | Write path    | append, batch, backpressure, durability                     | done  | live subscribers fed from the commit thread, never waited for      |
+| 9     | Query         | range, latest, aggregates                                   | done  | sees buffered samples; measured at 200 signals, not 16,000          |
+| 10    | State         | checkpoints, `StateAt`                                      | done  | `StateAt` from the index; checkpoints measured and deferred         |
+| 11    | Replay        | virtual clock, pause, seek, speed                           | done  | sessions in memory, ended by a restart                              |
+| 12    | Shared memory | ring buffer, fallback                                       | planned | the `DataPlane` trait is the only code                              |
+| 13    | Adapters      | BACnet, MCAP, Parquet, others                               | done  | CSV, Parquet, Arrow IPC and MCAP, export and import through `nornctl`; BACnet is a sink in bacnet-rs over IPC, under review there; no Modbus, OPC-UA or MQTT |
+| 14    | MCP           | MCP server and the rest of `nornctl`                        | done  | MCP inside `norn`: 17 read-only tools, stdio, a socket, a pipe or loopback-only HTTP; `nornctl` adds export, import, compact, verify, retention; no `inspect`, `stats` or `benchmark` yet |
+| 15    | Optimisation  | measured defaults, the full benchmark matrix                | planned | write path, storage, index, query and IPC measured once             |
+| 16    | Hardening     | fuzzing, crash, corruption, cross-platform, security review | in progress | crash and corruption tests exist (Unix only: they `kill -9`); CI on Linux, macOS, Windows; no fuzzing, no review |
 
 ## Contributing
 

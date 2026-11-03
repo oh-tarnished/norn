@@ -12,8 +12,9 @@ Implemented: the schema, its lint configuration, the generated Rust in
 ([`crates/server`](../../crates/server)) `AdminService`, `grpc.health.v1`, the version
 metadata check, `EntityService`, `SignalService`, `StreamService` (without
 `ExportStream`), `google.longrunning.Operations`, `TelemetryService` (`AppendSamples` and
-`SubscribeEvents`), `QueryService.QuerySamples`, `StateService.ComputeState` and
-`ReplayService`. Every
+`SubscribeEvents`), `QueryService` (`QuerySamples`, `BrowseSamples`, `FindEvents`,
+`ComputeStats`, `ComparePeriods`), `StateService.ComputeState` and `ReplayService`
+(`DriveReplaySession` included). Every
 other method answers `UNIMPLEMENTED` (see "Not yet implemented"), so the semantics
 below for them are the contract later stages implement.
 
@@ -24,11 +25,18 @@ below for them are the contract later stages implement.
 | `buf lint` | buf's `STANDARD` and `COMMENTS` rules: every service, method, message, field, enum, value and oneof is documented. |
 | `just api-lint` | Google's [api-linter](https://linter.aip.dev) 2.3.1 over a buf image. |
 | `buf breaking --against .git#ref=origin/main` | `WIRE_JSON` breaking-change detection, in CI once `main` carries `protobuf/`. |
-| `just gen` | `buf generate` with [`buf.gen.yaml`](../../buf.gen.yaml) into `crates/protocol/src/generated/`. |
+| `just gen` | `buf generate` with [`buf.gen.yaml`](../../buf.gen.yaml) into `crates/protocol/src/generated/`, and with [`buf.gen.mcp.yaml`](../../buf.gen.mcp.yaml) (protoc-gen-mcp v1.7.8) into `crates/server/src/mcp/generated/`. |
 | `just gen-check` | Regenerates and fails on any diff: a schema edit without `just gen` cannot merge. |
 
 `buf breaking` uses `WIRE_JSON` rather than `FILE` because the 200-line limit
 makes moving a message between files routine, and no client can observe it.
+
+The schema imports `buf.build/the-protobuf-project/mcp` (v1.7.3, pinned in `buf.lock`)
+for the `(mcp.v1.service)`, `(mcp.v1.tool)` and `(mcp.v1.field)` annotations, which
+say which methods an AI agent may call ([mcp.md](mcp.md)). They change no message and
+no wire behaviour. One side effect: with that import, protoc-gen-tonic 0.5.0 drops the
+doc comment of the generated `StateService::compute_state`; the `.proto` stays its
+reference.
 
 Generated code is committed, so building `norn-protocol` needs neither buf,
 protoc nor a plugin. The plugins are local and pinned (`protoc-gen-prost`,
@@ -71,7 +79,7 @@ AIP-141 forbids unsigned wire types, and SPEC §10 requires unsigned values, so:
 | `norn.signal.v1` | `Signal` (`entities/{entity}/signals/{signal}`), `SignalService` |
 | `norn.stream.v1` | `Stream` (`streams/{stream}`), `StreamService`, compaction and export operations |
 | `norn.telemetry.v1` | `TelemetryService`: `AppendSamples`, `SubscribeEvents`, `Event`, backpressure and acknowledgement |
-| `norn.query.v1` | `QueryService.QuerySamples` |
+| `norn.query.v1` | `QueryService`: `QuerySamples`, and the bounded unary reads `BrowseSamples`, `FindEvents`, `ComputeStats`, `ComparePeriods` |
 | `norn.replay.v1` | `ReplaySession` (`replaySessions/{replay_session}`), `ReplayService` |
 | `norn.state.v1` | `StateService.ComputeState` |
 | `norn.admin.v1` | `Server` (singleton `server`), `AdminService`: `GetServer`, `NegotiateProtocol` |
@@ -95,6 +103,33 @@ Every collection has the AIP standard methods: Get, List (`page_size`,
 `validate_only`), Update (`update_mask`, AIP-154 `etag`) and Delete. Where a
 collection spans entities, the AIP-159 wildcard parent `entities/-` reads
 across all of them.
+
+**Batch create (AIP-233).** Entities and signals also have
+`EntityService.BatchCreateEntities` and `SignalService.BatchCreateSignals`, for a
+client that provisions a whole site at start: bacnet-rs creates about 60,000 signals
+for a 1,000-device site, and one create per call dropped readings while it ran. A
+batch holds 1 to 1,000 `Create...Request`s and fits the 4 MiB message limit.
+`BatchCreateSignals` takes a parent of `entities/{entity}`, or `entities/-` when the
+signals belong to several entities. A child request's `parent` is then empty or equal
+to the batch's, or under `entities/-` names its own entity. A child's `validate_only`
+must be unset; the batch has its own.
+
+- **All or nothing, one commit.** The daemon checks every request, then makes the
+  whole batch one registry log write and one fsync. Any failure creates nothing; a
+  crash keeps the whole batch or none of it.
+- **Safe to repeat.** A resource that already exists is returned as stored, its
+  display name, unit and annotations left alone, rather than failing the batch. This
+  is the per-call rule ("`ALREADY_EXISTS` means a previous run did") applied to a
+  batch, where one existing resource must not sink the other 999. A signal must still
+  agree on its value type and stream; one that does not fails the batch with
+  `ALREADY_EXISTS`, naming it.
+- **Errors name the request.** A malformed request fails with `INVALID_ARGUMENT`
+  whose `field` is its path, such as `requests[17].signal_id`. A resource given twice
+  in one batch, an empty batch and one over 1,000 fail on `requests`. A missing entity
+  or stream is `NOT_FOUND`, and passing `max_entities` or `max_signals` is
+  `RESOURCE_EXHAUSTED`.
+- **Not MCP tools.** Both write, so their `(mcp.v1.tool)` hints say
+  `read_only: false`, and the daemon's MCP surface serves only read-only tools.
 
 The daemon implements this subset of AIP-160: comparisons `field = "value"`
 joined by `AND`, over `display_name`, `annotations.<key>` and, on signals,
@@ -309,6 +344,47 @@ counter's rate: a decrease is a reset. A chunk failing its checksum ends the que
 with `DATA_LOSS` and is never skipped. [query.md](query.md) has every exact rule:
 the filter language, NaN, infinities and signed zero, and resume tokens.
 
+### Bounded unary reads
+
+`QuerySamples` is the bulk path: lossless, streamed, any size. Beside it, every read an
+AI agent or a simple client needs is also a unary call with a bounded answer, so it is
+usable from any gRPC client and becomes an MCP tool unchanged ([mcp.md](mcp.md)):
+
+| Method | Answers | Page |
+| --- | --- | --- |
+| `BrowseSamples` | one page of what `QuerySamples` streams, raw or aggregated, such as `LATEST` | 100 results, at most 1,000 |
+| `FindEvents` | samples passing `sample_filter` (`EVENT_KIND_MATCH`), or whose value (`_VALUE_CHANGE`) or quality (`_QUALITY_CHANGE`) differs from the signal's previous sample | 100 events, at most 1,000; 1,000,000 samples scanned per call |
+| `ComputeStats` | per signal: count, min, max, average, sum, first and last | 20 signals, at most 50 |
+| `ComparePeriods` | those for a baseline and a comparison interval, and the change | 20 signals, at most 50 |
+
+Every answer also stops at about 256 KiB once it holds one result, so a call always moves
+forward. A page token names the last result returned (or for `FindEvents`, the last
+sample read and the value or quality it compares the next one with), never a count, and
+is bound by a fingerprint to the request's other fields: `page_size` and
+`max_value_bytes` may change between pages, nothing else. A string or bytes value longer
+than `max_value_bytes` (1,024 by default, at most 65,536) is cut and flagged
+(`truncated_indexes`, `value_truncated`); `QuerySamples` never cuts.
+
+`FindEvents` compares values bit for bit, by their stored bytes: -0.0 differs from 0.0,
+a NaN equals the same NaN, an enum compares by number. "Previous" is the previous
+sample of the same signal within the interval passing `sample_filter`; a signal's first
+such sample is the baseline, never a change. Events come grouped by signal, in time
+order, so one previous sample is all a search holds. A call that reaches the scan bound
+returns what it found, possibly nothing, with a token.
+
+`ComputeStats` is the engine's own `COUNT`, `MIN`, `MAX`, `AVERAGE`, `SUM` and `LATEST`
+over a page of signals, plus one raw read per signal for its first sample's time:
+several reads, not one snapshot, so on a signal still receiving samples an interval
+reaching the present can see a sample in one figure and not another.
+
+`ReplayService.DriveReplaySession` moves a frozen (speed 0) session by `event_count`,
+`duration` or `seek_time` and returns what that emitted, as a subscriber would have
+received it: it attaches, moves the clock, and reads up to the `SPEED_CHANGED` that
+setting speed 0 again sends after everything the movement emitted. A step that would
+emit more than `max_events` (100 by default, at most 1,000) is refused with
+`ERROR_REASON_LIMIT_EXCEEDED` before the clock moves; a seek's state events past it
+are counted in `omitted_event_count`. A session that is not frozen is a state conflict.
+
 ## Long-running operations
 
 `StreamService.CompactStream` (`:compact`), `VerifyStream` (`:verify`),
@@ -394,7 +470,7 @@ package, all versioned in lockstep; it changes only with a new package
 version, which is the only place wire-incompatible changes may happen. `minor`
 counts compatible additions within a major: methods, fields, enum values,
 error reasons, capabilities. `buf breaking` enforces that a minor never breaks
-the wire or JSON form. The current version is 1.4
+the wire or JSON form. The current version is 1.6
 (`norn_protocol::PROTOCOL_VERSION`). 1.1 added error reasons, `Server.recovery` and
 `Server.index` to 1.0. 1.2 added `StreamStats.buffered_sample_count` and
 `corrupt_sample_count`, changed `sample_count` to include buffered samples and
@@ -405,7 +481,11 @@ nothing had implemented that function, so no client can have relied on the old t
 `CompactStreamResponse.skipped_segment_count`, `Server.maintenance`, three
 `RecoveryReport` counts, and `CAPABILITY_RETENTION` and `CAPABILITY_VERIFY`. Under 1.4
 `corrupt_sample_count` counts damage as soon as anything finds it, not at the next
-start, and retention's unit is the segment, as it always had to be.
+start, and retention's unit is the segment, as it always had to be. 1.5 added
+`BrowseSamples`, `FindEvents`, `ComputeStats`, `ComparePeriods` and
+`DriveReplaySession`, and the `(mcp.v1.*)` annotations, which change no message.
+1.6 added `BatchCreateEntities` and `BatchCreateSignals`. A client learns it may use
+them from an agreed minor of 6 or more; a 1.5 daemon answers them `UNIMPLEMENTED`.
 
 A client calls `AdminService.NegotiateProtocol` once per connection, before
 anything else, with its version and the capabilities it cannot work without:
@@ -463,6 +543,9 @@ is a whole one, run against a real daemon by nornctl's test.
    `CAPABILITY_APPEND_SAMPLES` and the acknowledgement capability it relies on.
 2. Create the stream, entities and signals. `ALREADY_EXISTS` means a previous run
    did: create is safe to repeat at every start. A signal's value type is fixed.
+   With more than a few hundred, use `BatchCreateEntities` and `BatchCreateSignals`
+   (from 1.6) with up to 1,000 a call: a batch returns existing resources rather than
+   failing, so the whole catalogue can be sent at every start.
 3. Open one `AppendSamples` call and keep it open, feeding it from a bounded
    channel. `batch_id` restarts per call and must increase. Read responses
    concurrently with sending. On `THROTTLE`, wait `retry_delay` before the next
@@ -478,5 +561,5 @@ say should set HTTP/2 keep-alive on its channel with `norn_ipc::connect_with`.
 
 Every unary and server-streaming method carries a `google.api.http` binding,
 as AIP-127 requires, so the schema can be transcoded to REST later. Norn
-serves gRPC only today. `AppendSamples` has none: AIP-127 leaves
+serves gRPC only today (and MCP, generated from the same schema). `AppendSamples` has none: AIP-127 leaves
 bidirectional streams to gRPC.
