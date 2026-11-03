@@ -80,9 +80,9 @@ To preview locally, run `just release-build <host-target>` followed by
 
 ## Licence and contributions
 
-Every file needs SPDX licensing and copyright metadata. Handwritten files carry
-`SPDX-FileCopyrightText: 2026 Srikanth K` and
-`SPDX-License-Identifier: AGPL-3.0-or-later` in comments. `REUSE.toml` supplies
+Every file needs SPDX licensing and copyright metadata. Handwritten files name
+`2026 Srikanth K` in an `SPDX-FileCopyrightText` comment and declare
+`AGPL-3.0-or-later` in an `SPDX-License-Identifier` comment. `REUSE.toml` supplies
 coverage for generated files, binary descriptors and size-limited sources;
 explicit third-party notices retain their original attribution and licence.
 Canonical licence texts live under `LICENSES/`. CI runs `reuse lint` over the
