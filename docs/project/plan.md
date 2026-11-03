@@ -103,5 +103,5 @@ agent is editing the files being moved. Norn only.
 | 2 | done: daemon, storage, index, write path and metadata merged |
 | 3 | done: documentation restructure, query, StateAt and replay merged (checkpoints deferred by measurement) |
 | bacnet-rs | sink over IPC built and verified end to end, uncommitted in the bacnet-rs-norn worktree (feat/norn-sink) for the owner's review |
-| 4 | combined, uncommitted, for the owner's review: adapters (CSV, Parquet, Arrow, MCAP; `nornctl export`/`import`), MCP (`norn-mcp`), and operations (compaction, retention, `verify` in the daemon and `nornctl`). Shared memory (stage 12) is out of v0.1; its branch is kept for later |
-| release | licence chosen (AGPL-3.0-or-later or commercial, every crate, no exception); workflows prepared; push and hosted CI pending |
+| 4 | merged: adapters (CSV, Parquet, Arrow, MCAP; `nornctl export`/`import`), built-in MCP, and operations (compaction, retention, verification). Shared memory (stage 12) is out of v0.1 |
+| release | v0.1.0 first release: platform archives, checksums, complete Homebrew package and daemon service; PAT-backed tap updates authored by Walle. See [changelog](changelog.md) and [release setup](../guides/homebrew.md) |
