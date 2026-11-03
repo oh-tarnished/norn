@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The middle of a compaction: what must be an input, and writing the output.
 
 use std::fs;

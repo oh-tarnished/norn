@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `ComputeStats` and `ComparePeriods`: [`statistics`] over a page of signals.
 //!
 //! A page token names the last signal answered (`t1.<fingerprint>.<signal>`), so a

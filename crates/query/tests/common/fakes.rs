@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Stand-ins for the write path and the budget, and running a query to its end.
 
 use std::collections::HashMap;

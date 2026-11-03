@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Replay and state
 
 What a system looked like at any instant, and its history played back as if it were

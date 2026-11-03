@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Wire ↔ core conversions, per docs/reference/protocol.md "Unsigned values".
 //!
 //! Protocol enums start at `UNSPECIFIED = 0`, so a quality severity sits one

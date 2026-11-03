@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Norn's encoding layer: lossless column codecs and block compression
 //! (SPEC §14, stage 6).
 //!

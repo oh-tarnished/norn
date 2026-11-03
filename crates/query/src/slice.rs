@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Choosing how much of time to read at once.
 //!
 //! A read holds its rows until they are sorted, so it must not cover more time

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! ALP: Adaptive Lossless floating-Point compression (Afroozeh, Kuffó and
 //! Boncz, SIGMOD 2024), the scalar variant without vectorised kernels.
 //!

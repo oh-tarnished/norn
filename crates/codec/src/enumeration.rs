@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Enum columns (`u32` codes): dictionary, then bit-packed or run-length
 //! indices.
 //!

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A bounds-checked little-endian reader over a fixed record.
 
 /// Reads little-endian fields front to back. Every read returns `None`

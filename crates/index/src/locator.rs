@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Where a chunk is: what a plan yields and a reader consumes.
 
 use std::cmp::Ordering;

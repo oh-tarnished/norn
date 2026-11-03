@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Boolean columns: one bit per value, or alternating run lengths.
 //!
 //! A binary point that toggles rarely (a pump on/off, an alarm) is a handful

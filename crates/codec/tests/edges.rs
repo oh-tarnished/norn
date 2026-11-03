@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Edge cases named in the brief: empty and single-element blocks, i64
 //! extremes, NaN payloads, signed zeros, infinities; plus codec selection
 //! and header behaviour.

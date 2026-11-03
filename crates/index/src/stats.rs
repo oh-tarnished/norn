@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Counters proving what a lookup touched (SPEC §34, §22).
 
 use std::sync::atomic::{AtomicU64, Ordering};

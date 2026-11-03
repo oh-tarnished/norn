@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The catalog's JSON form: one string a file's metadata can carry, readable by
 //! any tool, and independent of protobuf field numbers.
 

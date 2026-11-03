@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # cargo-deny: licences, advisories, bans and sources across the whole graph.
 # `just deny` runs it locally; CI runs it on every change.
 

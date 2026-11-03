@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Captures docs/images from a real daemon: every image is the actual output of
 # the commands it shows, never drawn or typed by hand.
 #

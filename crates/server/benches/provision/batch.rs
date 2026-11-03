@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Batch calls: `BatchCreateEntities`, and `BatchCreateSignals` under the
 //! wildcard parent, since one batch spans several devices.
 

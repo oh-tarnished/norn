@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Refused deletes and immutable fields, over real gRPC.
 #![allow(
     clippy::unwrap_used,

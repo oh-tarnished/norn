@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Batch creates refused whole, naming the request at fault; bounded; and
 //! durable across a restart.
 //! safe to repeat, bounded, and refusing a request by its index.

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Telling a resend from new data, in bounded memory (docs/reference/storage.md, "Duplicates").
 
 use std::collections::{HashMap, HashSet};

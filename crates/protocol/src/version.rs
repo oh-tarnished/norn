@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The protocol version this crate speaks (SPEC section 40).
 
 /// A protocol version as plain numbers, so it can be compared without

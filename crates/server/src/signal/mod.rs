@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Operating-system shutdown requests, behind one function per platform.
 //!
 //! The only `cfg` in this crate selects the module; both export

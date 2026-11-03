@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The commit thread: journal first, then buffer; flush; group fsync; seal.
 
 use std::collections::VecDeque;

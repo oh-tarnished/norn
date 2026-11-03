@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The daemon's server: runtime-rs's [`HybridServer`], configured to Norn's rules.
 //!
 //! gRPC is always on, on the local endpoint: `without_grpc_listener` is never

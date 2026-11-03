@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The one platform difference storage has: making a directory entry
 //! durable (SPEC §5: platform code behind one function, not scattered `cfg`).
 //!

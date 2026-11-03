@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Norn's local entry points. GitHub workflows run these same commands.
 
 python := if os() == "windows" { "python" } else { "python3" }

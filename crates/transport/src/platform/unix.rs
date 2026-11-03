@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Linux and macOS: Unix domain sockets. Named pipes are Windows-only.
 
 mod socket_file;

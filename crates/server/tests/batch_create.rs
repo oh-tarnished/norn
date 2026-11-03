@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `BatchCreateEntities` and `BatchCreateSignals` over real gRPC: a batch
 //! across entities, and repeating one.
 //! safe to repeat, bounded, and refusing a request by its index.

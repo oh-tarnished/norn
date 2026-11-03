@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Client-chosen resource IDs, the last segment of a resource name.
 
 use crate::error::MetadataError;

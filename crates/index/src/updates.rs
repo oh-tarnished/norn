@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What the write path and compaction tell the index.
 //!
 //! Each call builds a new view outside any reader's way and swaps it in, then

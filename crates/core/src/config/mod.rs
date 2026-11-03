@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Engine configuration: explicit memory budgets and count limits.
 //!
 //! A [`Config`] exists only once validated: the sole way to make one is

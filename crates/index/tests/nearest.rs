@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Timestamp → nearest chunk at or before, at every edge.
 #![allow(
     missing_docs,

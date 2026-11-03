@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `streams`, `entities`, `signals` and `append`, over the public API.
 
 use std::io::Write;

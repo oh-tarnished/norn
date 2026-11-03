@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Batch creates: many resources, one log write, one fsync, all or nothing.
 //!
 //! A site provisions tens of thousands of signals at start. One create per

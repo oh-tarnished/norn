@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Ending the write path: refusing new batches, then closing it.
 
 use std::sync::PoisonError;

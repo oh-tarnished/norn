@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+version = 1
+
+# Fallback coverage includes generated code, binary descriptors, lockfiles and
+# sources at the 200-line limit. Explicit upstream notices take precedence.
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Srikanth K"
+SPDX-License-Identifier = "AGPL-3.0-or-later"

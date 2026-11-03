@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Per-signal column buffers, sealed together as a generation.
 
 use std::collections::HashMap;

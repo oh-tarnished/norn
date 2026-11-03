@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The Norn daemon: configuration, AdminService and health over local IPC.
 //!
 //! # Layer contract

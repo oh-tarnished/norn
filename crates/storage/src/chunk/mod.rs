@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A chunk: one signal's samples over a time range, held column-wise.
 //!
 //! On disk a chunk is a frame (see [`crate::format::frame`]) whose body is

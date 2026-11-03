@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! After `kill -9`, StateAt and replay both return every sample acknowledged `DURABLE`.
 #![cfg(unix)]
 #![allow(

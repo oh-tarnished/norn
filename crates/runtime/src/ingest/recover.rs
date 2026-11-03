@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Startup recovery of the write path: docs/reference/storage.md, "Recovery at startup".
 
 use std::collections::HashSet;

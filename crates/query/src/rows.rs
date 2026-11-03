@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The rows of one read, charged as they grow.
 
 use norn_core::{Sample, Timestamp, Value};

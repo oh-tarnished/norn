@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Public entry points for the timestamp and integer columns.
 //!
 //! Both columns share the `i64` family in [`crate::int`]; they differ only in

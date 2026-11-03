@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The task behind one replay session: it is the session's only owner.
 
 use std::collections::VecDeque;

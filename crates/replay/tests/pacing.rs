@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Pace: real time, multiples of it, zero, and pausing, on a clock the test moves.
 #![allow(
     missing_docs,

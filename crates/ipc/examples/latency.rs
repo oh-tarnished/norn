@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Round-trip latency of a small unary gRPC call (`grpc.health.v1.Check`),
 //! Unix socket vs loopback TCP. Results are recorded in docs/reference/ipc.md.
 //!

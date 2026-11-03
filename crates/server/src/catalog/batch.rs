@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `BatchCreateEntities` and `BatchCreateSignals` (AIP-233): each request is
 //! checked here, naming its index, and the batch is one registry call, so one
 //! log write and one durable commit, all or nothing.

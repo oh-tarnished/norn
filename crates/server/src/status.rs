@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! AIP-193 errors: a `google.rpc.Status` carrying one `ErrorInfo` in the
 //! `norn.local` domain (docs/reference/protocol.md, "Error model").
 

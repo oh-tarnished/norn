@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Connection limits: how many clients a server holds at once, what happens
 //! to the next one, and how long a silent connection may live (SPEC §16, §41).
 

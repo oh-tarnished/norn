@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `xtask deps`: nothing a Norn crate links reaches C (SPEC §1).
 //!
 //! Walks each workspace member's normal dependency graph (build and dev edges

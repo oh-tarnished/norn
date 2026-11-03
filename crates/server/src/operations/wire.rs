@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! An operation as `google.longrunning.Operation`, with typed Any payloads.
 
 use norn_protocol::common::ErrorReason;

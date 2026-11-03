@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Constructing a runtime and registering its tasks; running is `run.rs`.
 
 use std::future::Future;

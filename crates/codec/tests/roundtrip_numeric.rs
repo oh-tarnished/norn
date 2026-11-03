@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Property tests: decode(encode(x)) == x for every numeric codec, both the
 //! measured choice and each codec forced.
 #![allow(

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The seam where a bulk data plane will plug in (SPEC §7, stage 12).
 //!
 //! Today every byte, control or data, travels as gRPC messages over the

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Patched frame-of-reference miniblocks: sparse outliers become
 //! exceptions instead of widening all 128 values around them.
 #![allow(

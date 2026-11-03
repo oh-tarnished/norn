@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The in-memory tail: chunks written to a segment that is not sealed yet.
 
 use std::sync::Arc;

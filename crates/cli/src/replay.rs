@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `nornctl replay`: sessions and their clocks, over ReplayService.
 
 use std::io::Write;

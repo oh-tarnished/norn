@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Appending chunks to a segment; `durability` holds flush, sync and seal.
 
 mod durability;

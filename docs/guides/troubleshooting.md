@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Troubleshooting
 
 Every message below came from a real run. Compaction is not implemented, so it has no

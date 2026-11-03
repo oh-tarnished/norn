@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Signals found row by row, for a format with no declaration up front.
 
 use std::collections::HashMap;

@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Homebrew service
 
 Norn's release workflow generates `norn.rb` after uploading the macOS and
@@ -6,12 +11,12 @@ has published that formula, installation from the tap is unavailable.
 
 ## Install and start
 
-The tap and release repository are private. Use an account that can read both:
+For a private tap or private release downloads, use an account that can read both:
 
 ```sh
-brew tap --custom-remote regalium-os/tap git@github.com:regalium-os/homebrew-tap.git
+brew tap --custom-remote shokki-engineering/tap git@github.com:shokki-engineering/homebrew-tap.git
 export HOMEBREW_GITHUB_API_TOKEN="$(gh auth token)"
-brew install regalium-os/tap/norn
+brew install shokki-engineering/tap/norn
 brew services start norn
 nornctl --endpoint "unix:$(brew --prefix)/var/run/norn/norn.sock" status
 ```
@@ -70,8 +75,7 @@ capture sink's held, delivered and dropped counts during the restart.
 
 ## Release and organization move
 
-The source repository is moving to `shokki-engineering/norn`; GitHub must finish
-the transfer before its new URL can serve private downloads. Update local clones
+The source repository is `shokki-engineering/norn`. Update local clones
 with `git remote set-url origin https://github.com/shokki-engineering/norn.git`.
 Grant release automation and read-only download tokens access to the new owner.
 The formula generator uses `GITHUB_REPOSITORY`, so release asset URLs follow the

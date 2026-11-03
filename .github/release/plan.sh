@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Validate every workspace package's version, then emit the release matrix.
 # Local preview: GITHUB_EVENT_NAME=push GITHUB_REF_NAME=v0.1.0 \
 #   GITHUB_OUTPUT=/tmp/norn-release-plan just release-plan

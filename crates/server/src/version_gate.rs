@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The `norn-protocol-version` metadata check (docs/reference/protocol.md, "Versioning and
 //! capability negotiation"), as a layer in front of every service.
 

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What every job needs: an index that agrees with the directory, and memory.
 
 use norn_core::StreamId;

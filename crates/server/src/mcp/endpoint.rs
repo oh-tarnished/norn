@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! One MCP endpoint over the generated handlers: only the tools annotated read-only
 //! are listed or dispatched, whatever else the generator emitted, since protoc-gen-mcp
 //! makes a tool of every unary RPC.

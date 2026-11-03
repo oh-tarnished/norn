@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Every tool, through real MCP clients over stdio and a Unix socket against a real
 //! daemon, compared with brute force. Ported from the old `norn-mcp` server's tests.
 #![cfg(unix)]

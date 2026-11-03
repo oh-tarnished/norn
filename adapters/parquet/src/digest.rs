@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A CRC-32 over each part's samples, as their canonical protobuf bytes, so the
 //! check sees every field whatever encoding the file chose.
 

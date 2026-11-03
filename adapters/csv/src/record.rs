@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Splitting a line into fields. RFC 4180: a quoted field may hold commas, quotes
 //! (doubled) and newlines.
 

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Admission: the synchronous decision about one batch. Never blocks on a disk.
 
 use std::sync::atomic::Ordering;

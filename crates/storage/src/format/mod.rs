@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The segment file's byte layout: constants and the three fixed records.
 //!
 //! A segment file is, in order (docs/reference/storage.md "Segment file" has the table):

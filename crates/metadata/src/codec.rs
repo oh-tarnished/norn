@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Little-endian field encoding for log records.
 
 use norn_core::{Metadata, MetadataLimits, Name, Timestamp};

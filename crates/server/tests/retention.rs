@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Retention: nothing by default, nothing on a dry run, whole segments otherwise.
 #![allow(
     clippy::unwrap_used,

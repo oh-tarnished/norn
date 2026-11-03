@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `nornctl subscribe`: events, live or replayed, printed as they arrive.
 
 use std::io::Write;

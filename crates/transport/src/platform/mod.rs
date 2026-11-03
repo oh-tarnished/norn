@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The only place this crate selects code by OS (SPEC §5).
 //!
 //! Each platform module exports the same five functions with the same

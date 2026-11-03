@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Batches on disk: a crash keeps all of one or none, the version 1 log
 //! upgrades, and group commit holds under concurrent batches and creates.
 #![allow(

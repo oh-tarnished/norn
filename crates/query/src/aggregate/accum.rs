@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! One window's running reduction. docs/reference/query.md defines each exactly.
 
 use std::cmp::Ordering;

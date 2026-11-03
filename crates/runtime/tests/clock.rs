@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The injected clocks: a deadline is a time, so an advance is never lost.
 //!
 //! The replay driver reads the clock, asks the session how long to wait, then

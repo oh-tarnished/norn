@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Fixed windows: which one a timestamp falls in, and where each lies.
 
 use norn_core::Timestamp;

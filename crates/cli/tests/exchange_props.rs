@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! SPEC §36 for interchange: export, then import into a fresh daemon, gives the
 //! same samples, per format, through two real daemons.
 #![allow(

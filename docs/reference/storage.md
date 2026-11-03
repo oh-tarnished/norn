@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Storage
 
 Implemented in `crates/storage` (`norn-storage`, SPEC §12, §13, §20, §40, §42,

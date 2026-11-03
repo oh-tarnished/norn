@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Dictionary building and index packing, shared by enum and byte-string
 //! columns. Internal to the crate.
 //!

@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Import and export
 
 Moving history between Norn and other tools: CSV for anything, Parquet and Arrow for

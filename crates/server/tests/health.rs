@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! grpc.health.v1 follows the runtime's lifecycle; the version gate.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

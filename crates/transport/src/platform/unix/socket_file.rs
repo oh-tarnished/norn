@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The file-system side of a Unix socket: directory hardening, stale-socket
 //! detection and owner-checked removal (SPEC §41).
 

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! MCP's transports, as tpp-agents serves them. Each listener is one agent service
 //! over the same [`Endpoint`], so every agent sees the same replay sessions.
 //!

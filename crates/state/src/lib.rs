@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Norn's state reconstruction (SPEC §23, §26): what a system looked like at T.
 //!
 //! # Layer contract

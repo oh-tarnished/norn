@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reading a session's samples in order, a page at a time, resumably.
 
 use std::collections::VecDeque;

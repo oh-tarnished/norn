@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The chunk frame header and the chunk metadata it carries.
 //!
 //! | Offset | Size | Field |

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! MCP's surface: read-only by listing it, off by default, no TCP port unless one is
 //! named, and sessions out of reach. Against the real `norn` binary.
 #![cfg(unix)]

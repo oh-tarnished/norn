@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The words files use for value types and quality, the same in every format.
 //!
 //! A quality number this build does not know (a newer protocol's) is written as

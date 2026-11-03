@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What goes into the write path and what it says back (SPEC §18, §19).
 
 use std::sync::Arc;

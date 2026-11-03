@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Replay sessions driven by the runtime, on a fake clock.
 #![allow(
     missing_docs,

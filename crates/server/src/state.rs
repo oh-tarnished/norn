@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `norn.state.v1.StateService`: `ComputeState`, SPEC's `StateAt(T)`.
 
 use std::sync::Arc;

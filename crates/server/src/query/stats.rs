@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Per-signal statistics over an interval, from the query engine's own reductions:
 //! `COUNT`, `MIN`, `MAX`, `AVERAGE`, `SUM` and `LATEST`, each over a whole page of
 //! signals at once, plus the first sample of each, whose time no reduction gives.

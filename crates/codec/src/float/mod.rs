@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Floating-point columns: Gorilla XOR and ALP, chosen per block by
 //! measurement.
 //!

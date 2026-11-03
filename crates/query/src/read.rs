@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! One read: a time slice of some signals, from buffers and chunks, exactly once.
 
 use std::io::ErrorKind;

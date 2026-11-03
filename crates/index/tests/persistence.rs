@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The index is derived: every bad file is a reported rebuild, never data loss.
 #![allow(
     missing_docs,

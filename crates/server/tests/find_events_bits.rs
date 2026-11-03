@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `FindEvents` compares values bit for bit, across page boundaries too.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

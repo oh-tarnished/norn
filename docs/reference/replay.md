@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Replay
 
 Implemented: `crates/replay` (`norn-replay`, SPEC §25, §27, §28, stage 11), driven by

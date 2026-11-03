@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # The MCP server's tools, from the (mcp.v1.tool) annotations in protobuf/:
 # `just gen`, which runs `buf generate --template buf.gen.mcp.yaml`. One
 # handler per service lands in crates/server/src/mcp/generated, and the

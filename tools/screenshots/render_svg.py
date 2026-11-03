@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Renders a terminal transcript, read from stdin, to an SVG on stdout.
 
 usage: render_svg.py TITLE < transcript > image.svg

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What a caller can see of, and do to, a running compaction.
 
 /// A point in [`super::compact_observed`], reached in this order.

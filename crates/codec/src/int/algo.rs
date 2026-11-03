@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The five `i64` algorithms behind the timestamp and integer columns.
 //!
 //! Every derived quantity (delta, second delta, run value) uses wrapping

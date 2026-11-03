@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The MCAP format, on bytes in memory: exactness, the schema, and refusing damage.
 #![allow(
     clippy::unwrap_used,

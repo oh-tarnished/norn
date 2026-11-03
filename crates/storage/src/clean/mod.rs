@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The clean-shutdown marker: which sealed segments need not be read at startup.
 //!
 //! Without it, every start would read every chunk of every stream to check its

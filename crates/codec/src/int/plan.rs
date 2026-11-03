@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Choosing a miniblock's reference and width, with patched exceptions
 //! (PFOR; Zukowski et al., ICDE 2006).
 //!

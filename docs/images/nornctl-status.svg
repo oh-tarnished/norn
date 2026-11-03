@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 <svg xmlns="http://www.w3.org/2000/svg" width="2319" height="576" viewBox="0 0 2319 576" role="img" aria-label="nornctl status">
 <rect width="2319" height="576" rx="8" fill="#0d1117"/>
 <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" xml:space="preserve">

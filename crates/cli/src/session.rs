@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Naming, pacing and printing replay sessions for `nornctl replay`.
 
 use std::io::Write;

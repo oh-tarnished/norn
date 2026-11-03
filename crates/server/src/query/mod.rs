@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `norn.query.v1.QueryService`: `QuerySamples`, and the unary, bounded reads over
 //! the same engine: `BrowseSamples`, `FindEvents`, `ComputeStats`, `ComparePeriods`.
 

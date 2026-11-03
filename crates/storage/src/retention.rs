@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Retention hooks (SPEC §43): list what a policy *could* delete, and delete
 //! what a caller then names.
 //!

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Walking frame headers when a segment has no (valid) directory.
 
 use crate::error::{Bound, Result, StorageError};

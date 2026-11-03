@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `FindEvents` over real gRPC, against brute force, at several page sizes: a page
 //! boundary never hides or invents a change.
 #![allow(

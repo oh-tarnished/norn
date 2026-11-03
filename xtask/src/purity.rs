@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `xtask purity`: the core performs no I/O, reads no clock and spawns
 //! nothing (SPEC §28: time is injected; the core is pure data).
 

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Little-endian and varint primitives for the index's own files.
 //!
 //! Decoding copies scalars out of the input and borrows nothing past the call,

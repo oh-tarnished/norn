@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Held answers, so that every page of one state describes the same state.
 
 use std::collections::VecDeque;

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The per-segment summary: what the index keeps in memory for every segment.
 
 use norn_core::{SignalId, Timestamp};

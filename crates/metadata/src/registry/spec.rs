@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What a caller supplies to create or change a resource.
 //!
 //! Plain owned data; `#[non_exhaustive]` so a new field is not a breaking

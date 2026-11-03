@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! From segment files to index entries: one directory, or many in parallel.
 
 use std::path::{Path, PathBuf};

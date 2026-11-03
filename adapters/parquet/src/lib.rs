@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Parquet and the Arrow IPC file format: columnar interchange (SPEC §12, §44).
 //! Neither is Norn's storage; both are for other tools.
 //!

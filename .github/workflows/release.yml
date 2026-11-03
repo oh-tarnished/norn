@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # A vX.Y.Z tag, or a manual run, packages Norn's daemon, CLI and MCP server.
 # Cargo crates remain unpublished; releases distribute the binaries.
 name: Release
@@ -117,7 +120,7 @@ jobs:
       - uses: actions/checkout@v7
         if: env.TAP_TOKEN != ''
         with:
-          repository: ${{ vars.HOMEBREW_TAP_REPOSITORY || 'regalium-os/homebrew-tap' }}
+          repository: ${{ vars.HOMEBREW_TAP_REPOSITORY || 'shokki-engineering/homebrew-tap' }}
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           path: tap
       - uses: actions/download-artifact@v8

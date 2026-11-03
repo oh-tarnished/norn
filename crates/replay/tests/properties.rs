@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! SPEC §36: record, store, replay gives the same events, every time, at any pace.
 #![allow(
     missing_docs,

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Resource names ↔ the IDs inside them. Borrows from the name it is given.
 
 use tonic::Status;

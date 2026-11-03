@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Crash recovery: verify segments, detect torn and corrupt regions, and
 //! report every finding as a typed event (SPEC §20).
 //!

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Adapts [`Incoming`] to the connection stream tonic serves from.
 
 use std::future::Future;

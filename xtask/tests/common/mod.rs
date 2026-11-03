@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Hand-built graphs for the graph gates' tests.
 
 use xtask::metadata::{DepKind, Edge, Graph, Package};

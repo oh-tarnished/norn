@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Cached reads of a sidecar, falling back to the segment's own directory.
 
 use std::fs::{self, File};

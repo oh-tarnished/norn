@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A real daemon in-process on loopback, and a client's helpers.
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

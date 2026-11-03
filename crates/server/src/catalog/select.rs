@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Which signals a filter selects: for ListSignals, and for a query.
 
 use norn_metadata::{Registry, SignalRecord};

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Gorilla XOR compression (Pelkonen et al., VLDB 2015, §4.1.2), generic
 //! over `f64` and `f32` bit patterns.
 //!

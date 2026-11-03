@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The receiving end of a subscription, live or replayed: one abstraction (SPEC §27).
 
 use std::sync::{Arc, Mutex, PoisonError};

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Instants as adapters need them: `i64` nanoseconds (Norn's range) and RFC 3339
 //! text, exact in both directions, with no dependency.
 

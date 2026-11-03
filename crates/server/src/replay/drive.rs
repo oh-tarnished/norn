@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `DriveReplaySession`: move a frozen session's clock and return what it emitted.
 //!
 //! Events reach only a subscription attached when they are emitted, so a drive

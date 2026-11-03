@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Compacting one stream: bounded runs, one at a time, on the worker's thread.
 
 use std::sync::atomic::Ordering;

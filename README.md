@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 <div align="center">
 
 <h1>Norn</h1>
@@ -27,7 +32,7 @@ It stores the history of systems, answers questions about any instant of it, and
 <a href="https://arrow.apache.org"><img alt="Apache Arrow 60" src="https://img.shields.io/badge/Apache%20Arrow-60-50ABF1?style=flat-square&logo=apachearrow&logoColor=white"></a>
 <a href="https://mcap.dev"><img alt="MCAP 0.26" src="https://img.shields.io/badge/MCAP-0.26-50ABF1?style=flat-square"></a>
 <a href="docs/reference/storage.md"><img alt="zstd, pure Rust" src="https://img.shields.io/badge/zstd-pure%20Rust-50ABF1?style=flat-square"></a>
-<a href="https://modelcontextprotocol.io"><img alt="MCP: in progress" src="https://img.shields.io/badge/MCP-in%20progress-lightgrey?style=flat-square&logo=modelcontextprotocol&logoColor=white"></a>
+<a href="https://modelcontextprotocol.io"><img alt="MCP: built in" src="https://img.shields.io/badge/MCP-built%20in-244C5A?style=flat-square&logo=modelcontextprotocol&logoColor=white"></a>
 </p>
 
 </div>
@@ -38,10 +43,12 @@ checksummed chunks, indexes them by time, and answers range queries, aggregates,
 state of every signal at an instant, and deterministic replays. It knows entities,
 signals and streams, and never what they mean.
 
-**Status.** Version 0.1.0 is built and not yet released: no tag and no published
-archive exist. Everything marked Done below runs today and is covered by tests. The
-CI badge shows the current state of `main`. The [roadmap](#roadmap) lists what is left
-before the release and what comes after it.
+**Version 0.1.0.** The engine, CLI, interchange adapters and MCP server are built
+and tested. [CI passes on Linux, macOS and Windows](https://github.com/shokki-engineering/norn/actions/runs/41585788519),
+with ARMv7 and AArch64 cross-checks. Release automation and the Homebrew service
+are prepared; installation from the tap needs the first published archives and
+the tap setup described under [Installation](#installation). The [roadmap](#roadmap)
+separates implemented features from future work.
 
 ## Contents
 
@@ -88,7 +95,7 @@ before the release and what comes after it.
 - [Replay](docs/reference/replay.md): virtual clock, sessions, subscriptions, bounds
 - [Adapters](docs/reference/adapters.md): the contract, CSV, Parquet, Arrow, MCAP formats
 - [nornctl](docs/reference/cli.md): every command
-- [MCP](docs/reference/mcp.md): `norn-mcp`'s tools; being replaced: see [MCP](#mcp)
+- [MCP](docs/reference/mcp.md): the daemon's 17 read-only tools and transports
 
 **Project**
 
@@ -138,8 +145,8 @@ any domain.
 - **Crash recovery**: Done. Tested by killing the process, not by cutting power
 - **Compaction, retention, verification**: Done. In the background and on demand
 - **Import and export: CSV, Parquet, Arrow IPC, MCAP**: Done. Through `nornctl`, over the public API
-- `nornctl` command-line client: state: Done. No `inspect`, `stats` or `benchmark` yet
-- **MCP for AI agents, built into the daemon**: In progress. See [MCP](#mcp)
+- **`nornctl` command-line client**: Done. No `inspect`, `stats` or `benchmark` yet
+- **MCP for AI agents, built into the daemon**: Done. 17 read-only tools; off by default. See [MCP](#mcp)
 - **BACnet capture through bacnet-rs**: In progress. Built and tested in bacnet-rs, awaiting review there
 - **Shared-memory data plane**: Planned. Measured, and not faster than gRPC at the target rates
 - **Fuzzing, security review**: Planned. Stage 16
@@ -201,7 +208,7 @@ only when all have stopped. Details: [architecture](docs/reference/architecture.
 ### Servers: always on and optional
 
 - **gRPC**: Always on. It cannot be disabled. It is the only API. `nornctl`, the adapters and every client use it; nothing reaches storage another way.
-- **MCP**: Optional: off or on. In progress: moving into `norn`, switched by configuration. Today it is a separate program, `norn-mcp`, which is being replaced.
+- **MCP**: Optional and off by default. Served inside `norn`, over stdio, a local socket or pipe, or loopback HTTP. No separate MCP executable is needed.
 - **Shared-memory plane**: Not in v0.1. Built and measured on a branch; it does not beat gRPC at the target rates.
 - **InfluxDB**: Not used. Norn has no InfluxDB dependency. In bacnet-rs, InfluxDB capture is opt-in and off by default.
 
@@ -298,7 +305,7 @@ flowchart LR
 
     ctl["nornctl import and export<br/>adapter crates"]
     norn["norn daemon<br/>gRPC API"]
-    mcpd["MCP inside norn<br/>generated from .proto annotations<br/>in progress"]
+    mcpd["MCP inside norn<br/>17 read-only tools<br/>generated from .proto annotations"]
 
     files <--> ctl
     ctl -- "AppendSamples, QuerySamples" --> norn
@@ -340,7 +347,32 @@ and reported per chunk. File formats: [storage](docs/reference/storage.md).
 
 ## Installation
 
-### Prerequisites
+### Homebrew on macOS and Linux
+
+The release workflow publishes a formula to `shokki-engineering/homebrew-tap`.
+Before the first install, the maintainer must create that repository, configure
+`HOMEBREW_TAP_TOKEN` for Norn's release workflow, and publish `v0.1.0`.
+Creating an empty tap alone does not make the package available.
+
+Once the formula is published:
+
+```sh
+brew tap --custom-remote shokki-engineering/tap git@github.com:shokki-engineering/homebrew-tap.git
+export HOMEBREW_GITHUB_API_TOKEN="$(gh auth token)"  # needed for private release downloads
+brew install shokki-engineering/tap/norn
+brew services start norn
+nornctl --endpoint "unix:$(brew --prefix)/var/run/norn/norn.sock" status
+```
+
+Installation supplies `norn` and `nornctl`; starting the service is explicit.
+The service runs at login, keeps data in `$(brew --prefix)/var/norn`, uses an
+owner-only socket directory, and logs to `$(brew --prefix)/var/log/norn.log`.
+Edit `$(brew --prefix)/etc/norn/norn.toml` to configure it. MCP is off by default;
+Norn has no InfluxDB dependency. After `brew upgrade norn`, run
+`brew services restart norn`. Full setup and upgrade details:
+[Homebrew](docs/guides/homebrew.md).
+
+### Building from source: prerequisites
 
 - **Rust**: 1.99.1. Pinned in `rust-toolchain.toml`; `rustup` installs it on first build
 - **`protoc`**: 36.2 is used in CI. The daemon's runtime-rs validation dependency
@@ -676,7 +708,7 @@ The Protobuf schema under [`protobuf/`](protobuf) is the API and its source of t
 Services: `StreamService`, `EntityService`, `SignalService`, `TelemetryService`
 (`AppendSamples`, `SubscribeEvents`), `QueryService`, `StateService`, `ReplayService`
 and `AdminService`, plus the standard `grpc.health.v1`. Clients negotiate a protocol
-version, currently 1.4.
+version, currently 1.6.
 
 A Rust client needs `norn-ipc` to dial the local endpoint and `norn-protocol` for the
 generated stubs. [`crates/cli/examples/plain_client.rs`](crates/cli/examples/plain_client.rs)
@@ -718,15 +750,14 @@ scripts cleanly. Every command, with real output: [nornctl](docs/reference/cli.m
 
 ### MCP
 
-In progress. MCP is moving into the daemon. Its tools are generated by `protoc-gen-mcp`
-from `(mcp.v1.tool)` annotations on the RPCs in the `.proto` files, and served by
-`norn` itself through runtime-rs's `HybridServer`, turned off or on by configuration.
-Each tool is a gRPC method first, so MCP can do nothing the API cannot. That work has
-started and is not finished; this section will describe it once it lands.
+The daemon serves 17 read-only tools generated by `protoc-gen-mcp` from the RPCs'
+`(mcp.v1.tool)` annotations. Every tool calls the same gRPC API in process, through
+runtime-rs's `HybridServer`. There is no separate `norn-mcp` executable.
 
-Until then the tree still builds `norn-mcp`, a separate read-only program with ten
-tools, documented in [AI agents](docs/guides/ai-agents.md) and [MCP](docs/reference/mcp.md).
-It is being replaced, so do not build on it.
+For a client that starts its own daemon, use `norn --mcp stdio`. A Homebrew daemon
+can enable MCP transports in its configuration; its default is off. Writes remain
+gRPC calls. Client setup and transport details: [AI agents](docs/guides/ai-agents.md)
+and [MCP](docs/reference/mcp.md).
 
 ## Connecting to bacnet-rs
 
@@ -747,7 +778,7 @@ sink = "norn"                          # or "files", the Parquet capture
 endpoint = "unix:/run/norn/norn.sock"  # default: Norn's per-user endpoint
 stream = "regalium"                    # created if missing
 ack = "persisted"                      # received, buffered, persisted, durable
-buffer = 1000000                       # readings held while Norn is away or behind
+buffer = "512MiB"                     # bytes held while Norn is away or behind
 site = "tower-a"
 ```
 
@@ -770,10 +801,10 @@ How the sink behaves:
   counted duplicate, not a second copy.
 - Readings wait in a bounded buffer while Norn is away. Past it, the oldest are
   dropped, and that loss is counted, logged and written into Norn as an event.
-- Norn going away is reported through the BACnet server's health and logs; the server
-  keeps serving.
+- Norn going away is reported through `bacnet.capture` health and logs; the BACnet
+  server keeps serving.
 
-bacnet-rs pins Norn by git revision (`2aa2394`, protocol 1.3) and will move to the
+bacnet-rs pins Norn by git revision (`612d7f7`, protocol 1.6) and will move to the
 v0.1.0 tag once it exists. Norn itself has no InfluxDB dependency. In bacnet-rs,
 InfluxDB capture is an opt-in part of the `files` sink, behind a Cargo feature that is
 off by default.
@@ -869,8 +900,8 @@ Caveats:
 One row per stage of [the specification](docs/project/spec.md#48-implementation-order).
 `done`, `in progress` or `planned`. `done` means built and tested: CI builds, lints and
 tests every push on Linux, macOS and Windows, and cross-compiles ARMv7 and AArch64
-Linux. It was last green on all three at 7526100, before stages 13 and 14 and the
-daemon's compaction and retention, which have been tested on macOS only so far. Tests that need Unix signals or Unix sockets run on Linux and macOS only;
+Linux. [The 0.1.0 validation run is green](https://github.com/shokki-engineering/norn/actions/runs/41585788519).
+Tests that need Unix signals or Unix sockets run on Linux and macOS only;
 [operations](docs/guides/operations.md#platforms) lists them.
 
 | Stage | Subject       | Scope                                                       | State | Today                                                               |

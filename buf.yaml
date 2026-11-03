@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Norn's protocol module. protobuf/ is the source of truth for the public API;
 # the Rust in crates/protocol/src/generated is produced from it by `just gen`.
 # docs/reference/protocol.md explains the design; this file only configures buf.

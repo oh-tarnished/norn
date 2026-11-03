@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The per-signal summary: where each signal starts and when it was last seen.
 //!
 //! `nearest_at_or_before` used to walk every segment back from `t` for a signal

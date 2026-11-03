@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! From an [`Endpoint`] to a listener or a stream, without the caller
 //! naming a transport.
 

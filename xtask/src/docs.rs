@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `xtask docs`: the documentation's shape.
 //!
 //! Every crate root opens with a `//!` layer contract: what the crate owns,

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The workspace graph, read from `cargo metadata`.
 //!
 //! Parsed into a small model so the graph gates are pure functions over it,

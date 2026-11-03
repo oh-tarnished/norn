@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Low-level segment reads shared by the reader and recovery: the header,
 //! the sealed directory, and one verified frame.
 

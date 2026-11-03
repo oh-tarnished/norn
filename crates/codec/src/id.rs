@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Codec identifiers and the column types they belong to.
 //!
 //! The id is the first byte of every encoded block and is part of the stored

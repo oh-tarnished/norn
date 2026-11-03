@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The records in memory, and applying a log record to them.
 
 use std::collections::{BTreeMap, HashMap};

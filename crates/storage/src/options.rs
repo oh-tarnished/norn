@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Storage bounds and policies, derived from the engine [`Config`].
 
 use norn_codec::MAX_BLOCK_VALUES;

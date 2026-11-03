@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reflecting the runtime's health into `grpc.health.v1`.
 
 use norn_protocol::admin::admin_service_server::SERVICE_NAME as ADMIN;

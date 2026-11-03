@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! An admitted server-side connection: the raw stream plus its slot, its
 //! idle timer and its abort signal.
 

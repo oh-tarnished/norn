@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Export and import rate, file size and client peak RSS per format, on a real
 # daemon over a Unix socket. docs/performance.md records what this printed.
 #

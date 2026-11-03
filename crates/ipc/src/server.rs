@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Serving a tonic router over a local endpoint, with bounded shutdown.
 
 use std::time::Duration;

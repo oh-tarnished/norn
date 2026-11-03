@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Times and durations on the command line: RFC 3339 in UTC, without a dependency.
 
 /// Days from 1970-01-01 to a civil date (Howard Hinnant's `days_from_civil`).

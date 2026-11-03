@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! kill -9 at every phase of a compaction, in a real second process.
 //!
 //! The child is this test binary run again: `park_at_a_phase` is a real daemon that

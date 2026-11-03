@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Codec benchmark on realistic one-day 1 Hz sensor shapes.
 //!
 //! Run with `cargo bench -p norn-codec --bench shapes`. Prints two Markdown

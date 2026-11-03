@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! CRC-32C for the log's records, bit by bit, with no table and no `unsafe`.
 //!
 //! norn-storage has a faster one, but the layer table keeps this crate over the

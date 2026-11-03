@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The virtual clock: independent of wall time, told the wall time when it matters.
 
 use std::time::Duration;

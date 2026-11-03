@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Every generated `<Service>McpServer` trait, implemented once.
 //!
 //! This is the whole hand-written tool surface. A read is its RPC by name: the

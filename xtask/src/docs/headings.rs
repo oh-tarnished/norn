@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Heading anchors, computed as GitHub computes them.
 
 use std::collections::BTreeSet;

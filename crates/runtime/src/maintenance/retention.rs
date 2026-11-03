@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Applying a stream's retention policy: explicit, logged, whole segments.
 
 use std::sync::{Arc, PoisonError};

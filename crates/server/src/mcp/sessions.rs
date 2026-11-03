@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Which replay sessions MCP opened. A read-only surface must not stop or move a
 //! replay someone else is watching, so a tool names only sessions a tool created,
 //! and `ListReplaySessions` shows only those. At most [`MAX_SESSIONS`] are open;

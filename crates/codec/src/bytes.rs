@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Byte-string columns: length-prefixed, or through a dictionary.
 //!
 //! Lengths are bit-packed (frame-of-reference miniblocks), then the bytes

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Replay throughput: a session over the whole set, at maximum speed.
 
 use std::time::Instant;

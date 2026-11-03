@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The chunk directory and trailer that seal a segment.
 //!
 //! Directory: magic `NDIR`, `count: u32`, `count` entries of

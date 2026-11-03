@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The pure-Rust zstd backend: `structured-zstd`, never the C library.
 //!
 //! Why this crate (SPEC §14 decision; evidence in docs/reference/storage.md): it is the one

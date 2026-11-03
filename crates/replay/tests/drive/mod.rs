@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Driving a session the way the runtime does, on a clock the test moves.
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Realistic one-day sensor shapes at 1 Hz (86,400 samples), generated
 //! deterministically so every run measures identical data.
 

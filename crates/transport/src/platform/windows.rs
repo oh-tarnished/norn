@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Windows: named pipes. Unix sockets are not offered here: tokio has no
 //! AF_UNIX support on Windows, and named pipes are the native local IPC.
 

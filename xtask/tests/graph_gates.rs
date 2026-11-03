@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `deps` and `arch` bite on hand-built graphs and pass on this repository.
 
 mod common;

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Declared bounds on block size (SPEC §16: no unbounded buffers).
 //!
 //! Encoders refuse inputs above these limits and decoders check every stored

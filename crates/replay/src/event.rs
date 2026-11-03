@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The one event model of SPEC §27: live and replayed telemetry are the same thing.
 
 use std::any::Any;

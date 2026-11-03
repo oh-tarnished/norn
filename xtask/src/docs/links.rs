@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Every relative link and image in every Markdown file resolves.
 //!
 //! Resolved against the tracked set, not the disk: a link to an ignored file

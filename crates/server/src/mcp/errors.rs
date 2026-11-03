@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! How a failed call reads to a model: the daemon's reason, its metadata, and whether
 //! trying again can help. The endpoint makes each an `isError` result.
 

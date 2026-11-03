@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `DriveReplaySession` over real gRPC: a step returns exactly what a time-ordered
 //! read gives for the same stretch, a seek returns the state, and every bound is
 //! refused before the clock moves.

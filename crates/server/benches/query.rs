@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Queries through real gRPC over a Unix socket: docs/performance.md's numbers.
 //!
 //! `cargo bench -p norn-server --bench query`. Starts the real `norn`, loads a

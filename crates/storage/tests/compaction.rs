@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Compaction preserves samples and survives a crash at each of its steps.
 #![allow(
     missing_docs,

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! One unary RPC by its full name, taking and returning canonical protobuf JSON.
 //!
 //! A tool's arguments are its RPC's request message as JSON, so nothing here knows

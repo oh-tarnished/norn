@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Driving a replay through the tools, over stdio and a Unix socket, against a real
 //! daemon: steps, a seek's state, a step too big refused before anything moves.
 #![cfg(unix)]

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The clean marker vouches for exactly what it lists, and a bad one for nothing.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

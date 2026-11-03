@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Connection limits, backpressure, idle timeouts and abort, over loopback
 //! TCP so they run identically on every OS.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]

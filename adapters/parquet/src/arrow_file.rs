@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The Arrow IPC file format: the same columns, for tools that map Arrow directly.
 //! One record batch per query response; no compression (its codecs are C-backed
 //! here), so it trades size for needing no decoder.

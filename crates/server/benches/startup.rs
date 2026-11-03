@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Startup cost: spawning the real `norn` until it answers, over a real database.
 //!
 //! `cargo bench -p norn-server --bench startup`. Loads 16,000 signals for two

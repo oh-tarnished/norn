@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! One writer per stream, enforced by an OS file lock.
 
 use std::fs::{File, OpenOptions, TryLockError};

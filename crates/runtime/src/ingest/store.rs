@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The store thread: encode a generation in parallel, write it in order, fsync,
 //! and only then let go of its journal segments.
 

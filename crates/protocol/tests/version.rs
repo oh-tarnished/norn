@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Protocol version negotiation, as docs/reference/protocol.md specifies it.
 
 use norn_protocol::{PROTOCOL_VERSION, ProtocolVersion, admin};

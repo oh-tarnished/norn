@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Observed values.
 //!
 //! [`Value`] is the closed-today, open-tomorrow set of things a sample can

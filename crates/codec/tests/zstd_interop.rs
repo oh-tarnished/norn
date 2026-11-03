@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Cross-checks the pure-Rust zstd output against the reference C `zstd`
 //! command-line tool (SPEC §14: frames must be standard). The CLI is used
 //! here only, never as a dependency.

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reading and checking every chunk of a stream, without changing a byte.
 
 use std::sync::Arc;

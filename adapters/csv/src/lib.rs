@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! CSV: one row per sample, exact for every value (SPEC §44, §45).
 //!
 //! # Layer contract

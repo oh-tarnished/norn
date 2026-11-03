@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The history the unary reads are tested on, seeded in a real daemon and kept as
 //! plain data, which the tests answer from by brute force. Ported from the MCP
 //! server's tests, whose tools these RPCs replace.

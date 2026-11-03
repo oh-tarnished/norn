@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! SPEC §15 model on disk: 16,000 signals at 1 Hz for one hour (57.6 million
 //! samples) through the real writer, compaction and reader.
 //!

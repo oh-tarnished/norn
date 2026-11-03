@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The `i64` codec family shared by timestamp and integer columns.
 //!
 //! Selection is by measurement: [`encode_auto`] computes the exact payload

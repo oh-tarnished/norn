@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The worker's loop: client jobs in order, and passes on the schedule.
 
 use std::sync::{Arc, PoisonError};

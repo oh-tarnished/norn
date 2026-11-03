@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Live fan-out: never waits, never skips, ends a reader that falls behind.
 #![allow(
     missing_docs,

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The Norn adapter contract: one way for external data to enter and leave Norn.
 //!
 //! # Layer contract

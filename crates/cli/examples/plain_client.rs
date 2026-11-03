@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A client of Norn with nothing of the daemon in it: `norn-ipc`, `norn-protocol`,
 //! `tonic`, `tokio` and `prost-types`. An adapter (such as `bacnet server` with
 //! `[capture] sink = "norn"`) starts from this; see docs/reference/protocol.md, "Writing a client".

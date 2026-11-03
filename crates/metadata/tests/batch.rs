@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Batch creates: all or nothing, safe to repeat, bounded.
 #![allow(
     clippy::unwrap_used,

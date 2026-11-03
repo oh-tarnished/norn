@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The `nornctl` command line, hand-parsed (SPEC §39: a few flags and commands
 //! do not earn a parser dependency).
 

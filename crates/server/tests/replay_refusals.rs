@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Replay's refusals, each by its reason, over real gRPC.
 #![allow(
     clippy::unwrap_used,

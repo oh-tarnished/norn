@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Calendar months in UTC, for retention. The proleptic Gregorian conversions are
 //! Howard Hinnant's `days_from_civil` and `civil_from_days`.
 

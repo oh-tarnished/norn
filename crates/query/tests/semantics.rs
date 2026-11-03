@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! NaN, infinities, signed zero and counter resets, exactly as documented.
 #![allow(
     missing_docs,

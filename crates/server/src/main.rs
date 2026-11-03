@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `norn`: the Norn daemon. Everything but process wiring is in the
 //! `norn_server` library; see its documentation and docs/guides/configuration.md.
 //!

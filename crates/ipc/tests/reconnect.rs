@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A client channel outlives its server: after the server stops and a new one
 //! binds the same local endpoint, the next call on the same channel is answered.
 //!

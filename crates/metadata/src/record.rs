@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What the registry keeps about each resource: the core's descriptor plus
 //! what only the resource layer needs.
 //!

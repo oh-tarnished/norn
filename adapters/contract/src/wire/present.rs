@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Which samples of a batch the daemon already holds.
 //!
 //! The daemon's own duplicate check is bounded: below a signal's newest sample it

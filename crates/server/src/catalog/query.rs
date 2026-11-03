@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What every List and Update shares: pages, the AIP-160 subset, field masks.
 
 use prost_types::FieldMask;

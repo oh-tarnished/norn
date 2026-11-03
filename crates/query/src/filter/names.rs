@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The filter language's words for quality: the protocol's enum value names.
 //!
 //! They live here, as text, because they are part of the query language and this

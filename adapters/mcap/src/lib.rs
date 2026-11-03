@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! MCAP: one channel per signal, protobuf-encoded, for Foxglove and Lichtblick
 //! (SPEC §12, §44, §45).
 //!

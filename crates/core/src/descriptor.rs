@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Descriptions of entities, signals and streams.
 //!
 //! A descriptor is the slowly-changing "what is this" record; samples are the

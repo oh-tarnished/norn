@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `xtask size`: every source file stays under 200 lines (SPEC §2).
 
 use std::path::{Path, PathBuf};

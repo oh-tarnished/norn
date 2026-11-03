@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Calling `QuerySamples` the way a client does.
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Random data, laid out at random, and the brute-force answers.
 
 use std::collections::BTreeMap;

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Parsing the filter language: `field op literal`, joined by ` AND `.
 
 use super::{Clause, Literal, Op, names};

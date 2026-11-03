@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Fuzz-style tests: every truncation and many random corruptions of valid
 //! blocks must return a typed error or decode to *something*, never panic,
 //! and never allocate beyond the declared limits.

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Compaction moves files under a running query; nothing is lost or doubled.
 #![allow(
     missing_docs,

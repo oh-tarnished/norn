@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The drivers' calls to the daemon, all through the public API.
 
 pub(crate) mod appender;

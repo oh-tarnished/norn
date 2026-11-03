@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `BrowseSamples`: one bounded page of what `QuerySamples` streams.
 //!
 //! The query is the stream's, resumed from the page token. The page stops after

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The in-process path to the gRPC services, published by the running server.
 //!
 //! An MCP call is a gRPC call in every way that matters: it goes through

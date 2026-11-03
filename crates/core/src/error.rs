@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The core's typed error model.
 //!
 //! Every failure is a variant carrying the context a caller needs to act on

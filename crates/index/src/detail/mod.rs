@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Per-segment chunk detail: the sidecar format and its cached reads.
 //!
 //! docs/reference/storage.md has the byte table. Chunks sort by `(signal, min_ts, offset)` and

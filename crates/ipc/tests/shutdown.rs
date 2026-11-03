@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Graceful drain, the drain bound, and connection limits at the gRPC level.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A column of values of one kind, stored natively rather than as `Value`s.
 
 use norn_core::{Value, ValueKind};

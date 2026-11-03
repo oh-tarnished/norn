@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # IPC
 
 How applications reach the Norn daemon (SPEC §5–7, §41). Two crates

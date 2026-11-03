@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reading a protobuf message's top level without decoding it, so a batch's
 //! sample count is known before prost allocates for it.
 

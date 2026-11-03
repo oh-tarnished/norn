@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Raw ranges and LATEST equal a brute-force scan, whatever the layout of the data.
 #![allow(
     missing_docs,

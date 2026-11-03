@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reading from Norn with nothing of the daemon in it: `norn-ipc`, `norn-protocol`,
 //! `tonic`, `tokio` and `prost-types`. See docs/guides/querying.md.
 //!

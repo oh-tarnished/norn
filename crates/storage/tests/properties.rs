@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! decode(encode(x)) == x over random sample streams, through real files.
 #![allow(
     missing_docs,

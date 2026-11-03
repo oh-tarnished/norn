@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! LATEST: the newest matching sample of one signal, walking back from the end.
 
 use std::sync::Arc;

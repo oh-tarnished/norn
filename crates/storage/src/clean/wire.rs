@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The `CLEAN` file: all integers little-endian (docs/reference/storage.md).
 
 use std::fs;

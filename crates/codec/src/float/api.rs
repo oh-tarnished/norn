@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Public entry points for `f64` and `f32` columns.
 
 /// `f64` columns: Gorilla XOR or ALP, whichever is smaller per block.

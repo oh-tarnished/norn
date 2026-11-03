@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What the unary reads share: their bounds, and pulling a query's results one at a
 //! time on the calling (blocking) thread.
 

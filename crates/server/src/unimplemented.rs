@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Every service the schema defines but this stage does not implement.
 //!
 //! Each is registered under its real name, so a client calling it gets a

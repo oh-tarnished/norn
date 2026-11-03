@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Norn's gRPC control plane over local IPC (SPEC §6–7).
 //!
 //! **Owns:** running a tonic [`Router`](tonic::transport::server::Router)

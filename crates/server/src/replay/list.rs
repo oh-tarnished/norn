@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `ListReplaySessions` pages: oldest first, resumed after a named session.
 
 use norn_protocol::common::ErrorReason;

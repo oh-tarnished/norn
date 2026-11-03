@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A lookup touches only what it must, and memory stays inside its bounds.
 #![allow(
     missing_docs,

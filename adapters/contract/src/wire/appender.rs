@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! One `AppendSamples` call, one batch in flight: a bounded client by construction.
 
 use std::pin::Pin;

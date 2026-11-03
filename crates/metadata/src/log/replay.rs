@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reading a log back: what is a record, what is a torn tail, what is damage.
 
 use std::path::Path;

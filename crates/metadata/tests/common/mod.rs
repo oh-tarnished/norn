@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Temporary directories and a seeded registry.
 #![allow(dead_code, clippy::unwrap_used)]
 

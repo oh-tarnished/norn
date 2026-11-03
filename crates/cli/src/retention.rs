@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `nornctl retention`: read a stream's policy, set it, apply it.
 
 use std::io::Write;

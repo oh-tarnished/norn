@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `summary.nidx`: the persisted segment list of one stream.
 //!
 //! docs/reference/storage.md has the byte table. Written with `norn_storage::atomic_write`, so

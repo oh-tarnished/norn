@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `[mcp]`: whether the daemon serves MCP, and on what. Off unless asked for: gRPC
 //! on the local endpoint is always on, and a default daemon opens nothing else.
 

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `norn.stream.v1.StreamService`. Export answers `UNIMPLEMENTED`.
 
 use norn_metadata::{StreamPatch, StreamRecord, StreamSpec};

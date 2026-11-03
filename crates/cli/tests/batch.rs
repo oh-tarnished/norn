@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Batch creates from a client, read back by the real nornctl binary, against
 //! a real daemon: what a site's adapter does at every start.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]

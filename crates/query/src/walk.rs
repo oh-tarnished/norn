@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Walking a query's rows in order, slice by slice, in bounded memory.
 
 use std::sync::Arc;

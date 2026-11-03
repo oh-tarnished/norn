@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The daemon's configuration: engine `Config` plus serving and logging.
 //!
 //! Precedence, lowest first: `norn_core::Config::default()` and the

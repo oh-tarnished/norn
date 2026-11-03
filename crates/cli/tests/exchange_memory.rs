@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Export and import hold memory flat as the data grows (SPEC §15, §44, §45).
 //!
 //! Unix only: it samples resident memory with `ps -o rss=`, which Windows lacks

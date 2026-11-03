@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `export` and `import`: a file format, driven through the public API.
 
 use std::fs::{File, OpenOptions};

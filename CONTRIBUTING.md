@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Contributing
 
 Read [spec.md](docs/project/spec.md) and [plan.md](docs/project/plan.md) first; they are binding.
@@ -74,6 +79,14 @@ To preview locally, run `just release-build <host-target>` followed by
 `just release-package <host-target> <version>`; output goes to `dist/`.
 
 ## Licence and contributions
+
+Every file needs SPDX licensing and copyright metadata. Handwritten files carry
+`SPDX-FileCopyrightText: 2026 Srikanth K` and
+`SPDX-License-Identifier: AGPL-3.0-or-later` in comments. `REUSE.toml` supplies
+coverage for generated files, binary descriptors and size-limited sources;
+explicit third-party notices retain their original attribution and licence.
+Canonical licence texts live under `LICENSES/`. CI runs `reuse lint` over the
+whole repository, including files outside the Rust dependency graph.
 
 Norn uses AGPL-3.0-or-later with a separate commercial licence, for every part
 of the repository with no exception. Read the

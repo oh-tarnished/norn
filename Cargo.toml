@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Norn: a domain-independent temporal data engine. See docs/project/spec.md and docs/project/plan.md.
 #
 # Every crate under crates/ and adapters/ is a member by glob, so

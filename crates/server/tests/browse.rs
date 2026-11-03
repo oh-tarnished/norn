@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `BrowseSamples` over real gRPC: every page size reads exactly what the stream
 //! reads, bounds hold, and a token serves only its own request.
 #![allow(

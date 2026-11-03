@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Lookup latency: each scenario starts from an empty index cache and a warm OS
 //! page cache, with random signals and times from a fixed-seed generator.
 

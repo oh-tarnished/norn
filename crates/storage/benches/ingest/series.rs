@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The benchmark's signal population, over the codec benchmark's own shapes.
 
 use norn_core::{Quality, Sample, Sequence, Severity, SignalId, Substatus, Timestamp, Value};

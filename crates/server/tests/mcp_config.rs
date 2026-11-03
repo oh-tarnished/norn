@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `[mcp]` and `--mcp`: off by default, every transport parsed, a non-loopback
 //! address and an unknown key refused.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]

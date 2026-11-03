@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The `norn` command line. Hand-parsed: seven flags do not earn a parser
 //! dependency (SPEC §39).
 

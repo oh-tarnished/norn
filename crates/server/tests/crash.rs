@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! kill -9: a real daemon killed mid-ingest, several times over.
 #![cfg(unix)]
 #![allow(

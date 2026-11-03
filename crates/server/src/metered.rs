@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Charging decode memory to `ipc_bytes`: docs/reference/architecture.md, "Memory budgets".
 //!
 //! tonic buffers a whole message and prost then expands it, so a body is read

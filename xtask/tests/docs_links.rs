@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `docs` over Markdown: links, images and anchors.
 
 use std::collections::BTreeSet;

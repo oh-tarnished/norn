@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Render the Ruby formula after uploading archives, using bacnet-rs a534df3's
 # authenticated asset API URLs and the release's checksum files.
 set -euo pipefail

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The real `norn` binary as a child process, for tests that kill it.
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

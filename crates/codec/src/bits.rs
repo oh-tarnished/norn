@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! LSB-first bit packing. Internal to the crate.
 //!
 //! Values are written least-significant bit first into consecutive bytes;

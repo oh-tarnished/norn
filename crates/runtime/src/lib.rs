@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Norn's daemon lifecycle: health, memory budgets and task ownership.
 //!
 //! # Layer contract

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reading a sidecar's bytes. Everything is checked; `None` means damaged or for
 //! another segment, and the caller repairs from the segment's directory.
 

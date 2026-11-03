@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The handle: opening, taking snapshots, installing updates.
 
 use std::collections::BTreeMap;

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Pulling bounded lines and records out of a reader.
 
 use std::io::{BufRead, Read};

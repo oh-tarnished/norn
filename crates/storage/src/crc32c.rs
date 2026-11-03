@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! CRC-32C (Castagnoli), the checksum over every checksummed region.
 //!
 //! Why CRC-32C rather than xxHash64 (docs/reference/storage.md "Checksums"): a CRC is built

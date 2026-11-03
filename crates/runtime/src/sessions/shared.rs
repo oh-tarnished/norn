@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What callers read of a session without asking its task.
 
 use std::sync::atomic::{AtomicI64, AtomicUsize, Ordering};

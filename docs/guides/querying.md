@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Querying
 
 Read samples and aggregates back with `nornctl query`, or `QueryService.QuerySamples`

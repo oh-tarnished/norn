@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! An immutable view of the whole index, and the nearest-chunk lookup.
 
 use std::collections::BTreeMap;

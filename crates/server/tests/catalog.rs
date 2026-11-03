@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! EntityService, SignalService and StreamService over real gRPC.
 #![allow(
     clippy::unwrap_used,

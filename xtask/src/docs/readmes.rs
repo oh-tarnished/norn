@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Only the root has a README: a second one drifts from the first.
 
 use std::collections::BTreeSet;

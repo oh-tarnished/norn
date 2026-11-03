@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `deps` examines what Norn's own targets link: a dependency only another
 //! target compiles is out of it, and one a shipped target compiles is not.
 

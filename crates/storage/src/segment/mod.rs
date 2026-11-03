@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Segments: one file of many chunks, written once, then sealed.
 //!
 //! A segment is append-only while open and immutable once sealed. Its file

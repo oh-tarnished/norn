@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Per-subsystem memory budgets.
 
 const MIB: u64 = 1024 * 1024;

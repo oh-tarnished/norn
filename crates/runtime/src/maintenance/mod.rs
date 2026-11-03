@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The daemon's upkeep: compaction, retention and verification (SPEC §20, §42,
 //! §43). docs/reference/storage.md, "Maintenance", is the design.
 //!

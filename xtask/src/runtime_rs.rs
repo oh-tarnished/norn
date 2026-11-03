@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The one exception to "no C" and the one place OpenTelemetry may appear:
 //! runtime-rs, beneath the daemon.
 //!

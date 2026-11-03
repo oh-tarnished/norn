@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Loopback TCP: the portable fallback, for tests only.
 //!
 //! TCP carries no OS-level identity check, so any local user can connect.

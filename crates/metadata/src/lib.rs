@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Norn's durable registry of entities, signals and streams (SPEC §10, §11).
 //!
 //! # Layer contract

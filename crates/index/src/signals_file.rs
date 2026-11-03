@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `signals.nsig`: the per-signal summary of one stream, kept across restarts.
 //!
 //! docs/reference/storage.md has the byte table. The file is derived and tied to

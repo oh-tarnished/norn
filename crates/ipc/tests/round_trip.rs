@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A gRPC call round-trips over every transport this OS offers, and the
 //! client never names the transport.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]

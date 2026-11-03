@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Provisioning a large site through real gRPC over a Unix socket:
 //! docs/performance.md, "Provisioning".
 //!

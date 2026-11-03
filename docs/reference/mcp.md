@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # MCP
 
 Implemented: MCP inside the `norn` daemon (SPEC §31, §32, stage 14). An AI agent reads

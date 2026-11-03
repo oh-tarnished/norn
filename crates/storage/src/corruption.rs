@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The description of one damaged region, shared by read errors and recovery
 //! events, so both describe the same damage identically (SPEC §20).
 

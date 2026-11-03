@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Block compression envelope: an encoded block, optionally zstd-compressed.
 //!
 //! Layout: `kind: u8` (0 stored raw, 1 zstd), `level: u8` (0 when raw),

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `nornctl`: see the `norn_cli` library for the commands.
 //!
 //! Exit status: 0 on success, 1 when the daemon is unreachable or refuses,

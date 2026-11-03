@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Writes a Norn long-format CSV: SIGNALS signals at 1 Hz for SECONDS seconds.
 
 A hand-written file in the documented form (docs/reference/adapters.md), with a

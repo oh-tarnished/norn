@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! SPEC §36: `StateAt(T)` equals the state from replaying every event up to T.
 #![allow(
     missing_docs,

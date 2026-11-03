@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Which segments are live: `live_segments`' rule, without its O(n²).
 
 use std::collections::BTreeMap;

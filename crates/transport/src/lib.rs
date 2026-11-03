@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Norn's local IPC transports (SPEC §5–7, §41).
 //!
 //! **Owns:** moving bytes between a local client and the daemon. An

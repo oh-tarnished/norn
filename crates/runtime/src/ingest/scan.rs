@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Reading stored chunks back at startup: where each signal got to, and which
 //! journal samples already made it into a segment.
 

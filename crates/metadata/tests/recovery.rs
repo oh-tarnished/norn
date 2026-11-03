@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The registry on disk: the lock, torn tails, damage, rewriting.
 #![allow(
     clippy::unwrap_used,

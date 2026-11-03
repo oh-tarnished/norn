@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Each job reports independently so one failure does not hide the others.
 name: CI
 
@@ -26,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: fsfe/reuse-action@v6
       - uses: dtolnay/rust-toolchain@1.99.1
       - uses: extractions/setup-just@v4
       - uses: Swatinem/rust-cache@v2

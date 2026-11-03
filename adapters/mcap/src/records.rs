@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! What a file's records mean: schemas and channels remembered, messages decoded.
 
 use std::collections::HashMap;

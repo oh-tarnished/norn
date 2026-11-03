@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Test support for Norn adapters; a dev-dependency only, never shipped.
 //!
 //! # Layer contract

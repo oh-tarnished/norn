@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The write path (SPEC §16–§20); docs/reference/storage.md, "Write path", is the design.
 //!
 //! [`Ingest::admit`] is the only way in. Samples go admission → bounded queue →

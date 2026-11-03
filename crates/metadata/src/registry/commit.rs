@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Group commit: many mutations, one fsync, and rewriting a mostly dead log.
 //!
 //! One committer at a time is the *leader*: it marks a sync in progress, notes

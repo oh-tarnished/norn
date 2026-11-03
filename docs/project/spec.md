@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Norn — Master Architecture & Implementation Specification
 
 The authoritative brief for Norn, as given by the project owner on 2026-11-01.

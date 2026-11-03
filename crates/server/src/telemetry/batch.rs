@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Deciding about one batch: validate whole, then admit whole.
 
 use norn_core::{Sample, Sequence};

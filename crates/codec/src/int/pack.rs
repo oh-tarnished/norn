@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Patched frame-of-reference bit packing of `i64` in miniblocks.
 //!
 //! Each miniblock of up to [`MINIBLOCK`] values stores a reference `base`

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Choosing what to compact and what retention removes: pure, over index records.
 
 use norn_core::Timestamp;

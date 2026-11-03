@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Writes synthetic segment files: real header, directory and trailer, no bodies.
 
 use std::fs;

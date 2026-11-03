@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Holds calls until the daemon runs. The listener opens in `Daemon::bind`, which
 //! is what claims the endpoint, but a call is answered only once `Daemon::run` has
 //! started: a client that connects early waits, as it would in a socket's backlog.

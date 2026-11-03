@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Loading configuration: defaults, the TOML file, and flags over it.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

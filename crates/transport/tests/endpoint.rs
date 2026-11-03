@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Endpoint syntax: parsing, rejection and round-tripping.
 #![allow(clippy::unwrap_used, clippy::panic)]
 

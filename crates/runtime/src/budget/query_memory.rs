@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The query engine's account: this budget, seen through `norn-query`'s trait.
 
 use std::time::Duration;

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The byte layout is pinned: changing it without a version bump fails here.
 #![allow(
     missing_docs,

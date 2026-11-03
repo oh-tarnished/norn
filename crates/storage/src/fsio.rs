@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! File I/O helpers: positioned reads that count bytes, and atomic replace.
 //!
 //! Reads are plain `seek` + `read_exact`, not memory maps: mapping needs

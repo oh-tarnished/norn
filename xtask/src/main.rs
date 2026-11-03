@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! `cargo run -p xtask -- <gate>`: runs one gate, or `gates` for all of them.
 //!
 //! Exits non-zero when any gate fails, including a gate that examined

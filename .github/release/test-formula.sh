@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Release metadata must yield complete, authenticated Homebrew downloads.
 set -euo pipefail
 scripts="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

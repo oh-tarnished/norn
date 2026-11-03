@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Norn — delivery plan
 
 How the work in [spec.md](spec.md) is split across parallel agents. Read

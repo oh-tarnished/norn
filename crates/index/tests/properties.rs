@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Index answers match a brute-force scan over random segment sets.
 #![allow(
     missing_docs,

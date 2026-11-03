@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! A flipped byte anywhere yields a typed report; good chunks stay readable.
 #![allow(
     missing_docs,

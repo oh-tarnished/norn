@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! MCP inside the daemon: the tools protoc-gen-mcp generates from the
 //! `(mcp.v1.tool)` annotations, one handler per service, combined into one endpoint
 //! and served over stdio, loopback HTTP, a Unix socket or a named pipe.

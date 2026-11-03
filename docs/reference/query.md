@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Srikanth K
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Query
 
 Implemented in `crates/query` (`norn-query`, SPEC §22, stage 9) and served as

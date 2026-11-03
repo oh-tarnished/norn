@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Timing `ComputeState`, and a stand-in for what checkpoints would cost.
 
 use std::future::Future;

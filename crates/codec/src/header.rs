@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The self-describing block header shared by every codec (SPEC §40).
 //!
 //! Layout: `codec_id: u8`, `codec_version: u8`, `count: varint`. The payload

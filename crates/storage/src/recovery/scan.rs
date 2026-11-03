@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The recovery scan: verify every frame, and resynchronise past damage.
 
 use crate::error::{CorruptionKind, Result, StorageError};

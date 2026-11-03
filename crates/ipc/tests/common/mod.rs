@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Shared fixtures: a tiny gRPC service (the standard health protocol, via
 //! tonic-health) and helpers to run it over an endpoint.
 #![allow(dead_code, clippy::unwrap_used)]

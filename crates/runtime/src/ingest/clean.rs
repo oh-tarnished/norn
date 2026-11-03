@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The clean-shutdown marker's two ends: writing it after a close, and a start
 //! that needs no more than it (docs/reference/storage.md, "Clean shutdown").
 

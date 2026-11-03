@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Shared helpers: a scratch database, real segments, and a brute-force oracle.
 #![allow(dead_code, clippy::unwrap_used, clippy::indexing_slicing)]
 

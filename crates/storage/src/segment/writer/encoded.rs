@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! Appending a frame that was encoded elsewhere, so encoding can run in
 //! parallel while a stream's writes stay sequential (SPEC §17).
 

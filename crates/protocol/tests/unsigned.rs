@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! AIP-141 forbids unsigned wire types, so an unsigned 64-bit value travels as
 //! the `int64` with the same bits (docs/reference/protocol.md, "Unsigned values").
 

@@ -1,3 +1,6 @@
+//! SPDX-FileCopyrightText: 2026 Srikanth K
+//! SPDX-License-Identifier: AGPL-3.0-or-later
+
 //! The storage layer's typed errors.
 //!
 //! Callers match on variants, never on messages. Corruption is its own
