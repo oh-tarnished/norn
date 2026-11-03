@@ -27,10 +27,10 @@ acknowledgement before any fix is discussed in public.
 - **Supply chain.** `cargo-deny` checks advisories, licences and sources in CI, and
   `xtask deps` keeps C out of the graph.
 
-## Shared memory (0.2.0, off by default)
+## Shared memory (1.0.0-rc1, off by default)
 
 The iceoryx2 data plane ([docs/reference/shared-memory.md](docs/reference/shared-memory.md))
-arrives with Norn 0.2.0 and protocol 1.7. It is off unless
+arrives with Norn 1.0.0-rc1 and protocol 1.7. It is off unless
 `[shared_memory] enabled = true`, offered only on a Unix socket endpoint, whose `0700`
 directory proves the client runs as the daemon's user, and never on Windows, where
 iceoryx2 0.10 cannot make a mapping owner-only.

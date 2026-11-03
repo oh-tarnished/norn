@@ -13,14 +13,17 @@ mod shm_common;
 use std::io;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 use common::{batch, double, stored};
 use norn_ipc::{
     AppendCall, AppendOptions, Attach, DataPlane, DataPlaneKind, SendFuture, SharedMemoryTicket,
 };
+use norn_protocol::rpc::StatusExt;
 use norn_protocol::telemetry::AcknowledgementLevel::Buffered;
 use norn_shared_memory::SharedMemory;
 use shm_common::{call, eventually, on, start};
+use tonic::Code;
 
 struct Tracked(Arc<AtomicUsize>);
 
@@ -108,4 +111,35 @@ async fn abandoning_the_replies_releases_the_publisher_and_ring() {
     })
     .await;
     d.stop().await;
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn an_idle_ring_call_reports_shutdown_and_does_not_hold_the_drain() {
+    let d = start(&on("")).await;
+    let opened = call(&d.channel).await;
+    assert_eq!(opened.plane(), DataPlaneKind::SharedMemory);
+    opened
+        .send(batch(1, vec![double("t", 1)], Buffered))
+        .await
+        .unwrap();
+    let (sender, mut replies) = opened.into_parts();
+    let first = replies.message().await.unwrap().unwrap();
+    assert_eq!(first.batch_id, 1);
+    assert!(first.error.is_none(), "{first:?}");
+    d.cancel.cancel();
+    let status = tokio::time::timeout(Duration::from_secs(4), replies.message())
+        .await
+        .expect("an idle ring call held the drain")
+        .unwrap_err();
+    assert_eq!(status.code(), Code::Unavailable);
+    let info = status.get_details_error_info().unwrap();
+    assert_eq!(info.reason, "ERROR_REASON_SHUTTING_DOWN");
+    let report = tokio::time::timeout(Duration::from_secs(4), d.task)
+        .await
+        .expect("the daemon did not stop promptly")
+        .unwrap()
+        .unwrap();
+    assert_eq!(report.aborted, 0);
+    drop(sender);
+    let _ = std::fs::remove_dir_all(d.data.parent().unwrap());
 }

@@ -47,8 +47,13 @@ impl Telemetry {
         let (out, responses) = mpsc::channel(capacity);
         let (waits_tx, waits) = mpsc::channel(self.max_pending.max(1));
         let reader = self.clone().read(input, out.clone(), waits_tx);
+        let last = out.clone();
         self.calls.spawn(async move {
-            tokio::join!(reader, forward(waits, out));
+            let (drained, ()) = tokio::join!(reader, forward(waits, out));
+            // Answer every admitted batch before reporting why the call ends.
+            if drained {
+                let _ = last.send(Err(crate::events::shutting_down())).await;
+            }
         });
         Responses(responses)
     }

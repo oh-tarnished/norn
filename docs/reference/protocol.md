@@ -196,7 +196,7 @@ admitted below the requested level, exactly one more response follows: at the
 requested level, or with `error` set if it can no longer reach it. First
 responses arrive in batch order, and so do second responses within a stream.
 Closing the request side lets in-flight batches finish; the daemon then closes
-its side. From 0.2.0, a daemon that starts shutting down stops reading new batches
+its side. From 1.0.0-rc1, a daemon that starts shutting down stops reading new batches
 on an open call, answers every batch it already admitted, and then ends the call with
 `UNAVAILABLE` and `ERROR_REASON_SHUTTING_DOWN`; a client reconnects and resends
 what was not acknowledged, as after any broken call. A call held open between batches
@@ -416,7 +416,7 @@ Compaction is lossless and crash-safe, and ingestion continues during it (SPEC �
 damage are left alone and counted in `skipped_segment_count`.
 
 `VerifyStream` reads every chunk of every sealed segment and changes nothing. From
-0.2.0 it also reads the chunks already fsynced to the open segment, checking each
+1.0.0-rc1 it also reads the chunks already fsynced to the open segment, checking each
 frame's header and CRC; samples still buffered in memory are in no file and are not
 examined. `segment_count` counts sealed segments only, while `chunk_count` and
 `sample_count` include the open segment's chunks. Finding
@@ -483,8 +483,11 @@ package, all versioned in lockstep; it changes only with a new package
 version, which is the only place wire-incompatible changes may happen. `minor`
 counts compatible additions within a major: methods, fields, enum values,
 error reasons, capabilities. `buf breaking` enforces that a minor never breaks
-the wire or JSON form. The current release speaks 1.6
-(`norn_protocol::PROTOCOL_VERSION`); the next, 0.2.0, speaks 1.7. 1.1 added error reasons, `Server.recovery` and
+the wire or JSON form. The published v0.1.0 release speaks 1.6; the next,
+1.0.0-rc1, speaks 1.7 (`norn_protocol::PROTOCOL_VERSION`).
+The protocol crate is versioned `1.0.0-rc1` with the rest of the workspace;
+this release identifier is separate from the integer major/minor wire version.
+1.1 added error reasons, `Server.recovery` and
 `Server.index` to 1.0. 1.2 added `StreamStats.buffered_sample_count` and
 `corrupt_sample_count`, changed `sample_count` to include buffered samples and
 exclude corrupt ones, and defined `AGGREGATE_FUNCTION_RATE` over counter resets;
@@ -500,7 +503,7 @@ start, and retention's unit is the segment, as it always had to be. 1.5 added
 1.6 added `BatchCreateEntities` and `BatchCreateSignals`. A client learns it may use
 them from an agreed minor of 6 or more; a 1.5 daemon answers them `UNIMPLEMENTED`.
 
-1.7 (Norn 0.2.0) adds the opt-in [shared-memory](shared-memory.md) data plane: the
+1.7 (Norn 1.0.0-rc1) adds the opt-in [shared-memory](shared-memory.md) data plane: the
 message `norn.admin.v1.SharedMemoryPlane` (`service`, `root_directory`, `name_prefix`,
 `max_frame_bytes`, `slot_count`, `max_rings`, `segment_bytes`) and the field
 `NegotiateProtocolResponse.shared_memory`. The daemon sets that field only when it
@@ -549,7 +552,7 @@ the replay idle timeout (SPEC §16, §41).
 The daemon offers `APPEND_SAMPLES`, `ACK_PERSISTED`, `QUERY_RANGE`,
 `QUERY_AGGREGATES`, `STATE_AT`, `LIVE_SUBSCRIPTION`, `REPLAY`, `COMPACTION`,
 `RETENTION`, `VERIFY`, and `ACK_DURABLE` unless `[storage] durable_acks = false`.
-From 0.2.0 it also offers `SHARED_MEMORY` when `[shared_memory] enabled = true` and the
+From 1.0.0-rc1 it also offers `SHARED_MEMORY` when `[shared_memory] enabled = true` and the
 endpoint is a Unix socket. `Limits` are all set and all
 enforced. `max_batch_bytes` is
 the 4 MiB gRPC message limit, lowered to an eighth of `ipc_bytes` if that is

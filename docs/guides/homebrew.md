@@ -5,8 +5,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Homebrew service
 
-Norn 0.1.0 ships the `norn` daemon, the `nornctl` client, all interchange
-adapters and the built-in MCP server in one package. The release workflow
+The upcoming `norn v1.0.0-rc1` release packages the `norn` daemon, the `nornctl`
+client, all interchange adapters and the built-in MCP server together. The release workflow
 publishes the macOS and Linux archives and updates `Formula/norn.rb` in
 `shokki-engineering/homebrew-tap` as **Walle**.
 
@@ -105,12 +105,12 @@ created it. A separate GitHub bot account is not required. The repository
 variable `HOMEBREW_TAP_REPOSITORY` can override the default
 `shokki-engineering/homebrew-tap` if the tap moves.
 
-For v0.1.0, review the [changelog](../project/changelog.md), let CI pass on
+For v1.0.0-rc1, review the [changelog](../project/changelog.md), let CI pass on
 the release commit, then tag that commit:
 
 ```sh
-git tag -a v0.1.0 -m "Norn 0.1.0"
-git push origin v0.1.0
+git tag -a v1.0.0-rc1 -m "norn v1.0.0-rc1"
+git push origin v1.0.0-rc1
 ```
 
 The Release workflow builds five platform archives with SHA-256 checksums,
@@ -123,8 +123,8 @@ To regenerate a formula, put the release's checksum files and its API metadata
 in one directory, then run:
 
 ```sh
-gh api repos/shokki-engineering/norn/releases/tags/v0.1.0 > dist/release.json
-bash .github/release/formula.sh 0.1.0 dist v0.1.0 > dist/norn.rb
+gh api repos/shokki-engineering/norn/releases/tags/v1.0.0-rc1 > dist/release.json
+bash .github/release/formula.sh 1.0.0-rc1 dist v1.0.0-rc1 > dist/norn.rb
 ```
 
 The renderer refuses missing or duplicate platform archives, malformed

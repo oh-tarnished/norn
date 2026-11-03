@@ -98,6 +98,13 @@ impl Telemetry {
         self
     }
 
+    /// Offers shared-memory rings when the daemon has a plane available.
+    #[must_use]
+    pub(crate) fn plane(mut self, plane: Option<Arc<Plane>>) -> Self {
+        self.plane = plane;
+        self
+    }
+
     /// Reads batches until the client stops, or the daemon starts draining:
     /// first responses in batch order, each admitted batch's completion queued
     /// for [`forward`]. True when it stopped for the drain.
@@ -118,9 +125,9 @@ impl Telemetry {
             let next = tokio::select! {
                 biased;
                 () = draining.cancelled() => return true,
-                next = input.message() => next,
+                next = input.next() => next,
             };
-            let request = match next {
+            let (request, oversized, paid) = match next {
                 Ok(Some(request)) => request,
                 Ok(None) => return false,
                 Err(status) => {
@@ -167,22 +174,10 @@ impl TelemetryService for Telemetry {
         &self,
         request: Request<Streaming<AppendSamplesRequest>>,
     ) -> Result<Response<Responses>, Status> {
-        let held = request.extensions().get::<Arc<Held>>().cloned();
-        let input = request.into_inner();
-        let capacity = self.max_pending.saturating_mul(2).max(16);
-        let (out, responses) = mpsc::channel(capacity);
-        let (waits_tx, waits) = mpsc::channel(self.max_pending.max(1));
-        let reader = self.clone().read(input, held, out.clone(), waits_tx);
-        let last = out.clone();
-        self.calls.spawn(async move {
-            let (drained, ()) = tokio::join!(reader, forward(waits, out));
-            // Every admitted batch has had its answer: now say why the call
-            // ends, so the client reconnects rather than taking it as done.
-            if drained {
-                let _ = last.send(Err(crate::events::shutting_down())).await;
-            }
-        });
-        Ok(Response::new(Responses(responses)))
+        let (service, input) = self.source(request).await;
+        let mut response = Response::new(self.drive(input));
+        grant::announce(&mut response, service);
+        Ok(response)
     }
 
     async fn subscribe_events(
