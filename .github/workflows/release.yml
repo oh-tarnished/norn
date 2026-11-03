@@ -127,13 +127,10 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" > dist/release.json
           bash .github/release/formula.sh "$VERSION" dist "$TAG" > dist/norn.rb
           gh release upload "$TAG" dist/norn.rb
-          cp .github/release/tap.md dist/tap-README.md
       - uses: actions/upload-artifact@v7
         with:
           name: homebrew-formula
-          path: |
-            dist/norn.rb
-            dist/tap-README.md
+          path: dist/norn.rb
           if-no-files-found: error
 
   tap:
@@ -154,8 +151,9 @@ jobs:
           git clone --branch main "https://github.com/${TAP_REPOSITORY}.git" tap
           mkdir -p tap/Formula
           cp norn.rb tap/Formula/norn.rb
-          cp tap-README.md tap/README.md
           cd tap
+          ruby scripts/update_readme.rb
+          ruby scripts/update_readme.rb --check
           git config user.name "Walle"
           git config user.email "walle@shokki.engineering"
           git add Formula/norn.rb README.md

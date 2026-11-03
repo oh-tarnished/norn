@@ -92,8 +92,10 @@ gh secret set HOMEBREW_TAP_TOKEN --repo shokki-engineering/norn
 Paste the PAT at the hidden prompt. The built-in `GITHUB_TOKEN` publishes
 Norn's release; this separate PAT writes the cross-repository tap update.
 The workflow checks the PAT's tap write access before building, and fails
-if it is absent or unusable. Initialize an empty tap with a README before
-the first release. Renew the PAT before its expiry using the same command.
+if it is absent or unusable. The tap must have a `main` branch, its README
+markers and `scripts/update_readme.rb`; the existing tap already supplies
+them. Release updates preserve the README and regenerate its package lists.
+Renew the PAT before its expiry using the same command.
 
 Tap commits use author and committer **Walle** (`walle@shokki.engineering`).
 This is a Git commit identity; the PAT authenticates as the account that
