@@ -30,6 +30,7 @@ jobs:
       - uses: extractions/setup-just@v4
       - uses: Swatinem/rust-cache@v2
       - run: just gates
+      - run: python3 -m unittest discover -s .github/release -p 'test_*.py'
 
   test:
     name: Build, lint and test (${{ matrix.os }})

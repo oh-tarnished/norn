@@ -96,3 +96,49 @@ jobs:
           gh release create "$TAG" dist/* --target "$GITHUB_SHA" \
             --title "$TITLE" --notes-file .github/release/norn.md \
             --generate-notes "${flags[@]}"
+      - name: Generate the authenticated Homebrew formula
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" > dist/release.json
+          python3 .github/release/formula.py "$VERSION" dist "$TAG" > dist/norn.rb
+          gh release upload "$TAG" dist/norn.rb
+      - uses: actions/upload-artifact@v7
+        with:
+          name: homebrew-formula
+          path: dist/norn.rb
+          if-no-files-found: error
+
+  tap:
+    name: Update the private Homebrew tap
+    needs: [plan, release]
+    runs-on: ubuntu-22.04
+    env:
+      TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        if: env.TAP_TOKEN != ''
+        with:
+          repository: ${{ vars.HOMEBREW_TAP_REPOSITORY || 'regalium-os/homebrew-tap' }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+      - uses: actions/download-artifact@v8
+        if: env.TAP_TOKEN != ''
+        with:
+          name: homebrew-formula
+      - name: Commit the release formula
+        if: env.TAP_TOKEN != ''
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          mkdir -p tap/Formula
+          cp norn.rb tap/Formula/norn.rb
+          cd tap
+          git config user.name "Norn release"
+          git config user.email "releases@shokki.invalid"
+          git add Formula/norn.rb
+          if ! git diff --cached --quiet; then
+            git commit -m "norn $VERSION"
+            git push
+          fi
+      - name: Manual tap update
+        if: env.TAP_TOKEN == ''
+        run: echo "HOMEBREW_TAP_TOKEN is unset; copy norn.rb from the release into Formula/norn.rb in the tap."

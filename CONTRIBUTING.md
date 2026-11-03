@@ -67,7 +67,9 @@ A `vX.Y.Z` tag matching every workspace package version, or a manual Release
 workflow run, builds `norn` and `nornctl` for Linux x86-64/AArch64, macOS
 Intel/Apple Silicon and Windows x86-64. It attaches archives, documentation
 and SHA-256 checksums to a GitHub release. Linux builds target glibc 2.35.
-Prerelease versions create prereleases. There is no crate or Homebrew publish.
+Prerelease versions create prereleases. Crates remain unpublished. The release
+also renders a private-download Homebrew formula and updates the tap when
+`HOMEBREW_TAP_TOKEN` is configured; see [Homebrew](docs/guides/homebrew.md).
 To preview locally, run `just release-build <host-target>` followed by
 `just release-package <host-target> <version>`; output goes to `dist/`.
 

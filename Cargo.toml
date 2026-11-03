@@ -16,7 +16,7 @@ version = "0.1.0"
 edition = "2024"
 # All crates build on Rust 1.99; rust-toolchain.toml pins the patch release.
 rust-version = "1.99"
-repository = "https://github.com/oh-tarnished/norn"
+repository = "https://github.com/shokki-engineering/norn"
 
 # Every third-party crate the workspace uses is declared once, here, with the
 # reason it earns its place (SPEC §39).

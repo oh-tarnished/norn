@@ -6,9 +6,9 @@
 It stores the history of systems, answers questions about any instant of it, and replays it.</p>
 
 <p>
-<a href="https://github.com/oh-tarnished/norn/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/oh-tarnished/norn/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI"></a>
-<a href="https://github.com/oh-tarnished/norn/releases"><img alt="Release" src="https://img.shields.io/github/v/release/oh-tarnished/norn?include_prereleases&style=flat-square&label=release"></a>
-<a href="https://github.com/oh-tarnished/norn/commits/main"><img alt="Revision date" src="https://img.shields.io/github/last-commit/oh-tarnished/norn/main?style=flat-square&label=revision"></a>
+<a href="https://github.com/shokki-engineering/norn/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/shokki-engineering/norn/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI"></a>
+<a href="https://github.com/shokki-engineering/norn/releases"><img alt="Release" src="https://img.shields.io/github/v/release/shokki-engineering/norn?include_prereleases&style=flat-square&label=release"></a>
+<a href="https://github.com/shokki-engineering/norn/commits/main"><img alt="Revision date" src="https://img.shields.io/github/last-commit/shokki-engineering/norn/main?style=flat-square&label=revision"></a>
 <a href="LICENSE"><img alt="Licence: AGPL-3.0-or-later or commercial" src="https://img.shields.io/badge/licence-AGPL--3.0--or--later%20%7C%20commercial-blue?style=flat-square"></a>
 <a href="#installation"><img alt="Platforms: Linux, macOS, Windows" src="https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square"></a>
 </p>
@@ -68,6 +68,7 @@ before the release and what comes after it.
 | Guide                                             | What it covers                             | State     |
 | ------------------------------------------------- | ------------------------------------------ | --------- |
 | [Getting started](docs/guides/getting-started.md) | build, run, create, append, list           | works     |
+| [Homebrew](docs/guides/homebrew.md)             | private packages, service, upgrades, health | release setup |
 | [Configuration](docs/guides/configuration.md)     | every key and its default                  | works     |
 | [Ingesting data](docs/guides/ingesting-data.md)   | batches, acknowledgements, backpressure    | works     |
 | [Operations](docs/guides/operations.md)           | stopping, data directory, recovery, damage | partly    |
@@ -354,7 +355,7 @@ linter: see [CONTRIBUTING.md](CONTRIBUTING.md).
 ### Build from source
 
 ```sh
-git clone https://github.com/oh-tarnished/norn.git
+git clone https://github.com/shokki-engineering/norn.git
 cd norn
 cargo build --release --locked -p norn-server -p norn-cli
 ```
