@@ -103,6 +103,8 @@ impl Registry {
         // Read under the mutex, after our own append: covers `lsn`.
         let target = self.written.load(Ordering::Acquire);
         drop(g);
+        // On macOS std issues F_FULLFSYNC here, flushing the drive's cache as
+        // well (norn-storage's `SegmentWriter::sync` has the trade-off).
         let flushed = file.sync_data();
         let mut g = self.lock_syncer();
         g.syncing = false;

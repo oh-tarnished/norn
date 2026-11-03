@@ -12,6 +12,16 @@ impl Ingest {
     /// Refuses every new batch with `SHUTTING_DOWN`. Admitted ones finish.
     pub fn begin_drain(&self) {
         self.draining.store(true, Ordering::Release);
+        self.drained.cancel();
+    }
+
+    /// Cancelled once [`begin_drain`](Self::begin_drain) has been called: what a
+    /// call waiting on its client for the next batch selects on, so an idle
+    /// call ends at shutdown instead of holding its connection, and the
+    /// server's graceful drain, open until the drain bound cuts it.
+    #[must_use]
+    pub fn draining(&self) -> tokio_util::sync::CancellationToken {
+        self.drained.clone()
     }
 
     /// Refuses new batches, commits everything admitted, seals, joins every thread,

@@ -49,7 +49,18 @@ impl fmt::Display for CliError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Connect { endpoint, source } => {
-                write!(f, "cannot reach the daemon at {endpoint}: {source}")
+                write!(f, "cannot reach the daemon at {endpoint}: {source}")?;
+                // A transport error alone does not say why. On a socket the two
+                // usual causes are a daemon that is not running, and one that
+                // refused to start because the socket's directory was open to
+                // other users: it must be 0700, and the daemon's log says so.
+                if matches!(endpoint, Endpoint::Unix(_)) {
+                    f.write_str(
+                        " (is the daemon running? It also refuses to start unless the \
+                         socket's directory is mode 0700; its log says which)",
+                    )?;
+                }
+                Ok(())
             }
             Self::Call { method, status } => {
                 write!(f, "{method}: {:?}: {}", status.code(), status.message())?;

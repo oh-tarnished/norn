@@ -22,7 +22,8 @@ use crate::retention::retention;
 use crate::state::state;
 use crate::subscribe::subscribe;
 use crate::transfer::{export, import};
-use crate::upkeep::{compact, verify};
+use crate::upkeep::compact;
+use crate::verify::verify;
 
 pub(crate) fn call(method: &'static str) -> impl FnOnce(tonic::Status) -> CliError {
     move |status| CliError::Call { method, status }

@@ -36,6 +36,7 @@ mod subscribe;
 mod time;
 mod transfer;
 mod upkeep;
+mod verify;
 
 use std::time::Duration;
 

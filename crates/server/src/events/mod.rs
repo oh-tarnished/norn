@@ -176,7 +176,9 @@ fn full() -> Status {
     )
 }
 
-fn shutting_down() -> Status {
+/// `UNAVAILABLE`, `ERROR_REASON_SHUTTING_DOWN`: what a call cut short by the
+/// drain ends with.
+pub(crate) fn shutting_down() -> Status {
     let text = "the daemon is shutting down";
     error_info(Code::Unavailable, ErrorReason::ShuttingDown, text, [])
 }

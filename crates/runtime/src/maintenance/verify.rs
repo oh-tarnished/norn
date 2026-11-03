@@ -12,9 +12,10 @@ use tokio_util::sync::CancellationToken;
 
 use super::Maintenance;
 use super::ops::{Failure, Operation};
+use super::verify_open::open_segment_count;
 
 /// The most damaged regions a report describes; the counts cover all.
-const MAX_REPORTED: usize = 64;
+pub(super) const MAX_REPORTED: usize = 64;
 
 /// One region that failed a check.
 ///
@@ -40,10 +41,21 @@ pub struct DamagedRegion {
 pub struct VerifyReport {
     /// Sealed segments read.
     pub segments: u64,
-    /// Chunks read.
+    /// Chunks read, in sealed and open segments.
     pub chunks: u64,
-    /// Samples their directories claim.
+    /// Samples those chunks claim: by the directory of a sealed segment, by the
+    /// frame header of a chunk in an open one.
     pub samples: u64,
+    /// Open segments whose written chunks were read: a stream that has not
+    /// filled or aged a segment yet holds everything here.
+    pub open_segments: u64,
+    /// Of `chunks`, those in open segments.
+    pub open_chunks: u64,
+    /// Of `samples`, those in open segments.
+    pub open_samples: u64,
+    /// Samples still in the write path's buffers, in no segment yet, so not
+    /// examined. They reach one within `max_chunk_age`.
+    pub buffered_samples: u64,
     /// Bytes read.
     pub bytes: u64,
     /// Regions that failed a check.
@@ -55,9 +67,12 @@ pub struct VerifyReport {
 }
 
 impl Maintenance {
-    /// Reads every chunk of `stream`'s sealed segments and checks both CRCs. The
-    /// worker runs one job at a time, so no compaction or retention removes a file
-    /// from under this. Damage is reported, and counted as `note_corruption` does.
+    /// Reads every chunk of `stream`'s sealed segments and checks both CRCs, then
+    /// every chunk written to its open segment, frame by frame (an open segment
+    /// has no directory yet). The worker runs one job at a time, so no compaction
+    /// or retention removes a file from under this. Damage is reported, and
+    /// counted as `note_corruption` does. Samples still buffered are counted in
+    /// [`VerifyReport::buffered_samples`], not examined.
     ///
     /// Cost: every byte, one frame in memory at a time. Reads go through the OS
     /// page cache, so this checks what the kernel returns.
@@ -77,7 +92,9 @@ impl Maintenance {
         };
         let snapshot = index.snapshot();
         let records = snapshot.segments(stream);
-        op.total.store(records.len() as u64, Ordering::Relaxed);
+        let open = snapshot.tail_locators(stream);
+        let total = records.len() + open_segment_count(&open);
+        op.total.store(total as u64, Ordering::Relaxed);
         let dir = stream_dir(self.ingest.root(), stream);
         let opts = self.ingest.storage_options();
         for record in records {
@@ -113,6 +130,8 @@ impl Maintenance {
             }
             op.done.fetch_add(1, Ordering::Relaxed);
         }
+        self.verify_open(stream, &dir, &open, &mut report, op, cancel)?;
+        report.buffered_samples = self.ingest.stats(stream).buffered;
         Ok(report)
     }
 }

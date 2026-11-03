@@ -15,6 +15,7 @@ use norn_storage::{Chunk, EncodedChunk, StorageError, StorageOptions, StreamWrit
 use super::Context;
 use super::buffer::Generation;
 use super::indexing::Publisher;
+use super::seal::OpenSegment;
 use super::shared::Shared;
 
 /// Chunks each encoding thread takes per round, so the frames waiting to be
@@ -116,6 +117,7 @@ pub(crate) fn run(
         Err(e) => return fail(&e),
     };
     let mut publisher = Publisher::new(ctx.index.get().map(Arc::as_ref), shared);
+    let mut open = OpenSegment::default();
     // The newest generation stored and not yet known to be in the index.
     let mut unretired = None;
     let retire = |id: &mut Option<u64>| {
@@ -150,6 +152,10 @@ pub(crate) fn run(
                 retire(&mut unretired);
             }
             Err(RecvTimeoutError::Disconnected) => break,
+        }
+        open.note(&writer, shared, ctx.clock.now());
+        if let Err(e) = open.seal_if_asked(&mut writer, shared, &mut publisher) {
+            return fail(&e);
         }
     }
     match writer.close() {

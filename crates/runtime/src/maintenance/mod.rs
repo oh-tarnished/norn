@@ -16,6 +16,7 @@ mod report;
 mod retention;
 mod support;
 mod verify;
+mod verify_open;
 mod worker;
 
 pub use compaction::CompactionTotals;

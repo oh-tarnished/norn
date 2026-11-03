@@ -122,6 +122,13 @@ impl Cursor {
     /// Reads the next page. Blocks on the disk. After a failure the query is
     /// reopened from the last sample taken, so calling this again retries.
     pub(crate) fn fill(&mut self) -> Result<(), ReplayError> {
+        // The drained page's charge goes before the next is asked for: with a
+        // budget of about one page, `next_page` would otherwise wait on memory
+        // only this cursor could free, and the replay stalls after one page.
+        // Events still on their way hold their own clones of it.
+        if self.page.is_empty() {
+            self.hold = None;
+        }
         let mut query = match self.query.take() {
             Some(query) => query,
             None => self.open()?,

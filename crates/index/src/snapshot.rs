@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use norn_core::{SignalId, StreamId};
+use norn_core::{SignalId, StreamId, Timestamp};
 
 use crate::locator::ChunkLocator;
 use crate::plan::{Plan, PlanRequest};
@@ -59,6 +59,29 @@ impl Snapshot {
         self.streams
             .get(&stream)
             .map_or(0, |v| v.tails.iter().map(|t| t.len()).sum())
+    }
+
+    /// Every chunk of `stream` in unsealed tails, segment by segment in file
+    /// order: what has been written and fsynced to a segment that is still open,
+    /// which [`segments`](Self::segments) does not list. `sealed` is false on
+    /// each. Allocates 64 bytes a chunk; touches no disk.
+    #[must_use]
+    pub fn tail_locators(&self, stream: StreamId) -> Vec<ChunkLocator> {
+        let Some(view) = self.streams.get(&stream) else {
+            return Vec::new();
+        };
+        let mut out = Vec::with_capacity(view.tails.iter().map(|t| t.len()).sum());
+        for tail in view.tails.iter() {
+            tail.for_each(Timestamp::MIN, Timestamp::MAX, |chunk| {
+                out.push(ChunkLocator {
+                    stream,
+                    segment: tail.segment,
+                    sealed: false,
+                    chunk: *chunk,
+                });
+            });
+        }
+        out
     }
 
     /// The file holding `locator`'s chunk. Allocates; touches no disk.

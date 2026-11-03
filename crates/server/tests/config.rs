@@ -166,3 +166,15 @@ fn the_maintenance_section_sets_the_schedule_and_a_bad_window_is_refused() {
     let zero = "[maintenance]\nretention_interval_ms = 0\n";
     assert!(DaemonConfig::from_toml(zero).is_err());
 }
+
+#[test]
+fn the_storage_section_sets_how_long_a_segment_may_stay_open_and_zero_is_refused() {
+    let default = Config::default().storage().max_segment_open_time;
+    assert_eq!(default, Duration::from_secs(3600), "the documented default");
+    let text = "[storage]\nmax_segment_open_time_ms = 90000\n";
+    let config = DaemonConfig::from_toml(text).unwrap();
+    let open = config.engine().storage().max_segment_open_time;
+    assert_eq!(open, Duration::from_secs(90));
+    let zero = "[storage]\nmax_segment_open_time_ms = 0\n";
+    assert!(DaemonConfig::from_toml(zero).is_err());
+}

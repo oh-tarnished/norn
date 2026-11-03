@@ -50,6 +50,7 @@ pub(super) struct Meta {
 pub(super) struct Storage {
     max_segment_bytes: Option<u64>,
     max_segment_age_ms: Option<u64>,
+    max_segment_open_time_ms: Option<u64>,
     group_commit_interval_ms: Option<u64>,
     max_chunk_age_ms: Option<u64>,
     durable_acks: Option<bool>,
@@ -145,6 +146,8 @@ pub(super) fn engine(
     set(&mut storage.max_segment_bytes, s.max_segment_bytes);
     let ms = |v: Option<u64>| v.map(Duration::from_millis);
     set(&mut storage.max_segment_age, ms(s.max_segment_age_ms));
+    let open = ms(s.max_segment_open_time_ms);
+    set(&mut storage.max_segment_open_time, open);
     let interval = ms(s.group_commit_interval_ms);
     set(&mut storage.group_commit_interval, interval);
     set(&mut storage.max_chunk_age, ms(s.max_chunk_age_ms));

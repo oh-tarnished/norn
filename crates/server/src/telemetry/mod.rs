@@ -42,8 +42,9 @@ impl Stream for Responses {
 /// through [`Subscriptions`].
 ///
 /// Each `AppendSamples` call is one task reading batches and writing responses.
-/// It ends when the client closes or breaks the call, once every admitted batch
-/// has been answered. Memory per call: at most `max_pending_batches` waiting
+/// It ends when the client closes or breaks the call, or when the daemon starts
+/// draining, once every admitted batch has been answered; a drained call then
+/// ends `UNAVAILABLE` with `ERROR_REASON_SHUTTING_DOWN`. Memory per call: at most `max_pending_batches` waiting
 /// completions and that many responses. Concurrency: `Clone`, shared by tonic.
 #[derive(Debug, Clone)]
 pub struct Telemetry {
@@ -87,35 +88,47 @@ impl Telemetry {
         self
     }
 
-    /// Reads batches until the client stops: first responses in batch order,
-    /// each admitted batch's completion queued for [`forward`].
+    /// Reads batches until the client stops, or the daemon starts draining:
+    /// first responses in batch order, each admitted batch's completion queued
+    /// for [`forward`]. True when it stopped for the drain.
+    ///
+    /// A client may hold a call open between batches for as long as it likes,
+    /// and a call in progress keeps its connection through HTTP/2's graceful
+    /// GOAWAY. So without the drain arm an idle append held every shutdown
+    /// until the drain bound cut it.
     async fn read(
         self,
         mut input: Streaming<AppendSamplesRequest>,
         held: Option<Arc<Held>>,
         out: mpsc::Sender<Result<AppendSamplesResponse, Status>>,
         waits: mpsc::Sender<(AppendSamplesResponse, Completion)>,
-    ) {
+    ) -> bool {
+        let draining = self.ingest.draining();
         let mut last_batch = None;
         loop {
-            let request = match input.message().await {
+            let next = tokio::select! {
+                biased;
+                () = draining.cancelled() => return true,
+                next = input.message() => next,
+            };
+            let request = match next {
                 Ok(Some(request)) => request,
-                Ok(None) => return,
+                Ok(None) => return false,
                 Err(status) => {
                     let _ = out.send(Err(status)).await;
-                    return;
+                    return false;
                 }
             };
             let oversized = held.as_ref().and_then(|h| h.take_oversized());
             let full = waits.capacity() == 0;
             let (first, completion) = self.batch(request, oversized, full, &mut last_batch);
             if out.send(Ok(first.clone())).await.is_err() {
-                return;
+                return false;
             }
             if let Some(completion) = completion
                 && waits.send((first, completion)).await.is_err()
             {
-                return;
+                return false;
             }
         }
     }
@@ -150,8 +163,14 @@ impl TelemetryService for Telemetry {
         let (out, responses) = mpsc::channel(capacity);
         let (waits_tx, waits) = mpsc::channel(self.max_pending.max(1));
         let reader = self.clone().read(input, held, out.clone(), waits_tx);
+        let last = out.clone();
         self.calls.spawn(async move {
-            tokio::join!(reader, forward(waits, out));
+            let (drained, ()) = tokio::join!(reader, forward(waits, out));
+            // Every admitted batch has had its answer: now say why the call
+            // ends, so the client reconnects rather than taking it as done.
+            if drained {
+                let _ = last.send(Err(crate::events::shutting_down())).await;
+            }
         });
         Ok(Response::new(Responses(responses)))
     }

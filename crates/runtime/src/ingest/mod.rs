@@ -21,6 +21,7 @@ mod record;
 mod recover;
 mod report;
 mod scan;
+mod seal;
 mod shared;
 mod start;
 mod stats;
@@ -71,6 +72,8 @@ pub(crate) struct Context {
     pub(crate) durable: bool,
     pub(crate) group_interval: Duration,
     pub(crate) max_chunk_age: Duration,
+    /// How long a segment stays open before maintenance asks for it sealed.
+    pub(crate) max_open: Duration,
     /// The most bytes one stream may hold: three quarters of the budget, so one
     /// stream cannot starve the rest.
     pub(crate) cap: u64,
@@ -99,6 +102,8 @@ pub struct Ingest {
     stats: Mutex<HashMap<StreamId, StreamStats>>,
     threads: Mutex<Vec<JoinHandle<()>>>,
     draining: AtomicBool,
+    /// Cancelled with `draining`, for calls that wait on a client.
+    drained: tokio_util::sync::CancellationToken,
     upkeep: upkeep::Upkeep,
 }
 
@@ -127,6 +132,7 @@ impl Ingest {
             durable: storage.durable_acks,
             group_interval: storage.group_commit_interval,
             max_chunk_age: storage.max_chunk_age,
+            max_open: storage.max_segment_open_time,
             cap,
             live: Arc::new(Live::new(config.limits().max_subscriptions)),
         };
@@ -137,6 +143,7 @@ impl Ingest {
             stats: Mutex::new(HashMap::new()),
             threads: Mutex::new(Vec::new()),
             draining: AtomicBool::new(false),
+            drained: tokio_util::sync::CancellationToken::new(),
             upkeep: upkeep::Upkeep::default(),
         }
     }

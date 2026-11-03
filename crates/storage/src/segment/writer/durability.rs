@@ -32,6 +32,15 @@ impl SegmentWriter {
     /// fsync leaves the kernel's page state unknown.
     pub fn sync(&mut self) -> Result<()> {
         self.flush()?;
+        // On macOS, plain fsync(2) hands the data to the drive but does not make
+        // the drive write its cache, so a power cut can still lose it. Rust's std
+        // implements both `sync_data` and `sync_all` on Apple targets with
+        // `fcntl(F_FULLFSYNC)`, which does flush the cache, so `DURABLE` holds on
+        // macOS with no `unsafe` and no `cfg` here. The cost: F_FULLFSYNC is much
+        // slower than fsync, often milliseconds even on an SSD, which group commit
+        // spreads over every batch waiting on one sync; a deployment that does not
+        // need power-loss safety turns `durable_acks` off rather than weaken this.
+        // Recheck std's `File::datasync` when rust-toolchain.toml moves.
         let r = self.out.get_ref().sync_data();
         r.map_err(|e| self.poison("fsync", e))?;
         if !self.dir_synced {

@@ -1,7 +1,8 @@
 //! SPDX-FileCopyrightText: 2026 Srikanth K
 //! SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! `compact`, `verify` and `retention`: long-running operations, polled.
+//! `compact` and `retention`, long-running operations, polled; `verify` is in
+//! its own module and polls the same way.
 
 use std::io::Write;
 use std::time::Duration;
@@ -11,7 +12,7 @@ use norn_protocol::google::longrunning::{GetOperationRequest, Operation, operati
 use norn_protocol::stream::stream_service_client::StreamServiceClient;
 use norn_protocol::stream::{
     ApplyStreamRetentionRequest, ApplyStreamRetentionResponse, CompactStreamRequest,
-    CompactStreamResponse, VerifyStreamRequest, VerifyStreamResponse,
+    CompactStreamResponse,
 };
 use tonic::transport::Channel;
 
@@ -33,7 +34,10 @@ pub(crate) fn stream_name(name: &str) -> String {
 }
 
 /// Polls `op` until it is done, then decodes its response.
-async fn finish<M: prost::Name + Default>(channel: Channel, op: Operation) -> Result<M, CliError> {
+pub(crate) async fn finish<M: prost::Name + Default>(
+    channel: Channel,
+    op: Operation,
+) -> Result<M, CliError> {
     let mut client = OperationsClient::new(channel);
     let mut op = op;
     while !op.done {
@@ -84,6 +88,17 @@ pub(crate) async fn compact(
         .map_err(call("StreamService.CompactStream"))?
         .into_inner();
     let r: CompactStreamResponse = finish(channel, op).await?;
+    if r.original_chunk_count == 0 && r.skipped_segment_count == 0 {
+        // Compaction rewrites sealed segments only. `chunks=0->0` read as if
+        // something had been checked and found tidy, when there was nothing to
+        // look at: say which.
+        return Ok(writeln!(
+            out,
+            "{name} nothing to compact: no sealed segment is waiting. Compaction rewrites \
+             sealed segments only; the open one seals when it is full, when it reaches \
+             storage.max_segment_open_time, or when the daemon stops"
+        )?);
+    }
     Ok(writeln!(
         out,
         "{name} chunks={}->{} bytes={}->{} skipped_segments={}",
@@ -93,48 +108,6 @@ pub(crate) async fn compact(
         r.compacted_bytes,
         r.skipped_segment_count
     )?)
-}
-
-/// `nornctl verify STREAM`: every chunk, read and checked. Damage fails the
-/// command, so a script can test it.
-pub(crate) async fn verify(
-    channel: Channel,
-    words: &[&str],
-    out: &mut impl Write,
-) -> Result<(), CliError> {
-    let [stream] = words else {
-        return Err(usage("verify STREAM"));
-    };
-    let name = stream_name(stream);
-    let request = VerifyStreamRequest { name: name.clone() };
-    let mut client = StreamServiceClient::new(channel.clone());
-    let op = client.verify_stream(request).await;
-    let op = op.map_err(call("StreamService.VerifyStream"))?.into_inner();
-    let r: VerifyStreamResponse = finish(channel, op).await?;
-    writeln!(
-        out,
-        "{name} segments={} chunks={} samples={} bytes={} damaged_chunks={} damaged_samples={}",
-        r.segment_count,
-        r.chunk_count,
-        r.sample_count,
-        r.verified_bytes,
-        r.damaged_chunk_count,
-        r.damaged_sample_count
-    )?;
-    for d in &r.damaged_chunks {
-        writeln!(
-            out,
-            "damaged {} offset={} length={} {}",
-            d.segment, d.offset, d.length, d.description
-        )?;
-    }
-    if r.damaged_chunk_count > 0 {
-        let chunks = r.damaged_chunk_count;
-        return Err(CliError::Refused(format!(
-            "{name}: {chunks} damaged chunks"
-        )));
-    }
-    Ok(())
 }
 
 /// `nornctl retention apply STREAM [--dry-run]`.

@@ -4,7 +4,6 @@
 //! The worker's loop: client jobs in order, and passes on the schedule.
 
 use std::sync::{Arc, PoisonError};
-use std::time::Duration;
 
 use tokio_util::sync::CancellationToken;
 
@@ -13,8 +12,9 @@ use super::months;
 use super::ops::{Failure, Operation, Outcome, Request};
 
 impl Maintenance {
-    /// Runs jobs and scheduled passes until `token` is cancelled, then ends every
-    /// queued job as cancelled and returns. The job in progress stops as
+    /// Runs jobs, scheduled passes and the check for segments open too long
+    /// until `token` is cancelled, then ends every queued job as cancelled and
+    /// returns. The job in progress stops as
     /// [`Operation::cancel`] says.
     pub async fn run(self: Arc<Self>, token: CancellationToken) {
         let taken = self
@@ -26,31 +26,47 @@ impl Maintenance {
         let c = self.config;
         let compaction = c.compaction_interval;
         let retention = c.retention_interval;
-        let (mut compact_in, mut retain_in) = (compaction, retention);
+        // Sealing by age runs whether or not background passes do: it is not
+        // upkeep a client could ask for, and without it a quiet stream never
+        // reaches a sealed segment at all.
+        let sealing = self.ingest.seal_check_interval();
+        let (mut compact_in, mut retain_in, mut seal_in) = (compaction, retention, sealing);
         loop {
-            let wait = compact_in.min(retain_in);
-            let next = if c.background {
-                wait
+            let upkeep = if c.background {
+                compact_in.min(retain_in)
             } else {
-                Duration::from_secs(3600)
+                sealing
             };
+            let wait = upkeep.min(seal_in);
             tokio::select! {
                 () = token.cancelled() => break,
                 op = rx.recv() => match op {
                     Some(op) => self.run_job(op, &token).await,
                     None => break,
                 },
-                () = self.clock.sleep(next) => if c.background {
-                    compact_in = compact_in.saturating_sub(wait);
-                    retain_in = retain_in.saturating_sub(wait);
-                    let (compact, retain) = (compact_in.is_zero(), retain_in.is_zero());
-                    if compact {
-                        compact_in = compaction;
+                () = self.clock.sleep(wait) => {
+                    seal_in = seal_in.saturating_sub(wait);
+                    if seal_in.is_zero() {
+                        seal_in = sealing;
+                        let asked = self.ingest.seal_aged(self.clock.now());
+                        if asked > 0 {
+                            tracing::debug!(streams = asked, "sealing segments by age");
+                        }
                     }
-                    if retain {
-                        retain_in = retention;
+                    if c.background {
+                        compact_in = compact_in.saturating_sub(wait);
+                        retain_in = retain_in.saturating_sub(wait);
+                        let (compact, retain) = (compact_in.is_zero(), retain_in.is_zero());
+                        if compact {
+                            compact_in = compaction;
+                        }
+                        if retain {
+                            retain_in = retention;
+                        }
+                        if compact || retain {
+                            self.run_pass(compact, retain, &token).await;
+                        }
                     }
-                    self.run_pass(compact, retain, &token).await;
                 },
             }
         }
