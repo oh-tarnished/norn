@@ -13,7 +13,7 @@ the reasoning is the agent's. The design, every tool and every bound are in the
 cargo build -p norn-server -p norn-cli
 ```
 
-Building `norn` needs a C compiler, for `ring`, which runtime-rs's server brings
+Building `norn` needs no C compiler: runtime-rs is built without TLS
 ([architecture](../reference/architecture.md#no-c)).
 
 ## Serve MCP

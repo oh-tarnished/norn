@@ -133,7 +133,7 @@ status without one, or this layer's own: `MCP_LIMIT_EXCEEDED`, `MCP_UNKNOWN_SESS
 
 | Crate | Why |
 | --- | --- |
-| `tpp-grpc`, `tpp-agents` (runtime-rs) | the `HybridServer` and MCP's transports; they bring ring and OpenTelemetry, which `xtask deps` excuses beneath `norn-server` only ([architecture](architecture.md#no-c)) |
+| `tpp-grpc`, `tpp-agents` (runtime-rs) | the `HybridServer` and MCP's transports; built without TLS, so no ring; they bring OpenTelemetry, which `xtask deps` excuses beneath `norn-server` only ([architecture](architecture.md#no-c)) |
 | `rmcp` 3.8 | the SDK the generated handlers are written against |
 | `prost-reflect` | JSON to messages by descriptor; already tpp-grpc's |
 | `async-trait`, `axum`, `serde_json` | named by the generated code; already in the graph |

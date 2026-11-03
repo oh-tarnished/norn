@@ -8,8 +8,8 @@ commands on Linux and Windows too.
 
 ## Build
 
-Rust 1.99.1, pinned in `rust-toolchain.toml`. No `protoc`: the generated code is committed. Building `norn` needs a C compiler,
-for `ring`, which runtime-rs's server brings; nothing else does.
+Rust 1.99.1, pinned in `rust-toolchain.toml`. No `protoc`: the generated code is committed. No C compiler: runtime-rs is built
+without TLS, so nothing in the graph links C.
 
 ```sh
 cargo build -p norn-server -p norn-cli

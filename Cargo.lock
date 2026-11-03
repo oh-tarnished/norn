@@ -2655,6 +2655,7 @@ checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
 [[package]]
 name = "tpp-agents"
 version = "0.1.0"
+source = "git+https://github.com/the-protobuf-project/runtime-rs?rev=03a8899b728c6025da902501ac041eb03c94e684#03a8899b728c6025da902501ac041eb03c94e684"
 dependencies = [
  "async-trait",
  "axum",
@@ -2681,6 +2682,7 @@ dependencies = [
 [[package]]
 name = "tpp-grpc"
 version = "0.1.0"
+source = "git+https://github.com/the-protobuf-project/runtime-rs?rev=03a8899b728c6025da902501ac041eb03c94e684#03a8899b728c6025da902501ac041eb03c94e684"
 dependencies = [
  "async-trait",
  "axum",

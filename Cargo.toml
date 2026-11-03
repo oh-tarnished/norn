@@ -106,14 +106,14 @@ rmcp = { version = "3.8", default-features = false }
 # runtime-rs's HybridServer: gRPC on a local socket or named pipe (never a TCP
 # port unless configured), its connection limits and drain, server reflection,
 # and the MCP runtime beside it, in-process. Default features off: no HTTP/3
-# (QUIC) and no A2A (reqwest, aws-lc). It still builds tonic with `tls-ring`
-# (ring, C) and records spans through OpenTelemetry; xtask's deps gate excuses
-# exactly that, beneath norn-server only (xtask/src/runtime_rs.rs). Apache-2.0,
+# (QUIC), no A2A (reqwest, aws-lc) and no `tls` (tonic's `tls-ring`), so no
+# C. It records spans through OpenTelemetry; xtask's deps gate excuses that
+# beneath norn-server only (xtask/src/runtime_rs.rs). Apache-2.0,
 # compatible with Norn's AGPL. `tpp_grpc` because its library is named `grpc`.
-tpp_grpc = { package = "tpp-grpc", git = "https://github.com/the-protobuf-project/runtime-rs", rev = "cb5e59e49737d8aec549ecc9f4e7e78b11d40f9f", default-features = false }
+tpp_grpc = { package = "tpp-grpc", git = "https://github.com/the-protobuf-project/runtime-rs", rev = "03a8899b728c6025da902501ac041eb03c94e684", default-features = false }
 # MCP's transports (stdio, streamable HTTP on loopback TCP or a local socket)
 # and the vocabulary protoc-gen-mcp's Rust output is written against.
-tpp-agents = { git = "https://github.com/the-protobuf-project/runtime-rs", rev = "cb5e59e49737d8aec549ecc9f4e7e78b11d40f9f", default-features = false, features = ["mcp"] }
+tpp-agents = { git = "https://github.com/the-protobuf-project/runtime-rs", rev = "03a8899b728c6025da902501ac041eb03c94e684", default-features = false, features = ["mcp"] }
 # The generated MCP handlers' traits are async-trait's. Already in tonic's graph.
 async-trait = "0.1"
 # The generated handlers name axum for an HTTP transport Norn does not use;
@@ -134,11 +134,3 @@ panic = "deny"
 indexing_slicing = "deny"
 todo = "deny"
 dbg_macro = "deny"
-
-# TEMPORARY: runtime-rs's local-socket listener (Endpoint::unix/pipe,
-# GrpcLimits, with_grpc_layer, agents::listen) is uncommitted in a local
-# worktree. Remove this patch, and move the revs above to the pushed commit,
-# once runtime-rs is pushed.
-[patch."https://github.com/the-protobuf-project/runtime-rs"]
-tpp-grpc = { path = "../../the-protobuf-project/runtime/runtime-rs-ipc/grpc" }
-tpp-agents = { path = "../../the-protobuf-project/runtime/runtime-rs-ipc/agents" }

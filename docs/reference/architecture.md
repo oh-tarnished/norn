@@ -58,14 +58,15 @@ on any package with a `links` key or a `cc`, `cmake`, `pkg-config`, `vcpkg`
 or `bindgen` build-dependency. The allow-list (`ALLOW_C`) is empty.
 
 One exception, `xtask/src/runtime_rs.rs`: `norn-server` serves through runtime-rs's
-`tpp-grpc` and `tpp-agents`, which build tonic with `tls-ring` and record spans through
-OpenTelemetry. `ring` (C) is excused only where it is reached through the runtime
+`tpp-grpc` and `tpp-agents`, which record spans through OpenTelemetry. Norn builds
+`tpp-grpc` without its `tls` feature, so `ring` is not in the graph; should a runtime
+upgrade bring it back, `ring` (C) is excused only where it is reached through the runtime
 (for `norn-server`) or the shared `rustls` crates its features select, and only while
 the runtime is in the graph; OpenTelemetry and the runtime crates only beneath
 `norn-server`. The engine (core, codec, storage, index, query, state, replay, runtime,
 metadata) must reach none of it, not even rustls; `xtask/tests/runtime_gates.rs`
-proves each rule bites and checks this repository. Norn configures no TLS. Building
-`norn` therefore needs a C compiler; nothing else does.
+proves each rule bites and checks this repository. Norn configures no TLS, and
+building `norn` needs no C compiler.
 
 The graph is the one Cargo resolves for the targets Norn builds (`deps::PLATFORMS`:
 the release matrix and CI's cross-compiles, Windows included), not for every platform a

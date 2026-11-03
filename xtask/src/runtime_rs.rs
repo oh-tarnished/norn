@@ -6,8 +6,10 @@
 //! assembling listeners, limits, drain and MCP's transports by hand. The owner
 //! accepted on 2026-11-02 what they bring, which Norn would not choose itself:
 //!
-//! - **ring.** `tpp-grpc` builds tonic with `tls-ring`, so `ring` (C and
-//!   assembly, `links = "ring_core_…"`) is in the graph. Norn configures no TLS:
+//! - **ring.** `tpp-grpc`'s `tls` feature builds tonic with `tls-ring`, which
+//!   brings `ring` (C and assembly, `links = "ring_core_…"`). Norn turns `tls`
+//!   off, so ring is not in today's graph; the excuse stays so that a runtime
+//!   upgrade bringing it back is held to these rules. Norn configures no TLS:
 //!   the daemon listens on a local endpoint. Cargo unifies tonic's and rustls's
 //!   features across the workspace, so with the runtime present every crate using
 //!   tonic appears to reach ring through `tokio-rustls` and `rustls`. What is
@@ -19,8 +21,7 @@
 //!   Accepted beneath `norn-server` (the `norn` binary) only.
 //!
 //! The engine crates ([`ENGINE`]) must reach none of it, not even through the
-//! shared crates: they stay pure Rust whatever the daemon links. Upstream,
-//! `tpp-grpc` without `tls-ring` would take ring out again.
+//! shared crates: they stay pure Rust whatever the daemon links.
 
 use std::collections::{BTreeSet, VecDeque};
 
