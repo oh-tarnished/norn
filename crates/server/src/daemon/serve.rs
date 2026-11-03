@@ -24,11 +24,13 @@ use norn_protocol::stream::stream_service_server::StreamServiceServer;
 use norn_protocol::telemetry::telemetry_service_server::TelemetryServiceServer;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
+use tokio_util::task::TaskTracker;
 use tonic_health::pb::health_server::{Health, HealthServer};
 use tpp_grpc::options::{self, GrpcLimits, Options, Overflow, ServerEnvironment};
 use tpp_grpc::{BannerOutput, HybridServer, ListenAddr};
 
 use super::DaemonError;
+use super::drain::DrainLayer;
 use crate::admin::Admin;
 use crate::catalog::Catalog;
 use crate::config::DaemonConfig;
@@ -108,6 +110,7 @@ pub(super) fn build<H: Health>(
     config: &DaemonConfig,
     wiring: Wiring,
     s: Registered<H>,
+    calls: TaskTracker,
     meter: MeterLayer,
     window: u32,
 ) -> HybridServer {
@@ -128,6 +131,7 @@ pub(super) fn build<H: Health>(
         .with_reflection(FILE_DESCRIPTOR_SET)
         .with_grpc_limits(limits(config.engine(), drain, window))
         .with_shutdown_timeout(drain.saturating_add(STOP_SLACK))
+        .with_grpc_layer(DrainLayer(calls))
         .with_grpc_layer(OpeningLayer(wiring.open))
         .with_grpc_layer(VersionGateLayer)
         .with_grpc_layer(meter)
