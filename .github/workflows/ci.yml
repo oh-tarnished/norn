@@ -29,7 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: fsfe/reuse-action@v6
+      - name: Check root license files
+        run: bash .github/release/test-licenses.sh --self-test
       - uses: dtolnay/rust-toolchain@1.99.1
       - uses: extractions/setup-just@v4
       - uses: Swatinem/rust-cache@v2

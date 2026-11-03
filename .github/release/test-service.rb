@@ -26,8 +26,13 @@ Dir.mktmpdir("norn-service-") do |temporary|
     formula.instance_variable_set(:@test_prefix, root/"Cellar/norn"/version)
     %w[norn nornctl].each { |binary| FileUtils.cp(binaries/binary, formula.buildpath/binary) }
     (formula.buildpath/"docs").mkpath
-    FileUtils.cp_r(source/"LICENSES", formula.buildpath/"LICENSES")
+    %w[LICENSE LICENSE-COMMERCIAL.md THIRD-PARTY-NOTICES.md].each do |document|
+      FileUtils.cp(source/document, formula.buildpath/document)
+    end
     Dir.chdir(formula.buildpath) { formula.install }
+    %w[LICENSE LICENSE-COMMERCIAL.md THIRD-PARTY-NOTICES.md].each do |document|
+      raise "missing or changed #{document}" unless (formula.prefix/document).read == (source/document).read
+    end
     Homebrew::InstallSteps::Runner.new(context: formula).run(formula.post_install_steps)
   end
   install.call("0.1.0")
@@ -75,5 +80,5 @@ Dir.mktmpdir("norn-service-") do |temporary|
       raise "unclean SIGTERM" unless status.success?
     end
   end
-  puts "Homebrew install, permissions, preserved config/logs, login service, health and restart passed"
+  puts "Homebrew install, root licenses, permissions, preserved config/logs, login service, health and restart passed"
 end

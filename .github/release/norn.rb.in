@@ -43,7 +43,7 @@ class Norn < Formula
     TOML
     (etc/"norn").install "norn.toml"
     pkgshare.install "docs"
-    prefix.install "LICENSES"
+    prefix.install "LICENSE", "LICENSE-COMMERCIAL.md", "THIRD-PARTY-NOTICES.md"
   end
 
   post_install_steps do
