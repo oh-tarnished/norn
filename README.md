@@ -958,8 +958,8 @@ their own licences; `deny.toml` keeps those dependencies permissively licensed. 
 1.0.0-rc1 that list includes 0BSD, for iceoryx2's `enum-iterator` dependency: zero-clause
 BSD keeps no conditions, so it is compatible with both of Norn's licences.
 
-SPDX headers name Srikanth K on Norn-authored material. Generated third-party
-boilerplate retains its original notices, with its Apache licence text in
-[Third-party notices](THIRD-PARTY-NOTICES.md). Release archives and Homebrew include
-that file alongside the root `LICENSE` and `LICENSE-COMMERCIAL.md`. CI checks these
-root files directly.
+SPDX headers name Srikanth K on Norn-authored material, including the generated
+MCP handlers: Norn's owner also authors their generator and licenses this output
+under Norn's project terms. Release archives and Homebrew include the root
+`LICENSE` and `LICENSE-COMMERCIAL.md`. CI checks these files and the generated
+headers directly.

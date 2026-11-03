@@ -72,6 +72,7 @@ api-lint-tools:
 gen:
     buf generate
     buf generate --template buf.gen.mcp.yaml
+    bash tools/license-mcp.sh
     buf build --exclude-source-info -o crates/protocol/src/norn.binpb
     buf build --path protobuf/norn/type/sample.proto --as-file-descriptor-set \
         --exclude-source-info -o adapters/mcap/src/generated/norn_type_sample.binpb
@@ -92,6 +93,7 @@ gen-check:
     buf generate --output "$generated"
     diff -ru crates/protocol/src/generated "$generated/crates/protocol/src/generated"
     buf generate --template buf.gen.mcp.yaml --output "$generated"
+    bash tools/license-mcp.sh "$generated/crates/server/src/mcp/generated"
     diff -ru crates/server/src/mcp/generated "$generated/crates/server/src/mcp/generated"
     buf build --exclude-source-info -o "$generated/norn.binpb"
     cmp crates/protocol/src/norn.binpb "$generated/norn.binpb"

@@ -29,7 +29,7 @@ def main():
             shutil.copy2(binaries / f"{binary}{suffix}", package)
         for document in (
             "LICENSE", "LICENSE-COMMERCIAL.md", "README.md",
-            "CONTRIBUTING.md", "SECURITY.md", "THIRD-PARTY-NOTICES.md",
+            "CONTRIBUTING.md", "SECURITY.md",
         ):
             shutil.copy2(document, package)
         shutil.copytree("docs", package / "docs")

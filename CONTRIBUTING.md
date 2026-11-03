@@ -85,12 +85,14 @@ To preview locally, run `just release-build <host-target>` followed by
 
 Every file needs SPDX licensing and copyright metadata. Handwritten files name
 `2026 Srikanth K` in an `SPDX-FileCopyrightText` comment and declare
-`AGPL-3.0-or-later` in an `SPDX-License-Identifier` comment. Explicit third-party
-notices retain their original attribution and licence. The project licence lives
-in the root `LICENSE`, the commercial terms in `LICENSE-COMMERCIAL.md`, and the
-generated MCP code's Apache text in `THIRD-PARTY-NOTICES.md`. CI checks these root
-files with `bash .github/release/test-licenses.sh --self-test`; release archives
-and Homebrew install the same files. No separate licence directory is needed.
+`AGPL-3.0-or-later` in an `SPDX-License-Identifier` comment. The project licence
+lives in the root `LICENSE`, with commercial terms in `LICENSE-COMMERCIAL.md`.
+The owner also authors The Protobuf Project's MCP generator and licenses its
+generated Norn handlers under the same project terms. `just gen` applies those
+headers reproducibly; `just gen-check` verifies them. Dependencies keep their
+own licences. CI checks the root files and generated headers with
+`bash .github/release/test-licenses.sh --self-test`; release archives and Homebrew
+install the two root licence files.
 
 Norn uses AGPL-3.0-or-later with a separate commercial licence, for every part
 of the repository with no exception. Read the

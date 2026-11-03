@@ -7,6 +7,8 @@
 # daemon serves the read-only tools of all of them as one MCP endpoint.
 # The output is committed, like the protocol crate's, so building needs
 # neither buf nor the plugin.
+# Norn's owner also authors the generator. `just gen` and `just gen-check`
+# apply tools/license-mcp.sh to license this output under Norn's project terms.
 #
 # A file of its own rather than a plugin in buf.gen.yaml: protoc-gen-mcp is
 # a Go program and wants a Go import path for every file, which only

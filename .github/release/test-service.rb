@@ -26,11 +26,11 @@ Dir.mktmpdir("norn-service-") do |temporary|
     formula.instance_variable_set(:@test_prefix, root/"Cellar/norn"/version)
     %w[norn nornctl].each { |binary| FileUtils.cp(binaries/binary, formula.buildpath/binary) }
     (formula.buildpath/"docs").mkpath
-    %w[LICENSE LICENSE-COMMERCIAL.md THIRD-PARTY-NOTICES.md].each do |document|
+    %w[LICENSE LICENSE-COMMERCIAL.md].each do |document|
       FileUtils.cp(source/document, formula.buildpath/document)
     end
     Dir.chdir(formula.buildpath) { formula.install }
-    %w[LICENSE LICENSE-COMMERCIAL.md THIRD-PARTY-NOTICES.md].each do |document|
+    %w[LICENSE LICENSE-COMMERCIAL.md].each do |document|
       raise "missing or changed #{document}" unless (formula.prefix/document).read == (source/document).read
     end
     Homebrew::InstallSteps::Runner.new(context: formula).run(formula.post_install_steps)
