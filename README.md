@@ -65,39 +65,33 @@ before the release and what comes after it.
 
 **Guides**
 
-| Guide                                             | What it covers                                       |
-| ------------------------------------------------- | ---------------------------------------------------- |
-| [Getting started](docs/guides/getting-started.md) | build, run, create, append, list                     |
-| [Configuration](docs/guides/configuration.md)     | every key and its default                            |
-| [Ingesting data](docs/guides/ingesting-data.md)   | batches, acknowledgements, backpressure              |
-| [Querying](docs/guides/querying.md)               | ranges, filters, aggregates, resuming                |
-| [Replay and state](docs/guides/replay.md)         | state at an instant, replay, live subscriptions      |
-| [Import and export](docs/guides/import-export.md) | CSV, Parquet, Arrow, MCAP, both ways                 |
-| [Operations](docs/guides/operations.md)           | stopping, data directory, recovery, damage           |
-| [Troubleshooting](docs/guides/troubleshooting.md) | real errors and what they mean                       |
-| [AI agents](docs/guides/ai-agents.md)             | `norn-mcp`, which is being replaced: see [MCP](#mcp) |
+- [Getting started](docs/guides/getting-started.md): build, run, create, append, list
+- [Configuration](docs/guides/configuration.md): every key and its default
+- [Ingesting data](docs/guides/ingesting-data.md): batches, acknowledgements, backpressure
+- [Querying](docs/guides/querying.md): ranges, filters, aggregates, resuming
+- [Replay and state](docs/guides/replay.md): state at an instant, replay, live subscriptions
+- [Import and export](docs/guides/import-export.md): CSV, Parquet, Arrow, MCAP, both ways
+- [Operations](docs/guides/operations.md): stopping, data directory, recovery, damage
+- [Troubleshooting](docs/guides/troubleshooting.md): real errors and what they mean
+- [AI agents](docs/guides/ai-agents.md): `norn-mcp`, which is being replaced: see [MCP](#mcp)
 
 **Reference**
 
-| Reference                                      | What it covers                                      |
-| ---------------------------------------------- | --------------------------------------------------- |
-| [Architecture](docs/reference/architecture.md) | layers, dependency table, process model             |
-| [Protocol](docs/reference/protocol.md)         | the gRPC API, errors, versioning                    |
-| [Storage](docs/reference/storage.md)           | file format, write path, recovery, index, codecs    |
-| [IPC](docs/reference/ipc.md)                   | transports, endpoints, security model               |
-| [Query](docs/reference/query.md)               | read path, StateAt, exact semantics, bounds         |
-| [Replay](docs/reference/replay.md)             | virtual clock, sessions, subscriptions, bounds      |
-| [Adapters](docs/reference/adapters.md)         | the contract, CSV, Parquet, Arrow, MCAP formats     |
-| [nornctl](docs/reference/cli.md)               | every command                                       |
-| [MCP](docs/reference/mcp.md)                   | `norn-mcp`'s tools; being replaced: see [MCP](#mcp) |
+- [Architecture](docs/reference/architecture.md): layers, dependency table, process model
+- [Protocol](docs/reference/protocol.md): the gRPC API, errors, versioning
+- [Storage](docs/reference/storage.md): file format, write path, recovery, index, codecs
+- [IPC](docs/reference/ipc.md): transports, endpoints, security model
+- [Query](docs/reference/query.md): read path, StateAt, exact semantics, bounds
+- [Replay](docs/reference/replay.md): virtual clock, sessions, subscriptions, bounds
+- [Adapters](docs/reference/adapters.md): the contract, CSV, Parquet, Arrow, MCAP formats
+- [nornctl](docs/reference/cli.md): every command
+- [MCP](docs/reference/mcp.md): `norn-mcp`'s tools; being replaced: see [MCP](#mcp)
 
 **Project**
 
-| Document                              | What it covers                        |
-| ------------------------------------- | ------------------------------------- |
-| [Performance](docs/performance.md)    | every measurement and how it was made |
-| [Specification](docs/project/spec.md) | the binding brief                     |
-| [Plan](docs/project/plan.md)          | how the work is split, and its status |
+- [Performance](docs/performance.md): every measurement and how it was made
+- [Specification](docs/project/spec.md): the binding brief
+- [Plan](docs/project/plan.md): how the work is split, and its status
 
 **Images**, captured from a real daemon by
 [`tools/screenshots/capture.sh`](tools/screenshots/capture.sh):
@@ -131,25 +125,23 @@ any domain.
 
 ## Features
 
-| Feature                                                        | State       | Notes                                                             |
-| -------------------------------------------------------------- | ----------- | ----------------------------------------------------------------- |
-| Append over gRPC, with backpressure and acknowledgement levels | Done        | `ACCEPT`, `BUFFER`, `THROTTLE`, `REJECT`; `BUFFERED` to `DURABLE` |
-| Journal, group commit, fsync                                   | Done        | `DURABLE` only after `fsync` returns                              |
-| Compressed, checksummed chunks in segment files                | Done        | delta-of-delta, Gorilla, ALP, dictionaries, zstd levels 3 to 6    |
-| Sparse temporal index                                          | Done        | rebuilt from the segments if lost                                 |
-| Range queries, filters, aggregates, resume tokens              | Done        | sees samples as soon as they are acknowledged                     |
-| State at an instant (`StateAt`)                                | Done        | from the index; checkpoints measured and not needed               |
-| Deterministic replay and live subscriptions                    | Done        | virtual clock: pause, seek, step, speed                           |
-| Crash recovery                                                 | Done        | tested by killing the process, not by cutting power               |
-| Compaction, retention, verification                            | Done        | in the background and on demand                                   |
-| Import and export: CSV, Parquet, Arrow IPC, MCAP               | Done        | through `nornctl`, over the public API                            |
-| `nornctl` command-line client                                  | Done        | no `inspect`, `stats` or `benchmark` yet                          |
-| MCP for AI agents, built into the daemon                       | In progress | see [MCP](#mcp)                                                   |
-| BACnet capture through bacnet-rs                               | In progress | built and tested in bacnet-rs, awaiting review there              |
-| Shared-memory data plane                                       | Planned     | measured, and not faster than gRPC at the target rates            |
-| Fuzzing, security review                                       | Planned     | stage 16                                                          |
-| Modbus, OPC-UA and MQTT adapters                               | Planned     |                                                                   |
-| Metrics export, backup tooling, encryption at rest             | Not built   |                                                                   |
+- **Append over gRPC, with backpressure and acknowledgement levels**: Done. `ACCEPT`, `BUFFER`, `THROTTLE`, `REJECT`; `BUFFERED` to `DURABLE`
+- **Journal, group commit, fsync**: Done. `DURABLE` only after `fsync` returns
+- **Compressed, checksummed chunks in segment files**: Done. Delta-of-delta, Gorilla, ALP, dictionaries, zstd levels 3 to 6
+- **Sparse temporal index**: Done. Rebuilt from the segments if lost
+- **Range queries, filters, aggregates, resume tokens**: Done. Sees samples as soon as they are acknowledged
+- **State at an instant (`StateAt`)**: Done. From the index; checkpoints measured and not needed
+- **Deterministic replay and live subscriptions**: Done. Virtual clock: pause, seek, step, speed
+- **Crash recovery**: Done. Tested by killing the process, not by cutting power
+- **Compaction, retention, verification**: Done. In the background and on demand
+- **Import and export: CSV, Parquet, Arrow IPC, MCAP**: Done. Through `nornctl`, over the public API
+- `nornctl` command-line client: state: Done. No `inspect`, `stats` or `benchmark` yet
+- **MCP for AI agents, built into the daemon**: In progress. See [MCP](#mcp)
+- **BACnet capture through bacnet-rs**: In progress. Built and tested in bacnet-rs, awaiting review there
+- **Shared-memory data plane**: Planned. Measured, and not faster than gRPC at the target rates
+- **Fuzzing, security review**: Planned. Stage 16
+- **Modbus, OPC-UA and MQTT adapters**: Planned
+- **Metrics export, backup tooling, encryption at rest**: Not built
 
 ## Architecture
 
@@ -205,12 +197,10 @@ only when all have stopped. Details: [architecture](docs/reference/architecture.
 
 ### Servers: always on and optional
 
-| Server              | On or off                         | Why                                                                                                                              |
-| ------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| gRPC                | Always on. It cannot be disabled. | It is the only API. `nornctl`, the adapters and every client use it; nothing reaches storage another way.                        |
-| MCP                 | Optional: off or on               | In progress: moving into `norn`, switched by configuration. Today it is a separate program, `norn-mcp`, which is being replaced. |
-| Shared-memory plane | Not in v0.1                       | Built and measured on a branch; it does not beat gRPC at the target rates.                                                       |
-| InfluxDB            | Not used                          | Norn has no InfluxDB dependency. In bacnet-rs, InfluxDB capture is opt-in and off by default.                                    |
+- **gRPC**: Always on. It cannot be disabled. It is the only API. `nornctl`, the adapters and every client use it; nothing reaches storage another way.
+- **MCP**: Optional: off or on. In progress: moving into `norn`, switched by configuration. Today it is a separate program, `norn-mcp`, which is being replaced.
+- **Shared-memory plane**: Not in v0.1. Built and measured on a branch; it does not beat gRPC at the target rates.
+- **InfluxDB**: Not used. Norn has no InfluxDB dependency. In bacnet-rs, InfluxDB capture is opt-in and off by default.
 
 ### The write path
 
@@ -349,12 +339,10 @@ and reported per chunk. File formats: [storage](docs/reference/storage.md).
 
 ### Prerequisites
 
-| Need                  | Version               | Notes                                                                |
-| --------------------- | --------------------- | -------------------------------------------------------------------- |
-| Rust                  | 1.99.1                | pinned in `rust-toolchain.toml`; `rustup` installs it on first build |
-| C toolchain, `protoc` | none                  | the generated protocol code is committed                             |
-| Operating system      | Linux, macOS, Windows | Linux release builds need glibc 2.35 or newer                        |
-| `just`                | any recent            | optional; runs the same commands CI runs                             |
+- **Rust**: 1.99.1. Pinned in `rust-toolchain.toml`; `rustup` installs it on first build
+- **C toolchain, `protoc`**: None. The generated protocol code is committed
+- **Operating system**: Linux, macOS, Windows. Linux release builds need glibc 2.35 or newer
+- `just`: Any recent. Optional; runs the same commands CI runs
 
 Working on Norn itself also needs Buf 1.75.0, cargo-deny 0.20.2 and Go for the AIP
 linter: see [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -376,13 +364,11 @@ No release has been published yet. When `v0.1.0` is tagged, the
 [release workflow](.github/workflows/release.yml) builds one archive per target and
 publishes each with a `.sha256` file to check it against:
 
-| Target                      | Built on         |
-| --------------------------- | ---------------- |
-| `x86_64-unknown-linux-gnu`  | Ubuntu 22.04     |
-| `aarch64-unknown-linux-gnu` | Ubuntu 22.04 ARM |
-| `aarch64-apple-darwin`      | macOS 15         |
-| `x86_64-apple-darwin`       | macOS 15 Intel   |
-| `x86_64-pc-windows-msvc`    | Windows          |
+- `x86_64-unknown-linux-gnu`: Ubuntu 22.04
+- `aarch64-unknown-linux-gnu`: Ubuntu 22.04 ARM
+- `aarch64-apple-darwin`: MacOS 15
+- `x86_64-apple-darwin`: MacOS 15 Intel
+- `x86_64-pc-windows-msvc`: Windows
 
 Each archive carries the binaries (`.exe` on Windows), this README, the documentation
 and the licences.
@@ -555,20 +541,18 @@ Each setting comes from the first of: a flag, the TOML file named by `--config`,
 default. Without `--config` no file is read. An unknown key is refused, so a typo
 cannot leave a limit at its default. The settings that matter most:
 
-| Key                                    | Default                             | Meaning                                                           |
-| -------------------------------------- | ----------------------------------- | ----------------------------------------------------------------- |
-| `listen`                               | the per-user endpoint               | `unix:PATH`, a Windows `pipe:` name, or loopback `tcp:` for tests |
-| `data_dir`                             | `$XDG_DATA_HOME/norn` or equivalent | where the metadata, streams and index live                        |
-| `drain_timeout_ms`                     | 10000                               | how long in-flight calls get on shutdown                          |
-| `[memory] total_bytes`                 | 536870912 (512 MiB)                 | the sum of every subsystem budget                                 |
-| `[limits] max_batch_samples`           | 10000                               | samples in one append batch                                       |
-| `[limits] max_pending_batches`         | 256                                 | batches in flight                                                 |
-| `[storage] group_commit_interval_ms`   | 5                                   | the longest a `DURABLE` batch waits to share an fsync             |
-| `[storage] max_chunk_age_ms`           | 60000                               | the longest a sample waits to be encoded into a chunk             |
-| `[storage] durable_acks`               | true                                | false: no fsync, and `DURABLE` is refused, not weakened           |
-| `[maintenance] compaction_interval_ms` | 300000                              | how often compaction looks for work                               |
-| `[maintenance] retention_interval_ms`  | 3600000                             | how often retention policies are applied                          |
-| `[log] format`                         | `text`                              | `text`, or `json` for one object per line                         |
+- `listen`: Default the per-user endpoint. `unix:PATH`, a Windows `pipe:` name, or loopback `tcp:` for tests
+- `data_dir`: Default `$XDG_DATA_HOME/norn` or equivalent. Where the metadata, streams and index live
+- `drain_timeout_ms`: Default 10000. How long in-flight calls get on shutdown
+- `[memory] total_bytes`: Default 536870912 (512 MiB). The sum of every subsystem budget
+- `[limits] max_batch_samples`: Default 10000. Samples in one append batch
+- `[limits] max_pending_batches`: Default 256. Batches in flight
+- `[storage] group_commit_interval_ms`: Default 5. The longest a `DURABLE` batch waits to share an fsync
+- `[storage] max_chunk_age_ms`: Default 60000. The longest a sample waits to be encoded into a chunk
+- `[storage] durable_acks`: Default true. False: no fsync, and `DURABLE` is refused, not weakened
+- `[maintenance] compaction_interval_ms`: Default 300000. How often compaction looks for work
+- `[maintenance] retention_interval_ms`: Default 3600000. How often retention policies are applied
+- `[log] format`: Default `text`. `text`, or `json` for one object per line
 
 These defaults were picked, not measured; stage 15 revisits them. Every key, with a
 complete file: [configuration](docs/guides/configuration.md).
