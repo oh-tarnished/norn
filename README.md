@@ -412,59 +412,26 @@ and the licences.
 
 ## Quick start
 
-Everything below was run against a fresh daemon built from commit 93a979c on macOS,
-and the output is copied as printed. Use two terminals.
+For a source build, use two terminals. Start the daemon in the first:
 
 ```sh
 cargo build -p norn-server -p norn-cli
 ./target/debug/norn
 ```
 
-Release archives for Linux, macOS and Windows carry the same two binaries: `norn`, the
-daemon, which also serves MCP when asked, and `nornctl`
-([getting started](docs/guides/getting-started.md#build)).
-
-Then, in another terminal, with `target/debug` on your `PATH`:
-
-```console
-$ norn
-2026-11-02T17:40:13.695789Z  INFO registry open records=0 torn=0
-2026-11-02T17:40:13.705887Z  INFO listening endpoint=unix:/tmp/norn-demo/t/norn/norn.sock version="0.1.0"
-2026-11-02T17:40:13.706435Z  INFO runtime serving tasks=5
-```
-
-One long `recovery finished` line is left out between the first two.
+In the second, put `target/debug` on your `PATH` and run the commands below.
+The negotiation output was captured from Norn 0.1.0 on macOS. Homebrew users
+can use their running service by adding
+`--endpoint "unix:$(brew --prefix)/var/run/norn/norn.sock"` to `nornctl` calls.
 
 **Check the connection.** `version` negotiates the protocol.
 
 ```console
 $ nornctl version
 client: nornctl/0.1.0
-client_protocol: 1.4
+client_protocol: 1.6
 server_version: 0.1.0
-protocol: 1.6
-capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUERY_RANGE CAPABILITY_QUERY_AGGREGATES CAPABILITY_STATE_AT CAPABILITY_LIVE_SUBSCRIPTION CAPABILITY_REPLAY CAPABILITY_COMPACTION CAPABILITY_RETENTION CAPABILITY_VERIFY CAPABILITY_ACK_DURABLE
-start_time: 1793625040.270890000
-limits.max_batch_samples: 10000
-limits.max_batch_bytes: 4194304
-limits.max_pending_batches: 256
-limits.max_streams: 1024
-limits.max_replay_sessions: 16
-limits.max_subscriptions: 256
-recovery.streams: 0
-recovery.events: 0
-recovery.corruptions: 0
-recovery.replayed_samples: 0
-recovery.clean_streams: 0
-recovery.verified_segments: 0
-recovery.vouched_segments: 0
-compaction.runs: 0
-compaction.segments: 0
-compaction.saved_bytes: 0
-compaction.failures: 0
-retention.segments: 0
-retention.samples: 0
-retention.bytes: 0
+agreed_protocol: 1.6
 $ nornctl streams create plant
 streams/plant
 $ nornctl entities create ahu-01
@@ -733,7 +700,7 @@ $ grpcurl -plaintext -unix -authority localhost -protoset norn.binpb \
   "serverVersion": "0.1.0",
   "protocolVersion": {
     "major": 1,
-    "minor": 4
+    "minor": 6
   },
 ```
 
