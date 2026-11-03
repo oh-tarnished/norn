@@ -21,7 +21,7 @@ brew services start norn
 nornctl --endpoint "unix:$(brew --prefix)/var/run/norn/norn.sock" status
 ```
 
-The status must contain `serving`. Installing the package alone does not start
+The status must contain `SERVING`. Installing the package alone does not start
 it. Run `brew services` as your Homebrew user, without `sudo`: on macOS the
 service runs under launchd at login; on Linux it uses a systemd user unit.
 

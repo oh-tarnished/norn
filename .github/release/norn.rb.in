@@ -58,6 +58,7 @@ class Norn < Formula
   service do
     run [opt_bin/"norn", "--config", etc/"norn/norn.toml"]
     keep_alive true
+    stop_timeout 30
     working_dir var/"norn"
     log_path var/"log/norn.log"
     error_log_path var/"log/norn.log"

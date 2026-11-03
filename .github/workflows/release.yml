@@ -104,10 +104,13 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" > dist/release.json
           bash .github/release/formula.sh "$VERSION" dist "$TAG" > dist/norn.rb
           gh release upload "$TAG" dist/norn.rb
+          cp .github/release/tap.md dist/tap-README.md
       - uses: actions/upload-artifact@v7
         with:
           name: homebrew-formula
-          path: dist/norn.rb
+          path: |
+            dist/norn.rb
+            dist/tap-README.md
           if-no-files-found: error
 
   tap:
@@ -133,10 +136,11 @@ jobs:
           git -C tap branch -M main
           mkdir -p tap/Formula
           cp norn.rb tap/Formula/norn.rb
+          cp tap-README.md tap/README.md
           cd tap
           git config user.name "Norn release"
           git config user.email "releases@shokki.invalid"
-          git add Formula/norn.rb
+          git add Formula/norn.rb README.md
           if ! git diff --cached --quiet; then
             git commit -m "norn $VERSION"
             git push origin HEAD:main
