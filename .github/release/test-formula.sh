@@ -32,4 +32,7 @@ for mutation in 'del(.assets[0])' '.assets += [.assets[0]]' \
   fi
   [[ ! -s "$fixture/out" ]]
 done
+if [ -n "${FORMULA_OUTPUT:-}" ]; then
+  cp "$fixture/norn.rb" "$FORMULA_OUTPUT"
+fi
 echo "formula: private downloads and four invalid-release cases passed"

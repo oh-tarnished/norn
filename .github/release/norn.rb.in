@@ -12,7 +12,7 @@ class Norn < Formula
   # Without an environment token, curl may use an explicitly enabled .netrc.
   download_headers = ["Accept: application/octet-stream"]
   token = ENV["HOMEBREW_GITHUB_API_TOKEN"]
-  download_headers << "Authorization: Bearer #{token}" if token && !token.empty?
+  download_headers << "Authorization: Bearer #{token}" if token.present?
 
   on_macos do
     on_arm do
@@ -46,14 +46,13 @@ class Norn < Formula
     prefix.install "LICENSES"
   end
 
-  def post_install
-    [var/"norn", var/"run/norn"].each do |directory|
-      directory.mkpath
-      directory.chmod 0700
-    end
-    (var/"log").mkpath
-    (var/"log/norn.log").atomic_write("") unless (var/"log/norn.log").exist?
-    (var/"log/norn.log").chmod 0600
+  post_install_steps do
+    mkdir_p "norn", base: :var
+    mkdir_p "run/norn", base: :var
+    mkdir_p "log", base: :var
+    touch "log/norn.log", base: :var
+    set_permissions ["norn", "run/norn"], "0700", base: :var, recursive: false
+    set_permissions "log/norn.log", "0600", base: :var, recursive: false
   end
 
   service do

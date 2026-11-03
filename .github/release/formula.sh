@@ -36,7 +36,7 @@ asset() {
   [[ -z "$digest" || "$digest" == "sha256:$sum" ]] || {
     echo "uploaded asset digest disagrees: $filename" >&2; return 1;
   }
-  printf '      url "https://api.github.com/repos/%s/releases/assets/%s",\n          using: :curl,\n          headers: download_headers\n      sha256 "%s"' \
+  printf '      url "https://api.github.com/repos/%s/releases/assets/%s",\n          using:   :curl,\n          headers: download_headers\n      sha256 "%s"' \
     "$repository" "$id" "$sum"
 }
 

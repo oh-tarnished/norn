@@ -28,6 +28,10 @@ service runs under launchd at login; on Linux it uses a systemd user unit.
 `brew services start norn` starts the background daemon now and registers it
 to start at login on your laptop. `brew services list` shows its status;
 `brew services stop norn` stops it and removes the login registration.
+Use an up-to-date Homebrew; the formula uses declarative `post_install_steps`
+to create its private directories and log file. macOS release builds verify
+installation, configuration and log preservation, service definitions, health
+and clean shutdown/restart using the release binaries before packaging.
 
 If the repositories become private, authenticate the tap over SSH with
 `brew tap --custom-remote shokki-engineering/tap git@github.com:shokki-engineering/homebrew-tap.git`

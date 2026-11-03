@@ -89,6 +89,13 @@ jobs:
           version: "36.2"
           repo-token: ${{ github.token }}
       - run: just release-build "$TARGET"
+      - name: Verify the Homebrew daemon and service
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          FORMULA_OUTPUT="$RUNNER_TEMP/norn.rb" bash .github/release/test-formula.sh
+          brew ruby .github/release/test-service.rb "$RUNNER_TEMP/norn.rb" "target/$TARGET/release"
       - run: just release-package "$TARGET" "$VERSION"
       - uses: actions/upload-artifact@v7
         with:
