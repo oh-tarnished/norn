@@ -16,11 +16,11 @@ from `nornctl` 0.1.0 on macOS. Exact formats are in [adapters](../reference/adap
 $ nornctl export all --format csv --output plant.csv
 exported samples=3 signals=2 bytes=683 to plant.csv
 $ cat plant.csv
-# norn.csv 1 {"version":1,"streams":[{"name":"streams/plant"}],"entities":[{"name":"entities/ahu-01"}],"signals":[{"name":"entities/ahu-01/signals/fan-on","value_type":"bool","stream":"streams/plant"},{"name":"entities/ahu-01/signals/supply-temp","value_type":"double","stream":"streams/plant"}]}
+# norn.csv 1 {"version":1,"streams":[{"name":"streams/plant"}],"entities":[{"name":"entities/dev-01"}],"signals":[{"name":"entities/dev-01/signals/online","value_type":"bool","stream":"streams/plant"},{"name":"entities/dev-01/signals/temperature","value_type":"double","stream":"streams/plant"}]}
 time,signal,stream,type,value,severity,substatus,sequence
-2026-11-02T08:00:00.000000000Z,entities/ahu-01/signals/fan-on,streams/plant,bool,true,GOOD,,0
-2026-11-02T08:00:00.000000000Z,entities/ahu-01/signals/supply-temp,streams/plant,double,21.5,GOOD,,0
-2026-11-02T08:00:01.000000000Z,entities/ahu-01/signals/supply-temp,streams/plant,double,NaN,GOOD,,1
+2026-11-02T08:00:00.000000000Z,entities/dev-01/signals/online,streams/plant,bool,true,GOOD,,0
+2026-11-02T08:00:00.000000000Z,entities/dev-01/signals/temperature,streams/plant,double,21.5,GOOD,,0
+2026-11-02T08:00:01.000000000Z,entities/dev-01/signals/temperature,streams/plant,double,NaN,GOOD,,1
 # norn.end rows=3 crc32=9100b497
 $ nornctl export all --format parquet --output plant.parquet
 exported samples=3 signals=2 bytes=4408 to plant.parquet
@@ -50,12 +50,12 @@ Into a fresh daemon, from any of the four files:
 $ nornctl import plant.parquet --ack persisted
 imported read=3 sent=3 present=0 duplicate=0 created=4 batches=1 throttled=0 retried=0
 $ nornctl signals
-entities/ahu-01/signals/fan-on VALUE_TYPE_BOOL streams/plant
-entities/ahu-01/signals/supply-temp VALUE_TYPE_DOUBLE streams/plant
+entities/dev-01/signals/online VALUE_TYPE_BOOL streams/plant
+entities/dev-01/signals/temperature VALUE_TYPE_DOUBLE streams/plant
 $ nornctl query all
-2026-11-02T08:00:00Z entities/ahu-01/signals/fan-on true GOOD seq=0
-2026-11-02T08:00:00Z entities/ahu-01/signals/supply-temp 21.5 GOOD seq=0
-2026-11-02T08:00:01Z entities/ahu-01/signals/supply-temp NaN GOOD seq=1
+2026-11-02T08:00:00Z entities/dev-01/signals/online true GOOD seq=0
+2026-11-02T08:00:00Z entities/dev-01/signals/temperature 21.5 GOOD seq=0
+2026-11-02T08:00:01Z entities/dev-01/signals/temperature NaN GOOD seq=1
 ```
 
 `created=4` is the stream, the entity and both signals, with their display names,
@@ -91,7 +91,7 @@ the damaged row group, batch or chunk where it can be named.
 
   ```text
   time,signal,stream,type,value,severity,substatus,sequence
-  2026-11-02T08:00:00Z,entities/ahu-01/signals/supply-temp,streams/plant,double,21.5,GOOD,,0
+  2026-11-02T08:00:00Z,entities/dev-01/signals/temperature,streams/plant,double,21.5,GOOD,,0
   ```
 
 - **pandas**: `pd.read_csv("plant.csv", skiprows=1, skipfooter=1, engine="python",
@@ -101,8 +101,8 @@ the damaged row group, batch or chunk where it can be named.
 
   ```text
   channels:
-  	(1) entities/ahu-01/signals/fan-on     	1 msgs         	 : norn.type.Sample [protobuf]
-  	(2) entities/ahu-01/signals/supply-temp	2 msgs (1..2Hz)	 : norn.type.Sample [protobuf]
+  	(1) entities/dev-01/signals/online     	1 msgs         	 : norn.type.Sample [protobuf]
+  	(2) entities/dev-01/signals/temperature	2 msgs (1..2Hz)	 : norn.type.Sample [protobuf]
   ```
 
 Compressed MCAP and zstd Parquet from other tools are refused, because their codecs

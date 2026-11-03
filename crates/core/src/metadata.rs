@@ -3,8 +3,8 @@
 
 //! Opaque, bounded string metadata.
 //!
-//! This is where domain knowledge lives without the core learning it: a BACnet
-//! adapter attaches `protocol=BACnet` and `object_type=analogInput`, a Modbus
+//! This is where domain knowledge lives without the core learning it: a device
+//! adapter attaches `protocol=...` and `object_type=...`, another
 //! adapter attaches its register map, and the core stores both as strings it
 //! never interprets (SPEC §4, §11).
 

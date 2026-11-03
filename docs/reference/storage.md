@@ -26,7 +26,14 @@ Database → Stream → Segment → Chunk → Block → Sample.
 
 A **segment** is one file: append-only while open, immutable once sealed. A
 `StreamWriter` rolls to the next segment when one reaches a limit from
-`StorageOptions`, so no file grows without bound. A **chunk** holds one
+`StorageOptions`, so no file grows without bound. From 0.2.0 a segment seals in four
+cases: when it is full (`max_segment_bytes`), when its samples span
+`max_segment_age_ms` of sample time, when it has been open
+`max_segment_open_time_ms` of the daemon's wall-clock time (default one hour; the
+maintenance worker asks and the store thread, which owns the writer, seals), and on a
+clean shutdown. In 0.1.0 only the first, second and last applied, so a quiet stream
+could keep everything in one open segment that compaction, retention and the
+clean-start marker passed by. A **chunk** holds one
 signal's samples for a time range, in append order, and is encoded,
 compressed and checksummed independently of every other chunk. A **block** is
 one column of a chunk, as a `norn-codec` block in its compression envelope.
@@ -134,6 +141,15 @@ state unknown, so it refuses further work and recovery assesses the file.
 `atomic_write` updates metadata files (temp, fsync, rename, fsync directory).
 On Windows the directory fsync is a documented no-op: `std` cannot open a
 directory handle, and NTFS journals metadata.
+
+**macOS.** Plain `fsync(2)` hands data to the drive without making the drive write its
+cache, so a power cut could still lose it. Rust's `std` implements `sync_data` and
+`sync_all` on Apple targets with `fcntl(F_FULLFSYNC)`, which does flush the cache, so
+`DURABLE` holds on macOS with no `unsafe` and no platform code in Norn (documented in
+the code from 0.2.0). The cost is that `F_FULLFSYNC` is much slower, often
+milliseconds even on an SSD; group commit spreads one sync over every batch waiting
+on it. A deployment that does not need power-loss safety sets
+`[storage] durable_acks = false` rather than weakening the sync.
 
 ### Bounds
 
@@ -372,6 +388,20 @@ job needs a lock against another. Jobs run on tokio's blocking pool. At most 16 
 and past that a request fails with `RESOURCE_EXHAUSTED`. A long `verify` delays
 compaction, which is the price.
 
+**Verification.** `VerifyStream` reads every chunk of every sealed segment and checks
+both CRCs. From 0.2.0 it then reads the chunks already fsynced to the open segment,
+which has no directory yet: frame by frame, at the offsets the index was given, each
+frame's header checked against that metadata and its body against its CRC. Samples
+still in the write path's buffers are in no file and are not examined; they are
+reported as buffered and reach a chunk within `max_chunk_age_ms`. Without this, a
+stream that had not yet sealed a segment verified as zero chunks, a check that
+examined nothing reported as a pass.
+
+**Sealing by age.** From 0.2.0 the same worker checks for segments open longer than
+`max_segment_open_time_ms`, every quarter of that value, kept between 10 ms and 60 s,
+and runs this check even when `[maintenance] background = false`: without it a quiet
+stream never reaches a sealed segment at all.
+
 **Choosing a run.** From the index's sealed segments, neighbours by sequence number,
 at most `max_segment_bytes` of input spanning at most `max_segment_age`. A run is two
 or more segments, or one fresh from ingest. So each compaction lowers the segment
@@ -517,8 +547,8 @@ Opening the compacted segment reads 704,084 bytes (16,000 directory entries).
   compacted segments of 69 MB.
 - The mix decides this, not the format. Full-precision noise is 81% of the
   compacted bytes while being 1/7 of the signals. The projection is 0.12 TB with
-  none of it and 3.45 TB if every signal were noise. Real sites should be
-  measured before sizing disks.
+  none of it and 3.45 TB if every signal were noise. Real deployments should
+  be measured before sizing disks.
 - Compaction saves 45%. Small chunks pay for their 92 bytes of framing per chunk
   (0.57 bytes/sample at 161 samples, 0.026 at 3,600) and for fresh codec and zstd
   state per chunk. Default budgets also roll segments on chunk count, four an

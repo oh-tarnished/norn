@@ -11,9 +11,9 @@ code and this document disagree, update the design docs first, then the code.
 
 Norn is a high-performance, cross-platform temporal data engine: it ingests,
 stores, compresses, indexes, queries, replays, reconstructs and streams
-historical and live data. The first workload is building-management telemetry
-(BACnet), but **Norn itself is domain-independent**. Future sources: BACnet,
-Modbus, OPC-UA, MQTT, robotics, industrial systems, vehicles, IoT, simulation,
+historical and live data. The first workload is sensor telemetry from networked
+devices, but **Norn itself is domain-independent**. Future sources: device
+protocols, robotics, industrial systems, vehicles, IoT, simulation,
 custom sensors, arbitrary Protobuf/event streams.
 
 > **Norn stores the history of systems and provides a deterministic interface to
@@ -49,8 +49,8 @@ layout. Documentation describes what is implemented, not aspirations.
 Layers: Protocol, IPC, Data Plane, Runtime, Storage, Encoding, Index, Query,
 State, Replay, Metadata, Adapters, MCP, CLI. The core knows Entity, Signal,
 Stream, Event, Sample, Value, Timestamp, Sequence, Quality, Schema, Source,
-Metadata, State. It must NOT know BACnet, AHU, Chiller, Modbus, OPC-UA, Robot,
-Hospital, Building — those belong to adapters and metadata.
+Metadata, State. It must NOT know any device protocol, device type, robot, vehicle,
+facility or industry — those belong to adapters and metadata.
 
 ## 5. Operating systems
 Linux, macOS and Windows from the start. Platform code sits behind Rust traits
@@ -83,18 +83,18 @@ one giant service): NornService, TelemetryService, QueryService, ReplayService,
 StateService, AdminService.
 
 ## 10. Data model
-- **Entity**: a thing that exists (building, floor, AHU, motor, robot, sensor, vehicle).
+- **Entity**: a thing that exists (machine, motor, robot, sensor, vehicle, device).
 - **Signal**: a measurable/observable property of an entity (temperature, pressure, speed, position, power, state, occupancy).
 - **Stream**: a logical sequence of temporal observations.
 - **Sample**: a timestamped observation — timestamp, signal, value, quality, sequence.
 - **Value**: bool, int32, int64, uint32, uint64, float32, float64, string, bytes, enum; designed for extension.
 
-## 11. BACnet as an example only
-Entity `AHU-01`, Signal `SupplyAirTemperature`, metadata `protocol=BACnet,
+## 11. A device protocol as an example only
+Entity `sensor-01`, Signal `temperature`, metadata `protocol=<name>,
 device_instance=1001, object_type=analogInput, object_instance=3,
 unit=degree_celsius`. Stored data is conceptually `timestamp, entity_id,
-signal_id, value, quality, sequence`. Norn never needs to understand BACnet
-object types; BACnet metadata stays in the signal/entity metadata layer.
+signal_id, value, quality, sequence`. Norn never needs to understand a
+protocol's object types; protocol metadata stays in the signal/entity metadata layer.
 
 ## 12. Storage
 A native Norn format — Parquet is NOT the primary internal representation.
@@ -194,18 +194,18 @@ seek, step — so applications and AI agents interact with history
 deterministically.
 
 ## 29. Adapters
-Outside the core, behind one adapter contract (BACnet, Modbus, OPC-UA, MQTT,
+Outside the core, behind one adapter contract (device protocols,
 MCAP, Parquet, CSV, custom Protobuf), converting external data into Entity,
 Signal, Sample, Metadata.
-**Decision (owner, 2026-11-02):** the BACnet adapter lives in `bacnet-rs`, as a
-client over IPC using only Norn's public crates, not under `adapters/` here
-(docs/project/plan.md, "Connecting bacnet-rs").
+**Decision (owner, 2026-11-02):** device-protocol adapters live in their own
+repositories, as clients over IPC using only Norn's public crates, not under
+`adapters/` here (docs/project/plan.md, "External adapters").
 
-## 30. BACnet adapter (later)
+## 30. Device-protocol adapters (later)
 Device and object discovery, object metadata, property reads, subscriptions,
-polling, quality, units, timestamps. A BACnet object maps to Entity + Signal +
-Metadata; no BACnet structures in the core. (The `bacnet-rs` library supplies
-the protocol side, and by the §29 decision the adapter itself.)
+polling, quality, units, timestamps. A device object maps to Entity + Signal +
+Metadata; no protocol structures in the core. (By the §29 decision, each
+protocol's adapter lives with its protocol library.)
 
 ## 31. MCP
 Optional MCP, served by the daemon: AI agent → MCP → the daemon's gRPC services,
@@ -260,7 +260,7 @@ generation, buf lint, formatting, clippy, docs, benchmarks where appropriate.
 A workspace: `README.md`, `CONTRIBUTING.md` and `SECURITY.md` at the root, and
 `docs/` as section 3 lays it out; `protobuf/`; `crates/` {core, protocol, ipc,
 transport, shared-memory, runtime, storage, codec, index, query, state, replay,
-metadata, server, cli}; `adapters/` {bacnet, modbus, opcua, mqtt, mcap,
+metadata, server, cli}; `adapters/` {contract, csv, mcap,
 parquet}; `tests/`; `benchmarks/`; `examples/`; `tools/`
 (`tools/screenshots/` captures `docs/images/` from a real daemon). One focused responsibility per crate/module.
 
@@ -308,8 +308,8 @@ chunks, segments, checksums, recovery) · 6 Encoding (timestamp, integer,
 float, boolean, enum, ZSTD) · 7 Index · 8 Write path (append, batch,
 buffering, backpressure, durability) · 9 Query (range, latest, aggregates) ·
 10 State (checkpoints, StateAt) · 11 Replay (pause, seek, speed, virtual
-clock) · 12 Shared memory (ring buffer, fallback) · 13 Adapters (BACnet, MCAP,
-Parquet, others) · 14 MCP · 15 Optimisation · 16 Hardening (fuzzing, crash
+clock) · 12 Shared memory (ring buffer, fallback) · 13 Adapters (device protocols,
+MCAP, Parquet, others) · 14 MCP · 15 Optimisation · 16 Hardening (fuzzing, crash
 recovery, corruption, cross-platform, security review).
 
 ## 49. Definition of done
@@ -321,7 +321,7 @@ at 16,000 signals × 1 Hz with an extrapolated estimate for 504+ billion
 samples/year.
 
 ## 50. Final principle
-Optimise Norn around **time**, not BACnet. Input → STORE, INDEX, QUERY, STATE,
+Optimise Norn around **time**, not any one domain. Input → STORE, INDEX, QUERY, STATE,
 REPLAY, SCRUB, STREAM → humans, systems, AI.
 
 > **Given any point in time, Norn should make it possible to understand what

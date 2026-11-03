@@ -111,8 +111,8 @@ across all of them.
 
 **Batch create (AIP-233).** Entities and signals also have
 `EntityService.BatchCreateEntities` and `SignalService.BatchCreateSignals`, for a
-client that provisions a whole site at start: bacnet-rs creates about 60,000 signals
-for a 1,000-device site, and one create per call dropped readings while it ran. A
+client that provisions a whole deployment at start: a device adapter creates about
+60,000 signals for 1,000 devices, and one create per call dropped readings while it ran. A
 batch holds 1 to 1,000 `Create...Request`s and fits the 4 MiB message limit.
 `BatchCreateSignals` takes a parent of `entities/{entity}`, or `entities/-` when the
 signals belong to several entities. A child request's `parent` is then empty or equal
@@ -196,7 +196,11 @@ admitted below the requested level, exactly one more response follows: at the
 requested level, or with `error` set if it can no longer reach it. First
 responses arrive in batch order, and so do second responses within a stream.
 Closing the request side lets in-flight batches finish; the daemon then closes
-its side. As implemented, second responses arrive in batch order across the whole
+its side. From 0.2.0, a daemon that starts shutting down stops reading new batches
+on an open call, answers every batch it already admitted, and then ends the call with
+`UNAVAILABLE` and `ERROR_REASON_SHUTTING_DOWN`; a client reconnects and resends
+what was not acknowledged, as after any broken call. A call held open between batches
+therefore no longer delays a stop. As implemented, second responses arrive in batch order across the whole
 call, a stricter order than promised. An admitted batch's first response always
 reports `BUFFERED`, the level admission itself reaches, so a batch asking for
 `RECEIVED` or `BUFFERED` gets one response.
@@ -411,7 +415,11 @@ Compaction is lossless and crash-safe, and ingestion continues during it (SPEC �
 `interval` restricts it to segments overlapping that interval. Segments holding known
 damage are left alone and counted in `skipped_segment_count`.
 
-`VerifyStream` reads every chunk of every sealed segment and changes nothing. Finding
+`VerifyStream` reads every chunk of every sealed segment and changes nothing. From
+0.2.0 it also reads the chunks already fsynced to the open segment, checking each
+frame's header and CRC; samples still buffered in memory are in no file and are not
+examined. `segment_count` counts sealed segments only, while `chunk_count` and
+`sample_count` include the open segment's chunks. Finding
 damage is a *successful* operation: the result is the answer asked for.
 
 `ApplyStreamRetention` runs the recorded policy now. `validate_only` removes nothing
@@ -475,8 +483,8 @@ package, all versioned in lockstep; it changes only with a new package
 version, which is the only place wire-incompatible changes may happen. `minor`
 counts compatible additions within a major: methods, fields, enum values,
 error reasons, capabilities. `buf breaking` enforces that a minor never breaks
-the wire or JSON form. The current version is 1.6
-(`norn_protocol::PROTOCOL_VERSION`). 1.1 added error reasons, `Server.recovery` and
+the wire or JSON form. The current release speaks 1.6
+(`norn_protocol::PROTOCOL_VERSION`); the next, 0.2.0, speaks 1.7. 1.1 added error reasons, `Server.recovery` and
 `Server.index` to 1.0. 1.2 added `StreamStats.buffered_sample_count` and
 `corrupt_sample_count`, changed `sample_count` to include buffered samples and
 exclude corrupt ones, and defined `AGGREGATE_FUNCTION_RATE` over counter resets;
@@ -491,6 +499,19 @@ start, and retention's unit is the segment, as it always had to be. 1.5 added
 `DriveReplaySession`, and the `(mcp.v1.*)` annotations, which change no message.
 1.6 added `BatchCreateEntities` and `BatchCreateSignals`. A client learns it may use
 them from an agreed minor of 6 or more; a 1.5 daemon answers them `UNIMPLEMENTED`.
+
+1.7 (Norn 0.2.0) adds the opt-in [shared-memory](shared-memory.md) data plane: the
+message `norn.admin.v1.SharedMemoryPlane` (`service`, `root_directory`, `name_prefix`,
+`max_frame_bytes`, `slot_count`, `max_rings`, `segment_bytes`) and the field
+`NegotiateProtocolResponse.shared_memory`. The daemon sets that field only when it
+offers `CAPABILITY_SHARED_MEMORY` and the agreed minor is 7 or more, so an older
+client never sees it. A ring is asked for and granted per `AppendSamples` call in gRPC
+metadata (`norn_protocol::DATA_PLANE_METADATA_KEY` and
+`SHARED_MEMORY_SERVICE_METADATA_KEY`): the request key `norn-data-plane` with the
+value `shared-memory`, and the response key `norn-shared-memory-service` naming the
+ring's whole service, `{service}/{ring}`. Without that answer the call stays on gRPC.
+Every response still travels on the gRPC call, so acknowledgements, backpressure and
+errors are unchanged.
 
 A client calls `AdminService.NegotiateProtocol` once per connection, before
 anything else, with its version and the capabilities it cannot work without:
@@ -527,7 +548,9 @@ the replay idle timeout (SPEC §16, §41).
 
 The daemon offers `APPEND_SAMPLES`, `ACK_PERSISTED`, `QUERY_RANGE`,
 `QUERY_AGGREGATES`, `STATE_AT`, `LIVE_SUBSCRIPTION`, `REPLAY`, `COMPACTION`,
-`RETENTION`, `VERIFY`, and `ACK_DURABLE` unless `[storage] durable_acks = false`. `Limits` are all set and all
+`RETENTION`, `VERIFY`, and `ACK_DURABLE` unless `[storage] durable_acks = false`.
+From 0.2.0 it also offers `SHARED_MEMORY` when `[shared_memory] enabled = true` and the
+endpoint is a Unix socket. `Limits` are all set and all
 enforced. `max_batch_bytes` is
 the 4 MiB gRPC message limit, lowered to an eighth of `ipc_bytes` if that is
 smaller, so one maximal batch fits the decoding half of the budget twice over.

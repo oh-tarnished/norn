@@ -159,7 +159,7 @@ Against the real `norn` binary and rmcp's real client:
 - Live subscriptions: an agent polls `BrowseSamples` with `LATEST`, or `ComputeState`.
 - Resources and prompts; tools only.
 - Authentication on HTTP, which is why it binds loopback only.
-- Protocol revision `2026-07-28`, held back as bacnet-rs holds it back: rmcp's results
+- Protocol revision `2026-07-28`, held back deliberately: rmcp's results
   lack fields that revision requires, and strict clients reject them.
 - Relative times (`now-1h`): arguments are the schema's RFC 3339 times.
 - REST: the schema's HTTP bindings could be transcoded by the same server, but that

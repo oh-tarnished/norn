@@ -62,6 +62,7 @@ max_value_bytes = 1024
 [storage]
 max_segment_bytes = 268435456
 max_segment_age_ms = 3600000
+max_segment_open_time_ms = 3600000  # 0.2.0: wall-clock time a segment may stay open
 group_commit_interval_ms = 5   # the longest a DURABLE batch waits to share an fsync
 max_chunk_age_ms = 60000       # the longest a sample waits to be encoded into a chunk
 durable_acks = true            # false: no fsync, and DURABLE is refused, not weakened
@@ -78,6 +79,14 @@ too: a batch that would pass either fails whole with `RESOURCE_EXHAUSTED`. One b
 holds at most 1,000 requests. That bound is part of protocol 1.6, documented in the
 schema, and not a key: a client must be able to rely on it whatever the daemon's file
 says.
+
+**Sealing** (0.2.0). A segment seals when it reaches `max_segment_bytes`, when its
+samples span `max_segment_age_ms` of *sample* time, when it has been open
+`max_segment_open_time_ms` of the daemon's *wall-clock* time however little it holds,
+and on a clean stop. The open-time limit is what lets a quiet or short-lived stream
+reach sealed segments, which compaction, retention and the clean-start marker work on.
+Zero is refused. Maintenance checks every quarter of the value, kept between 10 ms and
+60 s, and does so even with `[maintenance] background = false`.
 
 Half of `ipc_bytes` is set aside for HTTP/2 flow-control windows, an equal share
 per client; the other half pays for messages being decoded ([architecture.md](../reference/architecture.md)).
@@ -116,6 +125,39 @@ hosts = []                                          # further Host names loopbac
 `norn --mcp stdio` is all an agent's client needs to launch. Enabled with no
 transport serves stdio. A non-loopback `http:` address is refused. The
 [MCP reference](../reference/mcp.md#running-it) has every rule.
+
+## Shared memory
+
+New in 0.2.0 (protocol 1.7), and off by default. When enabled, a client that asks for
+it sends `AppendSamples` batches through a bounded iceoryx2 ring instead of the socket;
+the socket still carries every response, and any call without a ring stays on the
+socket.
+
+```toml
+[shared_memory]
+enabled = false             # true: offer rings to clients that ask
+service = "norn"            # iceoryx2 service name; the daemon appends its pid
+max_rings = 2               # rings open at once; a call past it stays on the socket
+slot_count = 4              # frames a ring holds before the writer waits
+max_frame_bytes = 1048576   # the largest frame; a larger batch goes by the socket
+```
+
+While `enabled = false`, nothing else in the table is checked. When enabled, startup
+refuses:
+
+- `service` that is not 1 to 64 letters, digits, `-`, `_` or `.`
+- `max_rings` outside 1 to 64 (each ring is a reader task)
+- `slot_count` outside 1 to 1,024
+- `max_frame_bytes` below 4 KiB or above the largest batch the socket takes
+  (`max_batch_bytes`), so neither plane admits what the other refuses
+- rings that do not fit: `max_rings × (slot_count + 2) × max_frame_bytes`, plus one
+  frame for decoding, must fit the half of `ipc_bytes` not promised to HTTP/2 flow
+  control
+
+Rings are offered only on a Unix socket endpoint and never on Windows; configured but
+unavailable, the daemon logs a warning and serves the socket alone. Enable it only
+where every process of the daemon's user is trusted:
+[shared memory](../reference/shared-memory.md#trust-boundary).
 
 ## Logging
 

@@ -1,12 +1,12 @@
 //! SPDX-FileCopyrightText: 2026 Srikanth K
 //! SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Provisioning a large site through real gRPC over a Unix socket:
+//! Provisioning a large deployment through real gRPC over a Unix socket:
 //! docs/performance.md, "Provisioning".
 //!
 //! `cargo bench -p norn-server --bench provision`. For each scenario, starts a
-//! fresh `norn`, then creates 1,000 entities and 63,000 signals (a site the size
-//! of a 15,804-point BACnet building at four signals a point) over `connections`
+//! fresh `norn`, then creates 1,000 entities and 63,000 signals (a deployment the size
+//! of a 15,804-point device network at four signals a point) over `connections`
 //! connections, timing entities and signals separately. `cargo test
 //! --all-targets` runs a tiny smoke scale.
 #![allow(missing_docs, clippy::unwrap_used, clippy::expect_used, clippy::panic)]

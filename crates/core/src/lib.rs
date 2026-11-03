@@ -11,7 +11,7 @@
 //!   descriptors with opaque [`Metadata`], the typed [`Error`], and the
 //!   validated [`Config`] of memory budgets and limits.
 //! - **Must not**: perform I/O, read a clock, spawn a thread, or name any
-//!   domain. BACnet, Modbus, AHU or building appear only as strings in
+//!   domain. Protocols, device types and industries appear only as strings in
 //!   [`Metadata`], put there by adapters (SPEC §4). `xtask purity` enforces the
 //!   first three.
 //! - **May import**: `std` only. No runtime dependencies; `proptest` is a

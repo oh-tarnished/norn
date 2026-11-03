@@ -14,7 +14,7 @@
 //! in place, so a daemon too old for batches refuses the log as
 //! `UnsupportedVersion` rather than misreading a marker.
 //!
-//! Chosen over rewriting a snapshot per change because a site creates 16,000
+//! Chosen over rewriting a snapshot per change because a deployment creates 16,000
 //! signals at once: a rewrite per create would be quadratic in bytes and fsyncs.
 
 mod replay;

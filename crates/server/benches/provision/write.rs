@@ -1,7 +1,7 @@
 //! SPDX-FileCopyrightText: 2026 Srikanth K
 //! SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Creating the site: one resource per call, or many per batch call. Each
+//! Creating the deployment: one resource per call, or many per batch call. Each
 //! connection runs one call at a time, taking the next piece of work from a
 //! shared counter, so `connections` is also the number of calls in flight.
 

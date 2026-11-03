@@ -93,12 +93,12 @@ one value type.
 ```console
 $ nornctl streams create plant
 streams/plant
-$ nornctl entities create ahu-01
-entities/ahu-01
-$ nornctl signals create ahu-01 supply-temp plant double
-entities/ahu-01/signals/supply-temp
+$ nornctl entities create dev-01
+entities/dev-01
+$ nornctl signals create dev-01 temperature plant double
+entities/dev-01/signals/temperature
 $ nornctl signals
-entities/ahu-01/signals/supply-temp VALUE_TYPE_DOUBLE streams/plant
+entities/dev-01/signals/temperature VALUE_TYPE_DOUBLE streams/plant
 ```
 
 ## Append
@@ -107,7 +107,7 @@ entities/ahu-01/signals/supply-temp VALUE_TYPE_DOUBLE streams/plant
 for `DURABLE` unless told otherwise.
 
 ```console
-$ nornctl append plant entities/ahu-01/signals/supply-temp 21.5
+$ nornctl append plant entities/dev-01/signals/temperature 21.5
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_DURABLE
 ```
@@ -117,10 +117,10 @@ BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_DURABLE
 ```console
 $ nornctl streams
 streams/plant samples=3 buffered=3
-$ nornctl query entities/ahu-01/signals/supply-temp
-2026-11-02T01:52:07.756098Z entities/ahu-01/signals/supply-temp 21.5 GOOD seq=0
-2026-11-02T01:52:07.802987Z entities/ahu-01/signals/supply-temp 21.75 GOOD seq=2
-2026-11-02T01:52:07.807982Z entities/ahu-01/signals/supply-temp 22 GOOD seq=3
+$ nornctl query entities/dev-01/signals/temperature
+2026-11-02T01:52:07.756098Z entities/dev-01/signals/temperature 21.5 GOOD seq=0
+2026-11-02T01:52:07.802987Z entities/dev-01/signals/temperature 21.75 GOOD seq=2
+2026-11-02T01:52:07.807982Z entities/dev-01/signals/temperature 22 GOOD seq=3
 $ sleep 61
 $ nornctl streams
 streams/plant samples=3

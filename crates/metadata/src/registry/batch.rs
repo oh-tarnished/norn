@@ -3,7 +3,7 @@
 
 //! Batch creates: many resources, one log write, one fsync, all or nothing.
 //!
-//! A site provisions tens of thousands of signals at start. One create per
+//! A deployment provisions tens of thousands of signals at start. One create per
 //! call costs one call and one shared fsync each; a batch costs one of each
 //! for up to [`MAX_BATCH_CREATE`] resources, and the log's batch marker makes a
 //! crash keep all of it or none (`crate::log`).

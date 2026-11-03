@@ -177,8 +177,8 @@ What these do and do not show:
 
 ## Provisioning
 
-A site's adapter creates its whole catalogue at start: bacnet-rs creates about
-60,000 signals for a 1,000-device site. Created one at a time, that took long
+A device adapter creates its whole catalogue at start: about 60,000 signals for a
+network of 1,000 devices. Created one at a time, that took long
 enough that readings arriving meanwhile were dropped, so the registry got two
 changes (`crates/metadata/src/registry/commit.rs`, `batch.rs`):
 
@@ -320,7 +320,7 @@ replay's timing accuracy (tested with a fake clock, not measured), compacted dat
 `tools/interchange/bench.sh 100 10000`, release build, Apple M3 Max, a local SSD 81%
 full, three runs. `tools/interchange/generate.py` writes 1,000,000 samples: 100
 signals at 1 Hz for 10,000 s, in an assumed mix of 60% noisy doubles, 20% stepping
-float setpoints, 10% booleans and 10% slow int32 counters. Not a real site. Each run
+float setpoints, 10% booleans and 10% slow int32 counters. Not a real deployment. Each run
 imports that CSV into a daemon (the fill), then for each format: `nornctl export all`
 from it, `nornctl import` into a fresh daemon at `PERSISTED`, and the same import
 again (the repeat, which sends nothing). Every daemon and `nornctl` run on one machine

@@ -17,7 +17,7 @@
 //!   `prost`, `prost-types`, `serde`, `serde_json`.
 //! - **Spans**: none yet.
 //!
-//! A third-party adapter (BACnet lives in `bacnet-rs`) needs only this crate or
+//! A third-party adapter (one maintained outside this repository) needs only this crate or
 //! the protocol: it implements a trait, or it calls `AppendSamples` itself.
 //!
 //! The drivers are `async` and call the traits inline, so reading or writing a

@@ -16,37 +16,37 @@ or before the instant. This is a real session against a fresh daemon:
 ```console
 $ nornctl streams create plant
 streams/plant
-$ nornctl entities create ahu-01
-entities/ahu-01
-$ nornctl signals create ahu-01 supply-temp plant double
-entities/ahu-01/signals/supply-temp
-$ nornctl signals create ahu-01 fan-speed plant double
-entities/ahu-01/signals/fan-speed
-$ nornctl append plant entities/ahu-01/signals/supply-temp 21.5
+$ nornctl entities create dev-01
+entities/dev-01
+$ nornctl signals create dev-01 temperature plant double
+entities/dev-01/signals/temperature
+$ nornctl signals create dev-01 frequency plant double
+entities/dev-01/signals/frequency
+$ nornctl append plant entities/dev-01/signals/temperature 21.5
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_DURABLE
-$ nornctl append plant entities/ahu-01/signals/supply-temp 21.9 --ack persisted
+$ nornctl append plant entities/dev-01/signals/temperature 21.9 --ack persisted
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_PERSISTED
-$ nornctl append plant entities/ahu-01/signals/fan-speed 40 --ack persisted
+$ nornctl append plant entities/dev-01/signals/frequency 40 --ack persisted
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_PERSISTED
-$ nornctl state ahu-01
+$ nornctl state dev-01
 state_time: 2026-11-02T02:50:13.233494Z
-2026-11-02T02:50:13.229454Z entities/ahu-01/signals/fan-speed 40 GOOD seq=0
-2026-11-02T02:50:13.224455Z entities/ahu-01/signals/supply-temp 21.9 GOOD seq=0
-$ nornctl state ahu-01 --at now-2s
+2026-11-02T02:50:13.229454Z entities/dev-01/signals/frequency 40 GOOD seq=0
+2026-11-02T02:50:13.224455Z entities/dev-01/signals/temperature 21.9 GOOD seq=0
+$ nornctl state dev-01 --at now-2s
 state_time: 2026-11-02T02:50:11.237578Z
-- entities/ahu-01/signals/fan-speed unknown
-2026-11-02T02:50:11.174288Z entities/ahu-01/signals/supply-temp 21.5 GOOD seq=0
-$ nornctl state entities/ahu-01/signals/supply-temp --max-age 1s
+- entities/dev-01/signals/frequency unknown
+2026-11-02T02:50:11.174288Z entities/dev-01/signals/temperature 21.5 GOOD seq=0
+$ nornctl state entities/dev-01/signals/temperature --max-age 1s
 state_time: 2026-11-02T02:50:13.241634Z
-2026-11-02T02:50:13.224455Z entities/ahu-01/signals/supply-temp 21.9 GOOD seq=0
-$ nornctl state ahu-01 --at 2020-01-01T00:00:00Z
+2026-11-02T02:50:13.224455Z entities/dev-01/signals/temperature 21.9 GOOD seq=0
+$ nornctl state dev-01 --at 2020-01-01T00:00:00Z
 state_time: 2020-01-01T00:00:00Z
-- entities/ahu-01/signals/fan-speed unknown
-- entities/ahu-01/signals/supply-temp unknown
-$ nornctl state ahu-02
+- entities/dev-01/signals/frequency unknown
+- entities/dev-01/signals/temperature unknown
+$ nornctl state dev-02
 ```
 
 What to notice:
@@ -57,7 +57,7 @@ What to notice:
   instant counts. With no `--at` it is now.
 - A sample is in the state the moment it is acknowledged at `PERSISTED`, buffered or not:
   the samples above were seconds old and still in memory. Two seconds before the second
-  call, `supply-temp` still read 21.5 and `fan-speed` did not exist yet.
+  call, `temperature` still read 21.5 and `frequency` did not exist yet.
 - `--max-age D` turns a sample older than D into `unknown`: here the sample was younger
   than a second, so it shows. Use it when a stale reading would mislead.
 - An entity that does not exist is an error, with a reason a program can match on.
@@ -83,20 +83,20 @@ command below ran against one real daemon, after these samples were appended wit
 ```console
 $ nornctl streams create plant
 streams/plant
-$ nornctl entities create ahu-01
-entities/ahu-01
-$ nornctl signals create ahu-01 supply-temp plant double
-entities/ahu-01/signals/supply-temp
-$ nornctl signals create ahu-01 fan-speed plant double
-entities/ahu-01/signals/fan-speed
-$ nornctl append plant entities/ahu-01/signals/supply-temp 21.0 --at 2026-11-02T08:00:00Z --ack persisted
+$ nornctl entities create dev-01
+entities/dev-01
+$ nornctl signals create dev-01 temperature plant double
+entities/dev-01/signals/temperature
+$ nornctl signals create dev-01 frequency plant double
+entities/dev-01/signals/frequency
+$ nornctl append plant entities/dev-01/signals/temperature 21.0 --at 2026-11-02T08:00:00Z --ack persisted
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_PERSISTED
 (five more appends like it, at 08:00:00, :10, :20, :30 and :40)
-$ nornctl state ahu-01 --at 2026-11-02T08:00:15Z
+$ nornctl state dev-01 --at 2026-11-02T08:00:15Z
 state_time: 2026-11-02T08:00:15Z
-2026-11-02T08:00:00Z entities/ahu-01/signals/fan-speed 40 GOOD seq=0
-2026-11-02T08:00:10Z entities/ahu-01/signals/supply-temp 21.4 GOOD seq=0
+2026-11-02T08:00:00Z entities/dev-01/signals/frequency 40 GOOD seq=0
+2026-11-02T08:00:10Z entities/dev-01/signals/temperature 21.4 GOOD seq=0
 ```
 
 ### Play it
@@ -105,16 +105,16 @@ state_time: 2026-11-02T08:00:15Z
 times faster, `0` holds the clock still so only steps move it.
 
 ```console
-$ nornctl replay create ahu-01 --from 2026-11-02T08:00:00Z --to 2026-11-02T08:01:00Z --speed max --id morning
+$ nornctl replay create dev-01 --from 2026-11-02T08:00:00Z --to 2026-11-02T08:01:00Z --speed max --id morning
 replaySessions/morning PAUSED at=2026-11-02T08:00:00Z emitted=0 pace=max from=2026-11-02T08:00:00Z to=2026-11-02T08:01:00Z
 $ nornctl subscribe replay morning --resume
 #1 2026-11-02T08:00:00Z RUNNING
-#2 2026-11-02T08:00:00Z 2026-11-02T08:00:00Z entities/ahu-01/signals/fan-speed 40 GOOD seq=0
-#3 2026-11-02T08:00:00Z 2026-11-02T08:00:00Z entities/ahu-01/signals/supply-temp 21 GOOD seq=0
-#4 2026-11-02T08:00:10Z 2026-11-02T08:00:10Z entities/ahu-01/signals/supply-temp 21.4 GOOD seq=0
-#5 2026-11-02T08:00:20Z 2026-11-02T08:00:20Z entities/ahu-01/signals/fan-speed 55 GOOD seq=0
-#6 2026-11-02T08:00:30Z 2026-11-02T08:00:30Z entities/ahu-01/signals/supply-temp 21.9 GOOD seq=0
-#7 2026-11-02T08:00:40Z 2026-11-02T08:00:40Z entities/ahu-01/signals/fan-speed 60 GOOD seq=0
+#2 2026-11-02T08:00:00Z 2026-11-02T08:00:00Z entities/dev-01/signals/frequency 40 GOOD seq=0
+#3 2026-11-02T08:00:00Z 2026-11-02T08:00:00Z entities/dev-01/signals/temperature 21 GOOD seq=0
+#4 2026-11-02T08:00:10Z 2026-11-02T08:00:10Z entities/dev-01/signals/temperature 21.4 GOOD seq=0
+#5 2026-11-02T08:00:20Z 2026-11-02T08:00:20Z entities/dev-01/signals/frequency 55 GOOD seq=0
+#6 2026-11-02T08:00:30Z 2026-11-02T08:00:30Z entities/dev-01/signals/temperature 21.9 GOOD seq=0
+#7 2026-11-02T08:00:40Z 2026-11-02T08:00:40Z entities/dev-01/signals/frequency 60 GOOD seq=0
 #8 2026-11-02T08:01:00Z ENDED
 ```
 
@@ -139,10 +139,10 @@ replaySessions/morning PAUSED at=2026-11-02T08:00:15Z emitted=0 pace=max from=20
 $ nornctl replay step morning 2
 replaySessions/morning PAUSED at=2026-11-02T08:00:30Z emitted=2 pace=max from=2026-11-02T08:00:00Z to=2026-11-02T08:01:00Z
 #1 2026-11-02T08:00:15Z SEEKED
-#2 2026-11-02T08:00:15Z state 2026-11-02T08:00:00Z entities/ahu-01/signals/fan-speed 40 GOOD seq=0
-#3 2026-11-02T08:00:15Z state 2026-11-02T08:00:10Z entities/ahu-01/signals/supply-temp 21.4 GOOD seq=0
-#4 2026-11-02T08:00:20Z 2026-11-02T08:00:20Z entities/ahu-01/signals/fan-speed 55 GOOD seq=0
-#5 2026-11-02T08:00:30Z 2026-11-02T08:00:30Z entities/ahu-01/signals/supply-temp 21.9 GOOD seq=0
+#2 2026-11-02T08:00:15Z state 2026-11-02T08:00:00Z entities/dev-01/signals/frequency 40 GOOD seq=0
+#3 2026-11-02T08:00:15Z state 2026-11-02T08:00:10Z entities/dev-01/signals/temperature 21.4 GOOD seq=0
+#4 2026-11-02T08:00:20Z 2026-11-02T08:00:20Z entities/dev-01/signals/frequency 55 GOOD seq=0
+#5 2026-11-02T08:00:30Z 2026-11-02T08:00:30Z entities/dev-01/signals/temperature 21.9 GOOD seq=0
 ```
 
 A step of `N` plays the next N samples; a step of a duration, such as `10s`, moves the
@@ -174,15 +174,15 @@ deleted after 10 minutes with no call and no subscriber, and all of them at a re
 consumer written for one runs unchanged on the other. The clock is the daemon's:
 
 ```console
-$ nornctl subscribe live ahu-01 --limit 2 &
-$ nornctl append plant entities/ahu-01/signals/supply-temp 22.3 --ack persisted
+$ nornctl subscribe live dev-01 --limit 2 &
+$ nornctl append plant entities/dev-01/signals/temperature 22.3 --ack persisted
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_PERSISTED
-$ nornctl append plant entities/ahu-01/signals/fan-speed 62 --ack persisted
+$ nornctl append plant entities/dev-01/signals/frequency 62 --ack persisted
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_PERSISTED
-#1 2026-11-02T04:06:13.351223Z 2026-11-02T04:06:13.350664Z entities/ahu-01/signals/supply-temp 22.3 GOOD seq=0
-#2 2026-11-02T04:06:13.358668Z 2026-11-02T04:06:13.358324Z entities/ahu-01/signals/fan-speed 62 GOOD seq=0
+#1 2026-11-02T04:06:13.351223Z 2026-11-02T04:06:13.350664Z entities/dev-01/signals/temperature 22.3 GOOD seq=0
+#2 2026-11-02T04:06:13.358668Z 2026-11-02T04:06:13.358324Z entities/dev-01/signals/frequency 62 GOOD seq=0
 ```
 
 A live subscriber that stops reading is never shown a gap and never slows ingestion: when

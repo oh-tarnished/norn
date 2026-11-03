@@ -20,6 +20,10 @@ depends on `XDG_RUNTIME_DIR` and `TMPDIR`, so the two must see the same values, 
 pass the same `--endpoint` to both. The daemon logs its endpoint on the `listening`
 line.
 
+From 0.2.0, on a Unix socket the message adds the other usual cause: `(is the daemon
+running? It also refuses to start unless the socket's directory is mode 0700; its log
+says which)`. See the next entry for the directory.
+
 ## `socket directory ... must be owner-only`
 
 ```text
@@ -103,7 +107,7 @@ nornctl: StreamService.CreateStream: InvalidArgument: stream_id: must start with
 ## `VALUE: a number`
 
 ```console
-$ nornctl append plant entities/ahu-01/signals/supply-temp hot
+$ nornctl append plant entities/dev-01/signals/temperature hot
 nornctl: usage: VALUE: a number
 ```
 
@@ -113,6 +117,20 @@ The value must parse as the signal's type, which `nornctl signals` shows.
 
 See [operations](operations.md#damage). The log's `WARN` line names the file and
 offset.
+
+## A stop waits for `drain_timeout_ms`
+
+```text
+WARN shutdown timeout: aborting tasks aborted=1
+```
+
+In 0.1.0, an `AppendSamples` call that a client held open between batches, or an
+idle client connection, kept the graceful drain waiting until `drain_timeout_ms` (10 s
+by default) and was then aborted. From 0.2.0 neither delays a stop: an open append
+call answers every batch it already admitted and then ends with `UNAVAILABLE` and
+`ERROR_REASON_SHUTTING_DOWN`, and the client reconnects and resends what was not
+acknowledged. The remaining cause is a client holding a `grpc.health.v1` `Health/Watch`
+stream open; close it on shutdown, or lower `drain_timeout_ms`.
 
 ## `cannot resume a session that is stopped`
 

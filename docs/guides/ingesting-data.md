@@ -7,8 +7,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 Ingest works today, through `nornctl append` for one sample and
 `TelemetryService.AppendSamples` for real clients, and `nornctl import` for CSV,
-Parquet, Arrow and MCAP files ([import and export](import-export.md)). BACnet comes
-from bacnet-rs ([adapters](../reference/adapters.md)).
+Parquet, Arrow and MCAP files ([import and export](import-export.md)). Device
+adapters maintained elsewhere use the same API ([adapters](../reference/adapters.md)).
 
 Create the [stream, entity and signal](getting-started.md#create-a-stream-an-entity-and-a-signal)
 first. Output below is real.
@@ -16,7 +16,7 @@ first. Output below is real.
 ## One sample
 
 ```console
-$ nornctl append plant entities/ahu-01/signals/supply-temp 21.75 --ack persisted --sequence 3
+$ nornctl append plant entities/dev-01/signals/temperature 21.75 --ack persisted --sequence 3
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_PERSISTED
 ```
@@ -61,10 +61,10 @@ is a complete client with nothing of the daemon in it. Its core:
 
 ```rust
 tx.send(AppendSamplesRequest {
-    stream: "streams/site".into(),
+    stream: "streams/plant".into(),
     batch_id: 1,
     samples: vec![Sample {
-        signal: "entities/ahu-01/signals/supply-temp".into(),
+        signal: "entities/dev-01/signals/temperature".into(),
         observe_time: Some(prost_types::Timestamp { seconds, nanos: 0 }),
         value: Some(Value { kind: Some(Kind::DoubleValue(21.5)) }),
         quality: Some(Quality { severity: QualitySeverity::Good as i32, substatus: 0 }),
@@ -100,9 +100,9 @@ In the sessions above only `ACCEPT` and `REJECT` appeared; `BUFFER` and
 A sample for a signal in another stream, or a stream that does not exist:
 
 ```console
-$ nornctl append other entities/ahu-01/signals/supply-temp 1
-nornctl: BACKPRESSURE_OUTCOME_REJECT: 1 samples are invalid entities/ahu-01/signals/supply-temp records into another stream
-$ nornctl append missing entities/ahu-01/signals/supply-temp 1
+$ nornctl append other entities/dev-01/signals/temperature 1
+nornctl: BACKPRESSURE_OUTCOME_REJECT: 1 samples are invalid entities/dev-01/signals/temperature records into another stream
+$ nornctl append missing entities/dev-01/signals/temperature 1
 nornctl: BACKPRESSURE_OUTCOME_REJECT: streams/missing does not exist 
 ```
 

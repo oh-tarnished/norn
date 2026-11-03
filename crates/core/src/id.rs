@@ -5,7 +5,7 @@
 //!
 //! Each is a distinct `u64` newtype so an [`EntityId`] can never be passed
 //! where a [`SignalId`] is expected. A `u64` rather than a `u32`: SPEC §15
-//! sizes one site at 16,000 signals, but identifiers are never reused, so a
+//! sizes one deployment at 16,000 signals, but identifiers are never reused, so a
 //! long-lived database must not run out; storage is free to dictionary-encode
 //! them more tightly. Who allocates identifiers is the runtime's decision, not
 //! the core's.

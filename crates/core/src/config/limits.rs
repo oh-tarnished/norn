@@ -12,7 +12,7 @@ use std::time::Duration;
 ///
 /// `Default` (picked, not yet measured): batches of 10,000 samples, 1,024
 /// streams, 100,000 entities and 100,000 signals (six times SPEC §15's
-/// 16,000-signal site), query pages of 10,000 samples, 16 replay sessions,
+/// 16,000-signal deployment), query pages of 10,000 samples, 16 replay sessions,
 /// 256 subscriptions, 64 clients, 256 pending batches per append call and a
 /// 10-minute replay session idle timeout.
 ///

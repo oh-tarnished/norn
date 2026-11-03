@@ -6,7 +6,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 # nornctl
 
 The `nornctl` command, through the public gRPC API only. It never touches storage.
-Output below is real, from `nornctl` 0.1.0 on macOS.
+Output below is real, from `nornctl` 0.1.0 on macOS, except where a section names
+the next release (0.2.0, protocol 1.7).
 
 ```text
 usage: nornctl [OPTIONS] COMMAND
@@ -34,22 +35,22 @@ not parse.
 | `entities create ID`                                  | create an entity                                 |
 | `signals [ENTITY]`                                    | list signals, of one entity or all               |
 | `compact STREAM`                                      | merge sealed segments, and wait                  |
-| `verify STREAM`                                       | read and check every chunk; exit 1 on damage     |
+| `verify STREAM`                                       | read and check every chunk; exit 1 on damage, or (0.2.0) when it examined nothing |
 | `retention get STREAM`                                | show the policy                                  |
 | `retention set STREAM forever\|Nd\|Nmo\|Nb`           | set the policy: time, months or bytes            |
 | `retention apply STREAM [--dry-run]`                  | run the policy now, or list what would go        |
 | `signals create ENTITY ID STREAM TYPE`                | create a signal                                  |
-| `append STREAM SIGNAL VALUE [--ack L] [--sequence N] [--at T]` | send one sample and wait for its ack |
+| `append STREAM SIGNAL VALUE [--ack L] [--sequence N] [--at T] [--shared-memory]` | send one sample and wait for its ack |
 | `query TARGET [FLAGS]`                                | read samples or aggregates, streamed             |
 | `state TARGET [FLAGS]`                                | each signal's latest sample at an instant        |
 | `replay create TARGET [FLAGS]`, `replay ACTION NAME`  | a replay session and its clock                   |
 | `subscribe live TARGET`, `subscribe replay NAME`      | events as they come, numbered                    |
 | `export TARGET --format F --output PATH`              | samples to a new CSV, Parquet, Arrow or MCAP file |
-| `import PATH`                                         | a file into the daemon, safe to repeat           |
+| `import PATH [--shared-memory] [--timing]`            | a file into the daemon, safe to repeat           |
 
 `TYPE` is `bool`, `int32`, `int64`, `uint32`, `uint64`, `float`, `double`,
 `string`, `bytes` or `enum`. `--ack` takes `buffered`, `persisted` or `durable`,
-the default. `SIGNAL` is a full name such as `entities/ahu-01/signals/supply-temp`.
+the default. `SIGNAL` is a full name such as `entities/dev-01/signals/temperature`.
 
 ## status
 
@@ -98,16 +99,28 @@ agreed_protocol: 1.6
 Unlike `status`, this negotiates, so an incompatible daemon fails here with its
 reason.
 
+From 0.2.0, `client_protocol` is 1.7, and so is `agreed_protocol` against a 0.2.0
+daemon; against a 0.1.0 daemon the agreed version is 1.6, the lower minor. A 0.2.0
+daemon with shared memory enabled adds `CAPABILITY_SHARED_MEMORY` to `status`'s
+capabilities.
+
+## Connecting
+
+From 0.2.0, when `nornctl` cannot reach a daemon on a Unix socket, the error names
+the two usual causes: `cannot reach the daemon at ENDPOINT: ... (is the daemon
+running? It also refuses to start unless the socket's directory is mode 0700; its
+log says which)`.
+
 ## streams, entities, signals
 
 ```console
 $ nornctl streams
 streams/plant samples=3
 $ nornctl entities
-entities/ahu-01
-$ nornctl signals ahu-01
-entities/ahu-01/signals/fan-on VALUE_TYPE_BOOL streams/plant
-entities/ahu-01/signals/supply-temp VALUE_TYPE_DOUBLE streams/plant
+entities/dev-01
+$ nornctl signals dev-01
+entities/dev-01/signals/online VALUE_TYPE_BOOL streams/plant
+entities/dev-01/signals/temperature VALUE_TYPE_DOUBLE streams/plant
 ```
 
 ## append
@@ -115,10 +128,15 @@ entities/ahu-01/signals/supply-temp VALUE_TYPE_DOUBLE streams/plant
 `--at T` sets the sample's `observe_time`, as `query` reads `T`; without it the sample is
 timed now. See [ingesting data](../guides/ingesting-data.md).
 
+`--shared-memory` (0.2.0, protocol 1.7) asks for the daemon's
+[shared-memory](shared-memory.md) plane. When a ring is granted, `append` prints
+`plane SHARED_MEMORY` before the acknowledgement lines; otherwise the sample goes by
+the socket and nothing extra is printed. The answers are the same either way, so the
+flag never changes what is stored.
+
 ## Not implemented
 
-SPEC section 33 also names `inspect`, `verify`, `compact`, `stats` and
-`benchmark`. None exists yet; each gives
+SPEC section 33 also names `inspect`, `stats` and `benchmark`. None exists yet; each gives
 `unexpected argument` and exit status 2. They come with the stages that build them
 ([roadmap](../../README.md#roadmap)).
 
@@ -219,7 +237,7 @@ response only.
 
 ```text
 nornctl export TARGET --format csv|parquet|arrow|mcap --output PATH [--from T] [--to T] [--select F]
-nornctl import PATH [--format csv|parquet|arrow|mcap] [--ack LEVEL] [--batch N]
+nornctl import PATH [--format csv|parquet|arrow|mcap] [--ack LEVEL] [--batch N] [--shared-memory] [--timing]
 ```
 
 | Argument | Takes | Default |
@@ -230,11 +248,14 @@ nornctl import PATH [--format csv|parquet|arrow|mcap] [--ack LEVEL] [--batch N]
 | `--from`, `--to`, `--select` | as `query` | everything |
 | `--ack` | `buffered`, `persisted` or `durable`, which each batch must reach | `durable` |
 | `--batch` | samples per batch, at most the daemon's `max_batch_samples` | that limit |
+| `--shared-memory` | (0.2.0) send batches through a shared-memory ring when the daemon grants one, the socket otherwise | the socket |
+| `--timing` | (0.2.0) also print the elapsed time and rate | off; on with `--shared-memory` |
 
 `export` prints `exported samples=N signals=N bytes=N to PATH`, and removes its file
 on failure. `import` prints `imported read= sent= present= duplicate= created= batches=
 throttled= retried=`; `present` counts samples the daemon already held, so a repeat
-sends nothing. A damaged file exits 1 naming the row, such as `csv row 3: truncated`.
+sends nothing. With `--timing` or `--shared-memory`, a second line follows:
+`timing seconds=S samples_per_second=R`, the rate of samples sent. A damaged file exits 1 naming the row, such as `csv row 3: truncated`.
 `--timeout` bounds connecting and each call. Both run in `nornctl`, through
 `QuerySamples` and `AppendSamples`; the daemon's `ExportStream` is not used. The
 [import and export guide](../guides/import-export.md) has real output, and
@@ -245,3 +266,18 @@ sends nothing. A damaged file exits 1 naming the row, such as `csv row 3: trunca
 `compact`, `verify` and `retention apply` start an operation and poll it. `--timeout`
 bounds each poll, not the operation. Output:
 [operations](../guides/operations.md#compaction).
+
+In 0.2.0:
+
+- `verify` prints `STREAM segments=N chunks=N samples=N bytes=N damaged_chunks=N
+  damaged_samples=N buffered=N`. `segments` counts sealed segments; `chunks` and
+  `samples` include the chunks already written to the open segment; `buffered` counts
+  samples still in the write buffers, in no file yet and not examined. It exits 1 on
+  damage, and also when it examined nothing while the stream holds samples, with the
+  reason, such as `examined nothing: all N samples are still in the write buffers, in
+  no segment file yet; they are written within storage.max_chunk_age, so verify again
+  after that`.
+- `compact` with no sealed segment waiting prints `STREAM nothing to compact: no sealed
+  segment is waiting. Compaction rewrites sealed segments only; the open one seals when
+  it is full, when it reaches storage.max_segment_open_time, or when the daemon stops`,
+  rather than `chunks=0->0`.

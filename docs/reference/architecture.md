@@ -11,11 +11,11 @@ What exists is marked **(exists)**; everything else is the design target from
 ## The domain-independence rule
 
 The core knows Entity, Signal, Stream, Sample, Value, Timestamp, Sequence,
-Quality and Metadata. It never knows BACnet, Modbus, OPC-UA, an AHU, a
-chiller or a building (SPEC §4). Domain facts travel as strings in a
+Quality and Metadata. It never knows a device protocol, a device type or an
+industry (SPEC §4). Domain facts travel as strings in a
 descriptor's `Metadata` map, put there by an adapter and never interpreted by
-the engine: a BACnet analog input becomes an entity, a signal of kind `F64`,
-and metadata such as `protocol=BACnet`, `object_type=analogInput`. Quality is
+the engine: a sensor's analog reading becomes an entity, a signal of kind `F64`,
+and metadata such as `protocol=...`, `object_type=...`. Quality is
 a generic closed set (good/uncertain/bad plus a substatus such as
 `CommunicationFailure`), onto which each adapter maps its protocol's flags.
 
@@ -34,15 +34,15 @@ workspace crate without a row fails the gate. Dev-dependencies are exempt.
 | `norn-metadata` | core | exists |
 | `norn-transport` | core | exists |
 | `norn-ipc` | core, protocol, transport | exists |
-| `norn-shared-memory` | core, transport | planned |
+| `norn-shared-memory` | core, transport, ipc | exists (uses ipc): the opt-in iceoryx2 data plane, [shared memory](shared-memory.md) |
 | `norn-storage` | core, codec | exists |
 | `norn-index` | core, storage | exists |
 | `norn-query` | core, codec, storage, index | exists |
 | `norn-state` | core, storage, index, query | exists (uses core, query) |
 | `norn-replay` | core, storage, index, query, state | exists (uses core, query, state) |
 | `norn-runtime` | core, codec, metadata, storage, index, query, state, replay | exists (uses core, codec, metadata, storage, index, query, state, replay) |
-| `norn-server` | core, protocol, transport, ipc, shared-memory, metadata, runtime | exists (uses core, protocol, ipc, metadata, runtime); serves MCP |
-| `norn-cli` | core, protocol, transport, ipc, adapter, adapter-csv, adapter-parquet, adapter-mcap | exists (uses protocol, ipc, the adapters) |
+| `norn-server` | core, protocol, transport, ipc, shared-memory, metadata, runtime | exists (uses core, protocol, ipc, shared-memory, metadata, runtime); serves MCP |
+| `norn-cli` | core, protocol, transport, ipc, shared-memory, adapter, adapter-csv, adapter-parquet, adapter-mcap | exists (uses protocol, ipc, shared-memory for `--shared-memory`, the adapters) |
 | `norn-adapter` | core, protocol, transport, ipc | exists (uses protocol) |
 | `norn-adapter-csv`, `-parquet`, `-mcap` | adapter, protocol | exists |
 | `norn-adapter-testkit` | adapter, protocol | exists, dev-only |
@@ -72,6 +72,12 @@ the runtime is in the graph; OpenTelemetry and the runtime crates only beneath
 metadata) must reach none of it, not even rustls; `xtask/tests/runtime_gates.rs`
 proves each rule bites and checks this repository. Norn configures no TLS, and
 building `norn` needs no C compiler.
+
+A second exception arrives with shared memory in 0.2.0, `xtask/src/iceoryx2.rs`: two of
+iceoryx2's platform crates name `cc` and `bindgen` as build-dependencies that run only
+on a QNX build host. Exactly those helpers, of exactly those crates, are excused beneath
+`norn-shared-memory`, `norn-server` and `norn-cli`, and any other crate that reaches
+iceoryx2 fails ([shared memory](shared-memory.md#dependencies-and-gates)).
 
 The graph is the one Cargo resolves for the targets Norn builds (`deps::PLATFORMS`:
 the release matrix and CI's cross-compiles, Windows included), not for every platform a
@@ -187,6 +193,8 @@ reached the same way through `norn_runtime::state` ([query.md](query.md#state-at
 `norn-replay` holds a replay's virtual clock and state machine; the runtime drives
 each session on its clock and tasks and fans live samples out
 ([replay.md](replay.md)). `norn-runtime`'s `maintenance` module keeps a database
-healthy over a long life ([storage.md](storage.md#maintenance)). Still a design target: shared memory. Platform code sits behind per-platform modules
+healthy over a long life ([storage.md](storage.md#maintenance)). `norn-shared-memory`
+implements `norn-ipc`'s `DataPlane` and `Attach` seams over iceoryx2, opt-in and
+Unix only ([shared memory](shared-memory.md)). Platform code sits behind per-platform modules
 (`crates/server/src/signal/`, `crates/transport/src/platform/`), never scattered
 `cfg`.

@@ -8,7 +8,7 @@ class Norn < Formula
   version "@VERSION@"
   license "AGPL-3.0-or-later"
 
-  # Same private-release download strategy as bacnet-rs a534df3.
+  # Downloads release assets through the GitHub asset API.
   # Without an environment token, curl may use an explicitly enabled .netrc.
   download_headers = ["Accept: application/octet-stream"]
   token = ENV["HOMEBREW_GITHUB_API_TOKEN"]

@@ -84,10 +84,10 @@ started with `--mcp http:127.0.0.1:8090`.
 
 The tools are the schema's read methods, named `<service>-<method>_v1`, and take the
 method's request as JSON: `parent` is `entities/{entity}` or `entities/-`, `filter`
-selects signals (`id = "supply-temp"`), and times are RFC 3339. A paginated read returns
+selects signals (`id = "temperature"`), and times are RFC 3339. A paginated read returns
 `nextPageToken`; pass it back as `page_token` to read on.
 
-- To find when a supply temperature went above 80: `query_service-find_events_v1` with
+- To find when a temperature went above 80: `query_service-find_events_v1` with
   `kind: EVENT_KIND_MATCH` and `sample_filter: "value > 80"`.
 - To see what changed: `kind: EVENT_KIND_VALUE_CHANGE`. A signal's first sample in the
   interval is the baseline; widen the interval to see a change at its start.

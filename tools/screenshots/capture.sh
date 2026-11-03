@@ -49,13 +49,13 @@ shot() {
     python3 -I "$HERE/render_svg.py" "nornctl $1" >"$OUT/nornctl-$1.svg"
 }
 
-SIGNAL=entities/ahu-01/signals/supply-temp
+SIGNAL=entities/dev-01/signals/temperature
 run nornctl status | shot status
 run nornctl version | shot version
 {
     run nornctl streams create plant
-    run nornctl entities create ahu-01
-    run nornctl signals create ahu-01 supply-temp plant double
+    run nornctl entities create dev-01
+    run nornctl signals create dev-01 temperature plant double
     run nornctl signals
 } | shot signals
 {

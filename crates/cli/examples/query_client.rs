@@ -7,7 +7,7 @@
 //! Prints the last hour of an existing signal's average per minute, and resumes a
 //! raw read with its token, the way a client recovers from a broken stream.
 //!
-//! `cargo run -p norn-cli --example query_client -- unix:/path/to/norn.sock entities/ahu-01 supply-temp`
+//! `cargo run -p norn-cli --example query_client -- unix:/path/to/norn.sock entities/dev-01 temperature`
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
 
 use norn_ipc::{Endpoint, connect};

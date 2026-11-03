@@ -37,6 +37,10 @@ exits 0. A running compaction stops within one chunk, before its commit. The las
 thing a clean stop does is write each stream's `CLEAN` marker, which is what makes
 the next start quick ([Starting](#starting)).
 
+From 0.2.0, neither an idle client connection nor an `AppendSamples` call held open
+between batches delays the stop: the call answers what it admitted and ends with
+`UNAVAILABLE` and `ERROR_REASON_SHUTTING_DOWN`, and its client reconnects.
+
 ```text
 INFO shutdown requested signal="SIGTERM"
 INFO runtime draining tasks=3
@@ -80,7 +84,7 @@ acknowledged, the daemon gets `kill -9`, and the next start replays it from the
 journal:
 
 ```console
-$ nornctl append plant entities/ahu-01/signals/supply-temp 22.0 --sequence 4
+$ nornctl append plant entities/dev-01/signals/temperature 22.0 --sequence 4
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_BUFFERED
 BACKPRESSURE_OUTCOME_ACCEPT ACKNOWLEDGEMENT_LEVEL_DURABLE
 $ kill -9 "$daemon"
@@ -171,6 +175,11 @@ streams/plant segments=3 chunks=3 samples=9 bytes=705 damaged_chunks=0 damaged_s
 `verify` reads every chunk of every sealed segment and changes nothing. It reads
 through the operating system's page cache, so run it on a schedule that suits a read
 of the whole stream; it takes its turn on the maintenance worker, one job at a time.
+
+From 0.2.0, `verify` also reads the chunks already written to the open segment, and
+prints `buffered=` for samples still in memory, which it cannot examine. `segments=`
+counts sealed segments only. It exits 1 when it examined nothing although the stream
+holds samples, and says why ([nornctl](../reference/cli.md#long-running-commands)).
 
 ## Compaction
 

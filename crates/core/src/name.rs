@@ -5,8 +5,8 @@
 
 use crate::error::{Error, NameError, Result};
 
-/// A non-empty, bounded, printable name such as `AHU-01` or
-/// `SupplyAirTemperature`.
+/// A non-empty, bounded, printable name such as `sensor-01` or
+/// `Temperature`.
 ///
 /// Invariants, checked once at construction: at least one byte, at most
 /// [`Name::MAX_BYTES`] bytes of UTF-8, and no control characters, so a name is

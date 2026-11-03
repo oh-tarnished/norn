@@ -1,8 +1,8 @@
 //! SPDX-FileCopyrightText: 2026 Srikanth K
 //! SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! The site being provisioned: devices as entities, points as signals, each
-//! annotated the way a BACnet adapter annotates them, so requests have a
+//! The deployment being provisioned: devices as entities, points as signals, each
+//! annotated the way a device adapter annotates them, so requests have a
 //! realistic size.
 
 use std::collections::HashMap;

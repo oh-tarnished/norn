@@ -2,8 +2,8 @@
 //! SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! A client of Norn with nothing of the daemon in it: `norn-ipc`, `norn-protocol`,
-//! `tonic`, `tokio` and `prost-types`. An adapter (such as `bacnet server` with
-//! `[capture] sink = "norn"`) starts from this; see docs/reference/protocol.md, "Writing a client".
+//! `tonic`, `tokio` and `prost-types`. A device adapter that records readings into
+//! Norn starts from this; see docs/reference/protocol.md, "Writing a client".
 //!
 //! `cargo run -p norn-cli --example plain_client -- unix:/path/to/norn.sock`
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)]
@@ -50,25 +50,25 @@ async fn main() {
     let channel = connect(&endpoint).await.unwrap();
 
     let stream = CreateStreamRequest {
-        stream_id: "site".into(),
+        stream_id: "plant".into(),
         stream: Some(Stream::default()),
         validate_only: false,
     };
     let mut streams = StreamServiceClient::new(channel.clone());
     created(streams.create_stream(stream).await);
     let entity = CreateEntityRequest {
-        entity_id: "ahu-01".into(),
+        entity_id: "dev-01".into(),
         entity: Some(Entity::default()),
         validate_only: false,
     };
     let mut entities = EntityServiceClient::new(channel.clone());
     created(entities.create_entity(entity).await);
     let signal = CreateSignalRequest {
-        parent: "entities/ahu-01".into(),
-        signal_id: "supply-temp".into(),
+        parent: "entities/dev-01".into(),
+        signal_id: "temperature".into(),
         signal: Some(Signal {
             value_type: ValueType::Double as i32,
-            stream: "streams/site".into(),
+            stream: "streams/plant".into(),
             ..Signal::default()
         }),
         validate_only: false,
@@ -85,10 +85,10 @@ async fn main() {
         .into_inner();
     let seconds = i64::from(std::process::id()) + 1_700_000_000;
     tx.send(AppendSamplesRequest {
-        stream: "streams/site".into(),
+        stream: "streams/plant".into(),
         batch_id: 1,
         samples: vec![Sample {
-            signal: "entities/ahu-01/signals/supply-temp".into(),
+            signal: "entities/dev-01/signals/temperature".into(),
             observe_time: Some(prost_types::Timestamp { seconds, nanos: 0 }),
             value: Some(Value {
                 kind: Some(Kind::DoubleValue(21.5)),

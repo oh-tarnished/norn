@@ -16,13 +16,13 @@ A sample is queryable as soon as its append is acknowledged at `PERSISTED`. Noth
 waits for a chunk:
 
 ```console
-$ nornctl query entities/ahu-01/signals/supply-temp
-2026-11-02T01:46:44.355065Z entities/ahu-01/signals/supply-temp 21.5 GOOD seq=1
-2026-11-02T01:46:44.643901Z entities/ahu-01/signals/supply-temp 21.75 GOOD seq=2
-2026-11-02T01:46:44.924409Z entities/ahu-01/signals/supply-temp 22 GOOD seq=3
-2026-11-02T01:46:45.206721Z entities/ahu-01/signals/supply-temp 22.25 GOOD seq=4
-2026-11-02T01:46:45.485042Z entities/ahu-01/signals/supply-temp 80 GOOD seq=5
-2026-11-02T01:46:45.755153Z entities/ahu-01/signals/supply-temp 22.5 GOOD seq=6
+$ nornctl query entities/dev-01/signals/temperature
+2026-11-02T01:46:44.355065Z entities/dev-01/signals/temperature 21.5 GOOD seq=1
+2026-11-02T01:46:44.643901Z entities/dev-01/signals/temperature 21.75 GOOD seq=2
+2026-11-02T01:46:44.924409Z entities/dev-01/signals/temperature 22 GOOD seq=3
+2026-11-02T01:46:45.206721Z entities/dev-01/signals/temperature 22.25 GOOD seq=4
+2026-11-02T01:46:45.485042Z entities/dev-01/signals/temperature 80 GOOD seq=5
+2026-11-02T01:46:45.755153Z entities/dev-01/signals/temperature 22.5 GOOD seq=6
 $ nornctl streams
 streams/plant samples=7 buffered=7
 ```
@@ -33,11 +33,11 @@ the answers are the same:
 ```console
 $ nornctl streams
 streams/plant samples=7
-$ nornctl query entities/ahu-01/signals/supply-temp --agg count
-- - entities/ahu-01/signals/supply-temp 6 count=6
+$ nornctl query entities/dev-01/signals/temperature --agg count
+- - entities/dev-01/signals/temperature 6 count=6
 ```
 
-`TARGET` is a signal, an entity (`ahu-01` or `entities/ahu-01`), or `all`. Bound the
+`TARGET` is a signal, an entity (`dev-01` or `entities/dev-01`), or `all`. Bound the
 time with `--from` and `--to`, half-open: RFC 3339 in UTC, Unix seconds, `now`, or
 `now-5m`.
 
@@ -46,8 +46,8 @@ time with `--from` and `--to`, half-open: RFC 3339 in UTC, Unix seconds, `now`, 
 `--where` is the sample filter. `--select` filters signals, as ListSignals does:
 
 ```console
-$ nornctl query entities/ahu-01/signals/supply-temp --where "value < 50 AND quality.severity = QUALITY_SEVERITY_GOOD" --agg average
-- - entities/ahu-01/signals/supply-temp 22 count=5
+$ nornctl query entities/dev-01/signals/temperature --where "value < 50 AND quality.severity = QUALITY_SEVERITY_GOOD" --agg average
+- - entities/dev-01/signals/temperature 22 count=5
 ```
 
 The spike of 80 is gone from that average. Quality never changes a value: a `BAD`
@@ -56,10 +56,10 @@ sample is history and is returned unless you filter it out.
 Mistakes are refused, never read as "no match":
 
 ```console
-$ nornctl query entities/ahu-01/signals/supply-temp --where "value >> 1"
+$ nornctl query entities/dev-01/signals/temperature --where "value >> 1"
 nornctl: QueryService.QuerySamples: InvalidArgument: sample_filter: `> 1` is not a literal (norn.local ERROR_REASON_INVALID_ARGUMENT) field=sample_filter
-$ nornctl query entities/ahu-01/signals/supply-temp --agg sum --where 'value > "a"'
-nornctl: QueryService.QuerySamples: InvalidArgument: sample_filter: entities/ahu-01/signals/supply-temp: sample_filter compares value with something of another type (norn.local ERROR_REASON_INVALID_ARGUMENT) field=sample_filter
+$ nornctl query entities/dev-01/signals/temperature --agg sum --where 'value > "a"'
+nornctl: QueryService.QuerySamples: InvalidArgument: sample_filter: entities/dev-01/signals/temperature: sample_filter compares value with something of another type (norn.local ERROR_REASON_INVALID_ARGUMENT) field=sample_filter
 $ nornctl query entities/nope
 nornctl: QueryService.QuerySamples: NotFound: Entity nope not found (norn.local ERROR_REASON_RESOURCE_NOT_FOUND) resource=nope
 ```
@@ -72,19 +72,19 @@ window over the whole range. Lines are `start end signal value count=n`, with `-
 an open end. Windows align to `--from`, or to the Unix epoch without one:
 
 ```console
-$ nornctl query entities/ahu-01/signals/supply-temp --agg count --window 1s
-2026-11-02T01:46:44Z 2026-11-02T01:46:45Z entities/ahu-01/signals/supply-temp 3 count=3
-2026-11-02T01:46:45Z 2026-11-02T01:46:46Z entities/ahu-01/signals/supply-temp 3 count=3
-$ nornctl query entities/ahu-01/signals/supply-temp --agg max --from now-5m --to now
-2026-11-02T01:41:46.069477Z 2026-11-02T01:46:46.069479Z entities/ahu-01/signals/supply-temp 80 count=6
+$ nornctl query entities/dev-01/signals/temperature --agg count --window 1s
+2026-11-02T01:46:44Z 2026-11-02T01:46:45Z entities/dev-01/signals/temperature 3 count=3
+2026-11-02T01:46:45Z 2026-11-02T01:46:46Z entities/dev-01/signals/temperature 3 count=3
+$ nornctl query entities/dev-01/signals/temperature --agg max --from now-5m --to now
+2026-11-02T01:41:46.069477Z 2026-11-02T01:46:46.069479Z entities/dev-01/signals/temperature 80 count=6
 ```
 
 `latest` gives one line per signal, and its window is the sample's own instant:
 
 ```console
-$ nornctl query ahu-01 --agg latest
-2026-11-02T01:46:45.755153Z 2026-11-02T01:46:45.755153001Z entities/ahu-01/signals/supply-temp 22.5 count=1
-2026-11-02T01:46:46.031279Z 2026-11-02T01:46:46.031279001Z entities/ahu-01/signals/valve 40 count=1
+$ nornctl query dev-01 --agg latest
+2026-11-02T01:46:45.755153Z 2026-11-02T01:46:45.755153001Z entities/dev-01/signals/temperature 22.5 count=1
+2026-11-02T01:46:46.031279Z 2026-11-02T01:46:46.031279001Z entities/dev-01/signals/valve 40 count=1
 ```
 
 `rate` is for counters. It treats any decrease as a reset, so on this temperature,
@@ -92,8 +92,8 @@ whose spike falls from 80 back to 22.5, it counts that as a reset and gives nons
 For a gauge use `first` and `last`:
 
 ```console
-$ nornctl query entities/ahu-01/signals/supply-temp --agg rate
-- - entities/ahu-01/signals/supply-temp 57.85350635102937 count=6
+$ nornctl query entities/dev-01/signals/temperature --agg rate
+- - entities/dev-01/signals/temperature 57.85350635102937 count=6
 ```
 
 ## Stop and resume
@@ -104,15 +104,15 @@ results and prints a token. Responses hold up to 10,000 results, so **`--limit` 
 print more than `N`**, as here, where `--limit 1` printed one response of seven:
 
 ```console
-$ nornctl query ahu-01 --order time --limit 1
-2026-11-02T01:46:44.355065Z entities/ahu-01/signals/supply-temp 21.5 GOOD seq=1
-2026-11-02T01:46:44.643901Z entities/ahu-01/signals/supply-temp 21.75 GOOD seq=2
-2026-11-02T01:46:44.924409Z entities/ahu-01/signals/supply-temp 22 GOOD seq=3
-2026-11-02T01:46:45.206721Z entities/ahu-01/signals/supply-temp 22.25 GOOD seq=4
-2026-11-02T01:46:45.485042Z entities/ahu-01/signals/supply-temp 80 GOOD seq=5
-2026-11-02T01:46:45.755153Z entities/ahu-01/signals/supply-temp 22.5 GOOD seq=6
-2026-11-02T01:46:46.031279Z entities/ahu-01/signals/valve 40 GOOD seq=1
-resume_token: q1.c44fa26b95b0edec.s.1793584006031279000.1.entities/ahu-01/signals/valve
+$ nornctl query dev-01 --order time --limit 1
+2026-11-02T01:46:44.355065Z entities/dev-01/signals/temperature 21.5 GOOD seq=1
+2026-11-02T01:46:44.643901Z entities/dev-01/signals/temperature 21.75 GOOD seq=2
+2026-11-02T01:46:44.924409Z entities/dev-01/signals/temperature 22 GOOD seq=3
+2026-11-02T01:46:45.206721Z entities/dev-01/signals/temperature 22.25 GOOD seq=4
+2026-11-02T01:46:45.485042Z entities/dev-01/signals/temperature 80 GOOD seq=5
+2026-11-02T01:46:45.755153Z entities/dev-01/signals/temperature 22.5 GOOD seq=6
+2026-11-02T01:46:46.031279Z entities/dev-01/signals/valve 40 GOOD seq=1
+resume_token: q1.c44fa26b95b0edec.s.1793584006031279000.1.entities/dev-01/signals/valve
 ```
 
 Pass it back with `--resume TOKEN` and otherwise equal flags to get exactly the
@@ -125,8 +125,8 @@ refused. Relative times count as other flags, since `now` moves.
 only `norn-ipc` and `norn-protocol`, reading an aggregate and resuming a raw read:
 
 ```console
-$ cargo run -p norn-cli --example query_client -- unix:/tmp/nq.L87l/run/norn/norn.sock entities/ahu-01 supply-temp
-entities/ahu-01/signals/supply-temp Some(Value { kind: Some(DoubleValue(31.666666666666668)) }) over 6 samples
+$ cargo run -p norn-cli --example query_client -- unix:/tmp/nq.L87l/run/norn/norn.sock entities/dev-01 temperature
+entities/dev-01/signals/temperature Some(Value { kind: Some(DoubleValue(31.666666666666668)) }) over 6 samples
 6 samples
 ```
 

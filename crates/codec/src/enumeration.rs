@@ -4,7 +4,7 @@
 //! Enum columns (`u32` codes): dictionary, then bit-packed or run-length
 //! indices.
 //!
-//! A multi-state point (occupancy mode, fan speed stage) has a few distinct
+//! A multi-state signal (an operating mode, a speed stage) has a few distinct
 //! codes that hold for long stretches. The dictionary maps them to indices of
 //! `ceil(log2(distinct))` bits; RLE then stores each stretch as one index and
 //! one length. [`encode`] measures both and keeps the smaller.

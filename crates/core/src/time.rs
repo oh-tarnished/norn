@@ -8,7 +8,7 @@ use crate::error::{Error, Result};
 /// Nanoseconds since the Unix epoch, UTC.
 ///
 /// An `i64` reaches roughly 1677-09-21 to 2262-04-11, which covers every
-/// historical record a building or machine produces and leaves negative
+/// historical record a device or machine produces and leaves negative
 /// values for pre-1970 data. Leap seconds are not represented: like Unix time,
 /// a timestamp counts SI seconds as if every day had 86,400 of them.
 ///

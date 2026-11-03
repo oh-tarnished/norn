@@ -61,12 +61,11 @@ data_dir = "<Homebrew prefix>/var/norn"
 enabled = false
 ```
 
-Norn has no InfluxDB listener or exporter. InfluxDB capture belongs to bacnet;
-the `bacnet-norn` package's default capture configuration omits it.
+Norn has no InfluxDB listener or exporter, and no InfluxDB dependency.
 
 The service passes only `--config`, so an edit to `listen` or `data_dir` takes
-effect on restart. If you change the socket, change bacnet's `[capture] endpoint`
-too. `keep_alive` restarts Norn after a crash.
+effect on restart. If you change the socket, change the endpoint every client
+dials too. `keep_alive` restarts Norn after a crash.
 
 ## Upgrade
 
@@ -74,12 +73,11 @@ too. `keep_alive` restarts Norn after a crash.
 brew upgrade norn
 brew services restart norn
 nornctl --endpoint "unix:$(brew --prefix)/var/run/norn/norn.sock" status
-bacnet capture sink
 ```
 
-Norn drains calls on SIGTERM. bacnet-norn holds readings in its configured
-bounded buffer while Norn restarts, then reconnects and resumes. Monitor the
-capture sink's held, delivered and dropped counts during the restart.
+Norn drains calls on SIGTERM. A client that buffers while Norn is away, such
+as a device adapter with a bounded buffer, reconnects and resumes after the
+restart. Watch its held, delivered and dropped counts during the restart.
 
 ## Release automation and Walle
 

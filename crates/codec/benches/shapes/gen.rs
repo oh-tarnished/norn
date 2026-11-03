@@ -35,8 +35,8 @@ pub fn flat_setpoint() -> Vec<f64> {
         .collect()
 }
 
-/// A room temperature drifting slowly, reported at 0.1 resolution: the
-/// value is parsed from decimal tenths, as a BMS reports it.
+/// A temperature drifting slowly, reported at 0.1 resolution: the
+/// value is parsed from decimal tenths, as many devices report it.
 pub fn drift_tenths() -> Vec<i64> {
     let mut rng = Lcg::new(1);
     let (mut t, mut out) = (215.0f64, Vec::with_capacity(N));

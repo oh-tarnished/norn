@@ -16,13 +16,13 @@ use crate::metadata::Metadata;
 use crate::name::Name;
 use crate::value::ValueKind;
 
-/// A thing that exists: a building, a floor, a motor, a vehicle.
+/// A thing that exists: a sensor, a machine, a motor, a vehicle.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EntityDescriptor {
     /// The entity's identifier.
     pub id: EntityId,
-    /// The entity's name, e.g. `AHU-01`.
+    /// The entity's name, e.g. `sensor-01`.
     pub name: Name,
     /// Adapter-supplied context the core never interprets.
     pub metadata: Metadata,
@@ -49,7 +49,7 @@ pub struct SignalDescriptor {
     pub id: SignalId,
     /// The entity this signal belongs to.
     pub entity: EntityId,
-    /// The signal's name, e.g. `SupplyAirTemperature`.
+    /// The signal's name, e.g. `temperature`.
     pub name: Name,
     /// The kind every sample of this signal carries; storage chooses its
     /// encoding from it (SPEC §14).
@@ -72,7 +72,7 @@ impl SignalDescriptor {
     }
 }
 
-/// A logical sequence of temporal observations, such as one site's telemetry
+/// A logical sequence of temporal observations, such as one deployment's telemetry
 /// or one import.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]

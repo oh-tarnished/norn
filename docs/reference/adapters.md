@@ -21,14 +21,15 @@ format and MCAP, each export and import, driven by
 | CSV | [`adapters/csv`](../../adapters/csv) (`norn-adapter-csv`) | export and import |
 | Parquet, Arrow IPC | [`adapters/parquet`](../../adapters/parquet) (`norn-adapter-parquet`) | export and import |
 | MCAP | [`adapters/mcap`](../../adapters/mcap) (`norn-adapter-mcap`) | export and import |
-| BACnet | `bacnet-rs`, not this repository | a sink over IPC in bacnet-rs, by the owner's decision |
+| Device protocols | outside this repository | clients of the public API over IPC |
 | Modbus, OPC-UA, MQTT, custom Protobuf | none | planned |
 
-**BACnet lives in `bacnet-rs`** (owner's decision, 2026-11-02, [plan.md](../project/plan.md#connecting-bacnet-rs-owners-request-2026-11-02)).
-bacnet-rs dials `norn_ipc::connect` and calls `TelemetryService.AppendSamples`, using
-only Norn's public client crates, so `adapters/bacnet` will not exist here. A BACnet
-object still maps to an entity, a signal and annotations such as `protocol=BACnet`,
-`device_instance=1001`, `object_type=analogInput`; status flags map onto `Quality`.
+**Device-protocol adapters live outside this repository** (owner's decision,
+2026-11-02, [plan.md](../project/plan.md#external-adapters-owners-request-2026-11-02)).
+Such an adapter dials `norn_ipc::connect` and calls `TelemetryService.AppendSamples`,
+using only Norn's public client crates. A device object still maps to an entity, a
+signal and annotations such as `protocol=...`, `device_instance=1001`,
+`object_type=...`; status flags map onto `Quality`.
 
 `adapters/testkit` is test support: property-test strategies for every value kind.
 It is a dev-dependency only.
@@ -105,9 +106,9 @@ test checks each format through two real daemons.
 Long format: one row per sample, RFC 4180, UTF-8, `\n` line ends.
 
 ```text
-# norn.csv 1 {"version":1,"streams":[{"name":"streams/plant"}],"entities":[{"name":"entities/ahu-01"}],"signals":[...]}
+# norn.csv 1 {"version":1,"streams":[{"name":"streams/plant"}],"entities":[{"name":"entities/dev-01"}],"signals":[...]}
 time,signal,stream,type,value,severity,substatus,sequence
-2026-11-02T08:00:00.000000000Z,entities/ahu-01/signals/supply-temp,streams/plant,double,21.5,GOOD,,0
+2026-11-02T08:00:00.000000000Z,entities/dev-01/signals/temperature,streams/plant,double,21.5,GOOD,,0
 # norn.end rows=1 crc32=<8 hex digits>
 ```
 

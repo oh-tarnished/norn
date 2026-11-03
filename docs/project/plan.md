@@ -8,8 +8,6 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 How the work in [spec.md](spec.md) is split across parallel agents. Read
 [spec.md](spec.md) first; this file only says who does what, in which order.
 
-**Starts after bacnet-rs is finished.** Until then nothing here is begun.
-
 ## Rules for every agent
 
 - [spec.md](spec.md) is binding: pure Rust core, every source file under 200 lines,
@@ -44,19 +42,18 @@ parallel.
 | 3 | state | 10 | `state`: checkpoints, StateAt, interval benchmarks |
 | 3 | replay | 11 | `replay`: virtual clock, pause/seek/step/speed, live/replay unification |
 | 3 | shared memory | 12 | `shared-memory`: ring buffer, fallback |
-| 4 | adapters | 13 | `adapters/{bacnet,mcap,parquet,csv}` (BACnet through bacnet-rs) |
+| 4 | adapters | 13 | `adapters/{contract,mcap,parquet,csv}` (device protocols live outside this repository) |
 | 4 | MCP + CLI | 14, 33 | MCP in `crates/server`, `crates/cli` (`nornctl`) |
 | 5 | performance | 15, 35 | `benchmarks/`: 16,000 signals × 1 Hz, bursts, the 504-billion-sample/year extrapolation |
 | 5 | hardening | 16, 36 | fuzzing, crash and corruption tests, Windows validation, security review |
 
-## Connecting bacnet-rs (owner's request, 2026-11-02)
+## External adapters (owner's request, 2026-11-02)
 
-bacnet-rs is a client of the Norn daemon over local IPC, configured in
-`server.toml`, and stores nothing itself in this mode. No `--capture-norn`
-one-off flag: capture becomes a `[capture]` section of the server's
-configuration, its existing flags override it, and `sink = "norn"` selects a
-`Sink` implementation in bacnet-rs that dials `norn_ipc::connect(endpoint)` and
-calls `TelemetryService.AppendSamples`. Under SPEC section 47 the adapter uses
+A device-protocol adapter is a client of the Norn daemon over local IPC and
+lives in its own repository, beside the protocol library it uses. Capture is
+part of that program's configuration rather than a one-off flag: a sink
+implementation dials `norn_ipc::connect(endpoint)` and calls
+`TelemetryService.AppendSamples`. Under SPEC section 47 the adapter uses
 only Norn's public client crates. Backpressure is honoured through a bounded
 buffer; nothing is dropped silently.
 
@@ -102,6 +99,8 @@ agent is editing the files being moved. Norn only.
 | 1 | done: transport, protocol, codec merged |
 | 2 | done: daemon, storage, index, write path and metadata merged |
 | 3 | done: documentation restructure, query, StateAt and replay merged (checkpoints deferred by measurement) |
-| bacnet-rs | sink over IPC built and verified end to end, uncommitted in the bacnet-rs-norn worktree (feat/norn-sink) for the owner's review |
+| external adapters | the first device-protocol sink over IPC is built and verified end to end in its own repository |
 | 4 | merged: adapters (CSV, Parquet, Arrow, MCAP; `nornctl export`/`import`), built-in MCP, and operations (compaction, retention, verification). Shared memory (stage 12) is out of v0.1 |
 | release | v0.1.0 first release: platform archives, checksums, complete Homebrew package and daemon service; PAT-backed tap updates authored by Walle. See [changelog](changelog.md) and [release setup](../guides/homebrew.md) |
+| 0.2.0 | done, unreleased: stage 12, the shared-memory data plane (`norn-shared-memory` over iceoryx2, protocol 1.7, opt-in, Unix only, socket fallback); stability (verify reads the open segment, sealing by open time, shutdown drain of open append calls, macOS `F_FULLFSYNC` documented). See [changelog](changelog.md) |
+| next | the open replay issue (a maximum-speed replay of a recent window may stop after `RUNNING`; under investigation), then GGML-accelerated pattern detection (opt-in), then the full benchmark matrix |
