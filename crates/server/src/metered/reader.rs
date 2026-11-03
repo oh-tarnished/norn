@@ -1,7 +1,6 @@
 //! Reading a body message by message, reserving before each is released.
 
 use std::future::poll_fn;
-use std::mem::size_of;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
@@ -9,17 +8,18 @@ use std::time::Duration;
 use bytes::{Bytes, BytesMut};
 use http::HeaderMap;
 use http_body::{Body as HttpBody, Frame};
-use norn_protocol::common::{ErrorReason, Sample};
+use norn_protocol::common::ErrorReason;
 use norn_runtime::{Budget, BudgetError, Reservation};
 use tonic::body::Body;
 use tonic::{Code, Status};
 
-use super::wire::{count_samples, strip_samples};
+use super::cost::{Settled, settle_batch, worst_batch_cost};
+use super::wire::strip_samples;
 use super::{Held, MeterLimits, StepResult};
 use crate::status::error_info;
 
 /// gRPC's message prefix: a compressed flag and a big-endian length.
-pub(super) const PREFIX: usize = 5;
+pub(crate) const PREFIX: usize = 5;
 /// The largest message of any method but `AppendSamples`. The largest legal one
 /// is an annotated create: 64 entries of about 1.2 KiB.
 const MAX_OTHER_BYTES: usize = 256 * 1024;
@@ -162,13 +162,10 @@ impl Reader {
         // One reservation, for the worst case, taken whole: two would hold one
         // while waiting for the other, and calls doing that deadlock each other
         // until the bound. It can never exceed what the budget leaves decoding.
-        let wide = length as u64;
-        let per_sample = size_of::<Sample>() as u64;
-        let most = self.limits.max_batch_samples as u64;
         let worst = if self.append {
-            2 * wide + (wide / 2).min(most) * per_sample
+            worst_batch_cost(length, self.limits)
         } else {
-            EXPANSION * wide
+            EXPANSION * length as u64
         };
         let pool = self.budget.capacity() / 2;
         self.held.replace(None);
@@ -183,16 +180,12 @@ impl Reader {
             return Ok(Some(whole));
         }
         let payload = whole.slice(PREFIX..);
-        let samples = count_samples(&payload);
-        let cost = 2 * wide + samples.saturating_mul(per_sample);
-        if samples > most || cost > reservation.bytes() {
+        let settled = settle_batch(&payload, &mut reservation, self.limits);
+        self.held.replace(Some(reservation));
+        if let Settled::Oversized(samples) = settled {
             self.held.set_oversized(samples);
-            reservation.shrink_to(2 * wide);
-            self.held.replace(Some(reservation));
             return Ok(Some(strip_samples(&payload)));
         }
-        reservation.shrink_to(cost.max(1));
-        self.held.replace(Some(reservation));
         Ok(Some(whole))
     }
 }

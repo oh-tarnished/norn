@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "norn-shared-memory"
+description = "Norn's shared-memory data plane over iceoryx2: bulk AppendSamples batches beside the gRPC control plane."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Each third-party crate is declared, with its reason, in the root Cargo.toml.
+[dependencies]
+# The DataPlane and Attach seams this crate implements, and the ticket.
+norn-ipc = { path = "../ipc" }
+iceoryx2 = { workspace = true }
+# Never imported. iceoryx2 asks for these as `^0.10.0`; pinning them keeps them
+# at the release whose build scripts xtask audited (xtask/src/iceoryx2.rs),
+# whatever `cargo update` finds.
+iceoryx2-pal-posix = "=0.10.0"
+iceoryx2-pal-os-api = "=0.10.0"
+# A full ring is waited on with a short sleep.
+tokio = { workspace = true, features = ["time"] }
+
+[dev-dependencies]
+norn-ipc = { path = "../ipc" }
+proptest = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
+
+[lints]
+workspace = true

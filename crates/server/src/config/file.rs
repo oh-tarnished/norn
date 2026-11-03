@@ -11,6 +11,7 @@ use serde::Deserialize;
 
 use super::engine::{Count, Memory, Meta, Storage, Upkeep, engine, set};
 use super::mcp::Mcp;
+use super::shared::SharedMemory;
 use super::{ConfigError, DaemonConfig, LogConfig};
 
 /// The largest configuration file read. A configuration is a few hundred
@@ -34,6 +35,7 @@ struct File {
     storage: Option<Storage>,
     maintenance: Option<Upkeep>,
     mcp: Option<Mcp>,
+    shared_memory: Option<SharedMemory>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -121,6 +123,6 @@ impl DaemonConfig {
             file.storage,
             file.maintenance,
         )?;
-        Ok(config)
+        config.shared_memory(file.shared_memory.unwrap_or_default().settings())
     }
 }

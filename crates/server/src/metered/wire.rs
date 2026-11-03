@@ -56,7 +56,7 @@ pub(super) fn count_samples(payload: &[u8]) -> u64 {
 
 /// The same message without its samples, prefixed: what remains is enough for
 /// the handler to reject the batch by its `batch_id`. Copies.
-pub(super) fn strip_samples(payload: &[u8]) -> Bytes {
+pub(crate) fn strip_samples(payload: &[u8]) -> Bytes {
     let mut kept = BytesMut::with_capacity(64);
     kept.extend_from_slice(&[0u8; PREFIX]);
     for (field, range) in fields(payload) {

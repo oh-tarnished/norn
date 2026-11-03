@@ -16,8 +16,12 @@ publish = false
 # types tonic's custom-transport hooks require.
 [dependencies]
 norn-transport = { path = "../transport" }
+# AppendCall: the AppendSamples and NegotiateProtocol clients, and encoding a
+# batch into one shared-memory frame.
+norn-protocol = { path = "../protocol" }
+prost = { workspace = true }
 tonic = { workspace = true, features = ["transport", "router"] }
-tokio = { workspace = true, features = ["time", "macros"] }
+tokio = { workspace = true, features = ["time", "macros", "sync"] }
 tokio-util = { workspace = true }
 hyper-util = { workspace = true, features = ["tokio"] }
 tower = { workspace = true, features = ["util"] }

@@ -8,10 +8,10 @@ use std::sync::Arc;
 use norn_protocol::admin::admin_service_server::AdminService;
 use norn_protocol::admin::{
     Capability, GetServerRequest, MaintenanceReport, NegotiateProtocolRequest,
-    NegotiateProtocolResponse, RetentionRemoval, Server,
+    NegotiateProtocolResponse, RetentionRemoval, Server, SharedMemoryPlane,
 };
 use norn_protocol::common::ErrorReason;
-use norn_protocol::{PROTOCOL_VERSION, ProtocolVersion};
+use norn_protocol::{PROTOCOL_VERSION, ProtocolVersion, SHARED_MEMORY_MINOR};
 use norn_runtime::maintenance::{Maintenance, MaintenanceReport as Report};
 use tonic::{Code, Request, Response, Status};
 
@@ -31,6 +31,7 @@ const MAX_USER_AGENT: usize = 128;
 pub struct Admin {
     server: Server,
     maintenance: Option<Arc<Maintenance>>,
+    shared_memory: Option<SharedMemoryPlane>,
 }
 
 impl Admin {
@@ -40,7 +41,22 @@ impl Admin {
         Self {
             server,
             maintenance: None,
+            shared_memory: None,
         }
+    }
+
+    /// Offers the shared-memory data plane `plane` describes: adds
+    /// `CAPABILITY_SHARED_MEMORY`, and tells clients agreeing 1.7 or later how to
+    /// attach. `None` changes nothing.
+    #[must_use]
+    pub fn shared_memory(mut self, plane: Option<SharedMemoryPlane>) -> Self {
+        if plane.is_some() {
+            self.server
+                .capabilities
+                .push(Capability::SharedMemory as i32);
+        }
+        self.shared_memory = plane;
+        self
     }
 
     /// Reports what `maintenance` has done in `GetServer`.
@@ -127,11 +143,16 @@ impl AdminService for Admin {
             ));
         }
         tracing::debug!(%agent, agreed.major, agreed.minor, "negotiated protocol");
+        // A client before 1.7 does not know the field: it is not sent.
+        let shared_memory = (agreed.minor >= SHARED_MEMORY_MINOR)
+            .then(|| self.shared_memory.clone())
+            .flatten();
         Ok(Response::new(NegotiateProtocolResponse {
             protocol_version: Some(agreed.into()),
             capabilities: offered.clone(),
             limits: self.server.limits,
             server_version: self.server.server_version.clone(),
+            shared_memory,
         }))
     }
 }

@@ -46,7 +46,7 @@ message ListEntitiesRequest {
   string page_token = 2 [(google.api.field_behavior) = OPTIONAL];
 
   // An AIP-160 filter over `display_name` and `annotations`, such as
-  // `annotations.site = "north"`.
+  // `annotations.deployment = "north"`.
   string filter = 3 [(google.api.field_behavior) = OPTIONAL];
 }
 

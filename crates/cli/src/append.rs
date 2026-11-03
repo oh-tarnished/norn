@@ -4,30 +4,16 @@
 //! `nornctl append`: one sample through the real `AppendSamples` call.
 
 use std::io::Write;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 
+use norn_ipc::{AppendCall, DataPlaneKind};
 use norn_protocol::common::value::Kind;
 use norn_protocol::common::{EnumValue, Quality, QualitySeverity, Sample, Value, ValueType};
 use norn_protocol::signal::signal_service_client::SignalServiceClient;
-use norn_protocol::telemetry::telemetry_service_client::TelemetryServiceClient;
 use norn_protocol::telemetry::{AcknowledgementLevel, AppendSamplesRequest, BackpressureOutcome};
 use tonic::transport::Channel;
 
 use crate::CliError;
 use crate::resources::{call, usage};
-
-/// A stream of one request, then its end: the daemon then finishes the batch
-/// and closes its side.
-struct Once<T>(Option<T>);
-
-impl<T: Unpin> tonic::codegen::tokio_stream::Stream for Once<T> {
-    type Item = T;
-
-    fn poll_next(mut self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Option<T>> {
-        Poll::Ready(self.0.take())
-    }
-}
 
 pub(crate) fn value_type(word: &str) -> Result<ValueType, CliError> {
     Ok(match word {
@@ -83,6 +69,7 @@ pub(crate) async fn append(
 ) -> Result<(), CliError> {
     let (mut level, mut sequence) = (AcknowledgementLevel::Durable, 0i64);
     let mut at = None;
+    let (options, flags) = crate::plane::options(flags);
     let mut flags = flags.iter();
     while let Some(flag) = flags.next() {
         let word = flags.next().ok_or_else(|| usage("a flag needs a value"))?;
@@ -99,7 +86,11 @@ pub(crate) async fn append(
                 sequence = word.parse().map_err(|_| usage("--sequence: a number"))?;
             }
             "--at" => at = Some(crate::query::timestamp(word)?),
-            _ => return Err(usage("append takes --ack, --sequence and --at")),
+            _ => {
+                return Err(usage(
+                    "append takes --ack, --sequence, --at, --shared-memory",
+                ));
+            }
         }
     }
     let kind = {
@@ -134,12 +125,24 @@ pub(crate) async fn append(
         samples: vec![sample],
         ack_level: level as i32,
     };
-    let mut client = TelemetryServiceClient::new(channel);
-    let replies = client.append_samples(Once(Some(batch))).await;
-    let mut replies = replies
-        .map_err(call("TelemetryService.AppendSamples"))?
-        .into_inner();
     let method = "TelemetryService.AppendSamples";
+    let opened = AppendCall::open(channel, &options)
+        .await
+        .map_err(call(method))?;
+    let plane = opened.plane();
+    let sent = opened.send(batch).await;
+    // Closing the request side: the daemon finishes the batch and ends the call.
+    let (sender, mut replies) = opened.into_parts();
+    drop(sender);
+    if let Err(e) = sent {
+        replies.message().await.map_err(call(method))?;
+        return Err(CliError::Refused(format!(
+            "the call ended before the batch: {e}"
+        )));
+    }
+    if plane == DataPlaneKind::SharedMemory {
+        writeln!(out, "plane SHARED_MEMORY")?;
+    }
     while let Some(reply) = replies.message().await.map_err(call(method))? {
         let admission = reply.admission.unwrap_or_default();
         let outcome = BackpressureOutcome::try_from(admission.outcome);

@@ -245,8 +245,8 @@ pub enum Capability {
     Compaction = 9,
     /// StreamService.ExportStream.
     Export = 10,
-    /// A shared-memory data plane beside gRPC for bulk samples. Transport
-    /// selection is the IPC layer's; this only says it exists.
+    /// A shared-memory data plane beside gRPC for AppendSamples batches. From
+    /// 1.7, NegotiateProtocolResponse.shared_memory says how to attach.
     SharedMemory = 11,
     /// StreamService.ApplyStreamRetention, and retention passes.
     Retention = 12,
@@ -297,6 +297,48 @@ impl Capability {
         }
     }
 }
+/// How a client reaches the daemon's shared-memory data plane (protocol 1.7):
+/// a bounded iceoryx2 ring per TelemetryService.AppendSamples call, beside the
+/// gRPC control plane, which still carries every response. A client asks for a
+/// ring by sending the request metadata `norn-data-plane: shared-memory` on the
+/// call; a daemon that grants one answers with the response metadata
+/// `norn-shared-memory-service`, the ring's whole service name. Without that
+/// answer the call stays on gRPC, which is always correct.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SharedMemoryPlane {
+    /// The iceoryx2 service name every ring's name starts with. A granted ring
+    /// is named `{service}/{ring}`; a client refuses a name that does not start
+    /// so.
+    #[prost(string, tag="1")]
+    pub service: ::prost::alloc::string::String,
+    /// The owner-only directory iceoryx2 keeps its files in. Only a process of
+    /// the daemon's user can open what is there.
+    #[prost(string, tag="2")]
+    pub root_directory: ::prost::alloc::string::String,
+    /// The prefix of every name iceoryx2 creates for this daemon, so two daemons
+    /// of one user stay apart.
+    #[prost(string, tag="3")]
+    pub name_prefix: ::prost::alloc::string::String,
+    /// The largest frame, one encoded AppendSamplesRequest, a ring takes. A
+    /// larger batch travels by gRPC on the same call, in order.
+    #[prost(int64, tag="4")]
+    pub max_frame_bytes: i64,
+    /// Frames a ring holds before the client's send waits: backpressure, never
+    /// loss.
+    #[prost(int32, tag="5")]
+    pub slot_count: i32,
+    /// Rings open at once. A call past it is not granted one and stays on gRPC.
+    #[prost(int32, tag="6")]
+    pub max_rings: i32,
+    /// The shared memory one ring maps, in bytes, charged to the daemon's IPC
+    /// budget while the ring is open.
+    #[prost(int64, tag="7")]
+    pub segment_bytes: i64,
+}
+impl ::prost::Name for SharedMemoryPlane {
+const NAME: &'static str = "SharedMemoryPlane";
+const PACKAGE: &'static str = "norn.admin.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.admin.v1.SharedMemoryPlane".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.admin.v1.SharedMemoryPlane".into() }}
 /// The request for AdminService.GetServer.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetServerRequest {
@@ -346,6 +388,11 @@ pub struct NegotiateProtocolResponse {
     /// The daemon's release, for display.
     #[prost(string, tag="4")]
     pub server_version: ::prost::alloc::string::String,
+    /// How to reach the shared-memory data plane. Set only when the daemon
+    /// offers CAPABILITY_SHARED_MEMORY and the agreed minor version is 7 or
+    /// later; unset, every batch travels by gRPC.
+    #[prost(message, optional, tag="5")]
+    pub shared_memory: ::core::option::Option<SharedMemoryPlane>,
 }
 impl ::prost::Name for NegotiateProtocolResponse {
 const NAME: &'static str = "NegotiateProtocolResponse";

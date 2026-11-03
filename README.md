@@ -90,6 +90,7 @@ The [roadmap](#roadmap) separates implemented features from future work.
 - [Protocol](docs/reference/protocol.md): the gRPC API, errors, versioning
 - [Storage](docs/reference/storage.md): file format, write path, recovery, index, codecs
 - [IPC](docs/reference/ipc.md): transports, endpoints, security model
+- [Shared memory](docs/reference/shared-memory.md): opt-in data plane, limits, crash handling
 - [Query](docs/reference/query.md): read path, StateAt, exact semantics, bounds
 - [Replay](docs/reference/replay.md): virtual clock, sessions, subscriptions, bounds
 - [Adapters](docs/reference/adapters.md): the contract, CSV, Parquet, Arrow, MCAP formats

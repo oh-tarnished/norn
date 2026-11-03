@@ -8,6 +8,7 @@ package norn.admin.v1;
 import "google/api/field_behavior.proto";
 import "google/api/resource.proto";
 import "norn/admin/v1/server.proto";
+import "norn/admin/v1/shared_memory.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "AdminMessagesProto";
@@ -56,4 +57,9 @@ message NegotiateProtocolResponse {
 
   // The daemon's release, for display.
   string server_version = 4;
+
+  // How to reach the shared-memory data plane. Set only when the daemon
+  // offers CAPABILITY_SHARED_MEMORY and the agreed minor version is 7 or
+  // later; unset, every batch travels by gRPC.
+  SharedMemoryPlane shared_memory = 5;
 }

@@ -14,7 +14,10 @@
 //!   `grpc.health.v1` mirroring the runtime's health; `EntityService`,
 //!   `SignalService` and `StreamService` over the registry and the maintenance
 //!   worker ([`Catalog`]); `google.longrunning.Operations` ([`OperationsService`]);
-//!   `AppendSamples` over the write path ([`Telemetry`]); `QueryService`
+//!   `AppendSamples` over the write path ([`Telemetry`]), its batches arriving
+//!   by gRPC or, when `[shared_memory]` is on and a client asks, through an
+//!   iceoryx2 ring emptied by a tracked blocking task, with the same metering,
+//!   handler and responses either way; `QueryService`
 //!   over `norn-query`, reached through the runtime ([`Queries`]); `StateService`
 //!   over `norn-state`, the same way ([`States`]); `ReplayService` over the
 //!   runtime's sessions ([`ReplaySessions`]); `SubscribeEvents`, live and replayed
@@ -69,6 +72,7 @@ pub use admin::Admin;
 pub use catalog::Catalog;
 pub use config::{
     ConfigError, DaemonConfig, LogConfig, LogFormat, LogLevel, McpConfig, McpTransport,
+    SharedMemorySettings,
 };
 pub use daemon::{Daemon, DaemonError};
 pub use events::{Events, Subscriptions};

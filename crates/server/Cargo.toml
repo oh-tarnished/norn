@@ -21,6 +21,8 @@ norn-protocol = { path = "../protocol" }
 norn-ipc = { path = "../ipc" }
 norn-runtime = { path = "../runtime" }
 norn-metadata = { path = "../metadata" }
+# The iceoryx2 data plane, offered only when `[shared_memory] enabled = true`.
+norn-shared-memory = { path = "../shared-memory" }
 # Serving: generated service servers, the router, and Status.
 tonic = { workspace = true, features = ["codegen", "router", "transport"] }
 tonic-health = { workspace = true }
@@ -62,6 +64,9 @@ proptest = { workspace = true }
 # Real MCP clients against the real `norn` binary, over stdio and a Unix socket.
 rmcp = { workspace = true, features = ["client", "transport-streamable-http-client-unix-socket"] }
 tokio = { workspace = true, features = ["process", "io-util"] }
+# A crash test's writer stops halfway through a frame, which the client's
+# Producer never lets it do; so it publishes through iceoryx2 directly.
+iceoryx2 = { workspace = true }
 
 [lints]
 workspace = true
@@ -84,4 +89,8 @@ harness = false
 
 [[bench]]
 name = "provision"
+harness = false
+
+[[bench]]
+name = "shared_memory"
 harness = false

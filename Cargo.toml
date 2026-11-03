@@ -75,6 +75,16 @@ futures-core = "0.3"
 # std and tokio cannot build safely. Already in tokio's graph.
 windows-sys = { version = "0.61", default-features = false }
 
+# --- The shared-memory data plane (norn-shared-memory); docs/reference/shared-memory.md.
+# iceoryx2: the owner's choice (2026-11-03) over a hand-written ring. Pinned
+# exactly: pre-1.0, and the layout of its shared segments may change between
+# releases, so client and daemon must agree. Default features stay on: without
+# `std` its IPC service is unavailable; its console logger is silenced at
+# startup. Its platform crates name `cc` and `bindgen` as build dependencies,
+# used only when compiling for QNX: xtask/src/iceoryx2.rs audits and confines
+# that. One dependency is 0BSD (deny.toml).
+iceoryx2 = "=0.10.0"
+
 # --- The daemon (norn-server) and nornctl.
 # Structured logging (SPEC §34): the standard facade, already in tonic's graph.
 tracing = { version = "0.1", default-features = false, features = ["std"] }

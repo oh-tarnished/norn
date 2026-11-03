@@ -28,7 +28,12 @@ pub const LAYERS: &[(&str, &[&str])] = &[
         "norn-ipc",
         &["norn-core", "norn-protocol", "norn-transport"],
     ),
-    ("norn-shared-memory", &["norn-core", "norn-transport"]),
+    // Implements norn-ipc's DataPlane and Attach seams, so it sits above it;
+    // norn-ipc never imports it back, and falls back to gRPC without it.
+    (
+        "norn-shared-memory",
+        &["norn-core", "norn-transport", "norn-ipc"],
+    ),
     // The data plane, innermost first.
     ("norn-storage", &["norn-core", "norn-codec"]),
     ("norn-index", &["norn-core", "norn-storage"]),
@@ -79,7 +84,8 @@ pub const LAYERS: &[(&str, &[&str])] = &[
     ),
     // Clients reach Norn only through the protocol (SPEC §31, §33, §47).
     // nornctl also drives the export and import formats, each a client library
-    // of the public API like itself.
+    // of the public API like itself, and opts into the shared-memory data plane
+    // (`--shared-memory`), which is a client of norn-ipc's seam.
     (
         "norn-cli",
         &[
@@ -87,6 +93,7 @@ pub const LAYERS: &[(&str, &[&str])] = &[
             "norn-protocol",
             "norn-transport",
             "norn-ipc",
+            "norn-shared-memory",
             "norn-adapter",
             "norn-adapter-csv",
             "norn-adapter-parquet",

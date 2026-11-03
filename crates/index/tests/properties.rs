@@ -69,10 +69,22 @@ fn check_answers(s: &Scratch, from: i64, span: i64, signals: &[u64]) {
         let got = snap
             .nearest_at_or_before(SignalId::new(*signal), secs(from))
             .unwrap();
-        assert_eq!(
-            got,
-            nearest_brute(&all, *signal, from),
-            "nearest of {signal} at {from}"
+        let want = nearest_brute(&all, *signal, from);
+        // At or after the signal's last sample the summary reads just one
+        // segment; the contract permits any chunk ending at that timestamp.
+        let tied_last = got.zip(want).is_some_and(|(got, want)| {
+            got.max_ts() == want.max_ts()
+                && want.max_ts() <= secs(from)
+                && got.chunk.signal == SignalId::new(*signal)
+                && all.contains(&got)
+                && all
+                    .iter()
+                    .filter(|c| c.chunk.signal == SignalId::new(*signal))
+                    .all(|c| c.max_ts() <= want.max_ts())
+        });
+        assert!(
+            got == want || tied_last,
+            "nearest of {signal} at {from}: {got:?} != {want:?}"
         );
     }
 }

@@ -8,7 +8,7 @@ pub struct QuerySamplesRequest {
     #[prost(string, tag="1")]
     pub parent: ::prost::alloc::string::String,
     /// An AIP-160 filter selecting signals, as in ListSignals, whose fields
-    /// include `id`: `id = "supply-temp"` under `entities/ahu-01` selects one.
+    /// include `id`: `id = "temperature"` under `entities/dev-01` selects one.
     #[prost(string, tag="2")]
     pub filter: ::prost::alloc::string::String,
     /// The half-open interval of `observe_time` to read. Unset reads all
@@ -215,7 +215,7 @@ pub struct BrowseSamplesRequest {
     #[prost(string, tag="1")]
     pub parent: ::prost::alloc::string::String,
     /// An AIP-160 filter selecting signals, as in ListSignals, whose fields
-    /// include `id`: `id = "supply-temp"` under `entities/ahu-01` selects one.
+    /// include `id`: `id = "temperature"` under `entities/dev-01` selects one.
     #[prost(string, tag="2")]
     pub filter: ::prost::alloc::string::String,
     /// The half-open interval of `observe_time` to read, each end an RFC 3339

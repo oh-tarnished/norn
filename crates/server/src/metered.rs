@@ -8,6 +8,7 @@
 //! before tonic sees a byte of it. The next message replaces the reservation,
 //! because a handler reads its next message only after finishing the last.
 
+mod cost;
 mod reader;
 mod wire;
 
@@ -25,7 +26,10 @@ use tonic::Status;
 use tonic::body::Body;
 use tower::{Layer, Service};
 
+pub(crate) use self::cost::{Settled, settle_batch, worst_batch_cost};
+pub(crate) use self::reader::PREFIX;
 use self::reader::Reader;
+pub(crate) use self::wire::strip_samples;
 
 /// The bounds a meter enforces.
 #[derive(Debug, Clone, Copy)]

@@ -3,8 +3,13 @@
 
 //! `norn.telemetry.v1.TelemetryService`: `AppendSamples`.
 
+mod arrive;
 mod batch;
+mod grant;
+mod plane;
+mod pump;
 mod reply;
+mod source;
 
 use std::pin::Pin;
 use std::sync::Arc;
@@ -23,8 +28,10 @@ use tonic::codegen::tokio_stream::Stream;
 use tonic::{Request, Response, Status, Streaming};
 
 use crate::events::{Events, Subscriptions};
-use crate::metered::Held;
 use crate::unimplemented::not_implemented;
+
+pub(crate) use self::plane::Plane;
+use self::source::Source;
 
 /// Responses to one call: a bounded queue the client's reading drains, so a
 /// client that stops reading stalls its own call and no one else's.
@@ -55,6 +62,8 @@ pub struct Telemetry {
     events: Option<Arc<Subscriptions>>,
     /// Where each call's task runs, so shutdown can wait for it.
     calls: TaskTracker,
+    /// Rings for the calls that ask; `None` keeps every call on gRPC.
+    plane: Option<Arc<Plane>>,
 }
 
 impl Telemetry {
@@ -69,6 +78,7 @@ impl Telemetry {
             max_pending: limits.max_pending_batches,
             events: None,
             calls: TaskTracker::new(),
+            plane: None,
         }
     }
 
@@ -98,8 +108,7 @@ impl Telemetry {
     /// until the drain bound cut it.
     async fn read(
         self,
-        mut input: Streaming<AppendSamplesRequest>,
-        held: Option<Arc<Held>>,
+        mut input: Source,
         out: mpsc::Sender<Result<AppendSamplesResponse, Status>>,
         waits: mpsc::Sender<(AppendSamplesResponse, Completion)>,
     ) -> bool {
@@ -119,9 +128,10 @@ impl Telemetry {
                     return false;
                 }
             };
-            let oversized = held.as_ref().and_then(|h| h.take_oversized());
             let full = waits.capacity() == 0;
             let (first, completion) = self.batch(request, oversized, full, &mut last_batch);
+            // Decoded and decided: a ring frame's decoding is paid for no longer.
+            drop(paid);
             if out.send(Ok(first.clone())).await.is_err() {
                 return false;
             }

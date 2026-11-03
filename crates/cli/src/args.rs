@@ -23,9 +23,12 @@ commands:
                               create a signal; TYPE is bool, int32, int64,
                               uint32, uint64, float, double, string, bytes, enum
   append STREAM SIGNAL VALUE [--ack LEVEL] [--sequence N] [--at T]
+         [--shared-memory]
                               send one sample, timed T or now, and wait for its
                               acknowledgement; SIGNAL is a full resource name;
-                              LEVEL is buffered, persisted or durable (default)
+                              LEVEL is buffered, persisted or durable (default);
+                              --shared-memory uses the daemon's shared-memory
+                              plane when offered, the socket otherwise
   query TARGET [--from T] [--to T] [--where F] [--select F] [--agg FN]
         [--window D] [--order signal|time] [--limit N] [--resume TOKEN]
                               read samples or aggregates; TARGET is a signal,
@@ -49,9 +52,11 @@ commands:
   export TARGET --format F --output PATH [--from T] [--to T] [--select F]
                               write samples to a new file; F is csv, parquet,
                               arrow or mcap
-  import PATH [--format F] [--ack LEVEL] [--batch N]
+  import PATH [--format F] [--ack LEVEL] [--batch N] [--shared-memory]
+         [--timing]
                               read a file into the daemon, creating what it
-                              declares; safe to repeat; F defaults from PATH
+                              declares; safe to repeat; F defaults from PATH;
+                              --timing prints the rate, as --shared-memory does
   compact STREAM              merge a stream's sealed segments, and wait
   verify STREAM               read and check every stored chunk, and wait; exits
                               1 if any is damaged

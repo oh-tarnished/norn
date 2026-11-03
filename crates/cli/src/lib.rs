@@ -14,7 +14,9 @@
 //! - **May import**: `norn-core`, `norn-protocol`, `norn-transport`,
 //!   `norn-ipc`, and the adapters over them (`norn-adapter`, `norn-adapter-csv`,
 //!   `norn-adapter-parquet`, `norn-adapter-mcap`), which are clients too;
-//!   third-party: `tonic`, `tonic-health`, `prost-types`, `tokio`.
+//!   `norn-shared-memory`, only to attach a granted ring when `append` or
+//!   `import` is given `--shared-memory`; third-party: `tonic`, `tonic-health`,
+//!   `prost-types`, `tokio`.
 //! - **Spans**: none; a CLI prints, it does not trace.
 //!
 //! Every command connects with [`connect`], which bounds both connecting
@@ -26,6 +28,7 @@ mod append;
 mod args;
 mod commands;
 mod error;
+mod plane;
 mod query;
 mod replay;
 pub mod resources;

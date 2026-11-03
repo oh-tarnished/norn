@@ -14,8 +14,11 @@ implement it:
   no other Norn crate.
 - **`norn-ipc`** runs gRPC on top: `serve`/`Server` host a tonic `Router` on
   an endpoint with a bounded graceful drain, and `connect` returns a tonic
-  `Channel` through a custom connector. It also defines the `DataPlane`
-  seam where a shared-memory plane will plug in.
+  `Channel` through a custom connector. It also defines the `DataPlane` and
+  `Attach` seams, and `AppendCall`, which uses a shared-memory ring when one is
+  granted and the socket otherwise.
+- **`norn-shared-memory`** implements those seams over iceoryx2, opt-in:
+  [shared memory](shared-memory.md).
 
 **The daemon's side** is now runtime-rs's `HybridServer` (`crates/server/src/daemon/serve.rs`),
 on the same endpoints, with the same guarantees mapped onto its `GrpcLimits`: at most
@@ -191,33 +194,36 @@ HTTP/2 and gRPC framing and task wake-ups rather than the kernel copy, which
 is why bulk data is meant for a separate data plane rather than a faster
 socket. Linux and Windows figures are not yet measured.
 
-## Data plane (seam only)
+## Data plane
 
-SPEC §7 asks for shared memory where it pays, with regular IPC as fallback.
-Only the fallback exists: bulk batches travel as gRPC messages.
-`norn_ipc::DataPlane` is the seam (`kind()`, `max_frame()`, `send(frame)`),
-with a contract (bounded, ordered and lossless, crash-aware, `Send + Sync`)
-that a future `shared-memory` crate (wave 3) implements. `ControlPlaneOnly`
-is the fallback, and `negotiate(ours, theirs)` picks the best plane both
-sides offer, defaulting to the control plane. No framing is defined yet.
+SPEC §7 asks for shared memory where it pays, with regular IPC as the fallback.
+Both exist, and the fallback is the default: bulk batches travel as gRPC messages
+on the socket unless `[shared_memory] enabled = true` and the client opts in.
+The full reference is [shared memory](shared-memory.md); in brief:
 
-Evaluated and deferred to the shared-memory piece:
+- `norn_ipc::DataPlane` is the seam (`kind()`, `max_frame()`, `send(frame)`), with
+  a contract: bounded, ordered and lossless, crash-aware, `Send + Sync`.
+  `ControlPlaneOnly` is the fallback, and `negotiate(ours, theirs)` picks the best
+  plane both sides offer, defaulting to the control plane.
+- `norn_ipc::Attach` turns a `SharedMemoryTicket` into a `DataPlane`;
+  `norn_shared_memory::SharedMemory` implements it over iceoryx2. `norn-ipc` never
+  imports `norn-shared-memory`, so a client without it is gRPC only.
+- `norn_ipc::AppendCall` opens `AppendSamples`. Given
+  `AppendOptions::shared_memory`, it negotiates protocol 1.7, reads
+  `NegotiateProtocolResponse.shared_memory`, asks for a ring with the metadata
+  `norn-data-plane: shared-memory`, and attaches to the ring the daemon names in
+  `norn-shared-memory-service`. Anything missing along the way (an older daemon,
+  shared memory off, no ring free, a failed attach) leaves the call on the socket.
+- A frame is one encoded `AppendSamplesRequest`. Every response, including
+  `DURABLE`, comes back on the gRPC call, from the same handler, after the same
+  metering against `ipc_bytes`.
+- Rings are offered only on a Unix socket endpoint, never on a named pipe or TCP,
+  and never on Windows, where iceoryx2 cannot make a mapping owner-only.
 
-| Option | OS | Notes |
-| --- | --- | --- |
-| `memfd_create` + fd passing (`SCM_RIGHTS`) | Linux | anonymous, sealable (`F_SEAL_*`) so a client cannot shrink it under the daemon; nothing on disk; needs ancillary-data support on the socket |
-| POSIX `shm_open` + `mmap` | Linux, macOS | named, so it needs the same owner-only, stale and cleanup discipline as sockets; macOS limits names to 31 bytes |
-| file in the 0700 socket directory + `mmap` | Linux, macOS | inherits the socket's protections; the simplest portable choice; page-cache backed |
-| `CreateFileMapping` (pagefile-backed) | Windows | needs the same owner-only descriptor as pipes; handle shared by name or `DuplicateHandle` |
-
-All need `unsafe` for the mappings and a crash-safe ring protocol (SPEC §20:
-a producer dying mid-frame must be detected). They are deferred until
-measurements show gRPC batching cannot meet the 100 000 samples/s burst
-target (SPEC §17).
-
-Shared memory is out of v0.1, and stage 12 stays planned. A measured comparison of a
-shared-memory plane against this gRPC path exists on a separate branch, kept for
-later; nothing of it is in this tree.
+The options evaluated before iceoryx2 was chosen (`memfd_create` with fd passing,
+POSIX `shm_open`, a file in the socket directory, `CreateFileMapping`) all needed
+`unsafe` mappings and a hand-written crash-safe ring; iceoryx2 provides both, and
+Norn adds no `unsafe` of its own.
 
 ## Dependencies (SPEC §39)
 
@@ -229,8 +235,11 @@ later; nothing of it is in this tree.
 | `tonic` (`transport`, `router`) | ipc | gRPC (SPEC §8) |
 | `hyper-util`, `tower`, `http`, `http-body`, `bytes`, `futures-core` | ipc | types tonic's custom-connector and custom-incoming hooks require; all already in tonic's graph |
 | `tonic-health` | ipc (dev only), server, cli | the standard `grpc.health.v1` service and client |
+| `norn-protocol`, `prost` | ipc | `AppendCall`: the `AppendSamples` and `NegotiateProtocol` clients, and encoding a batch into one frame |
+| `iceoryx2` (`=0.10.0`) | shared-memory | the shared-memory ring; see [shared memory](shared-memory.md#dependencies-and-gates) |
 
-No crate here links C; `xtask deps` checks it.
+No crate here links C; `xtask deps` checks it, with one audited exception for
+iceoryx2's QNX-only build helpers ([shared memory](shared-memory.md#dependencies-and-gates)).
 
 ## Windows status
 

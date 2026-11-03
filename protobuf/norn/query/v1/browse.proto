@@ -27,18 +27,18 @@ message BrowseSamplesRequest {
     (mcp.v1.field) = {
       examples: [
         "entities/-",
-        "entities/ahu-01"
+        "entities/dev-01"
       ]
     }
   ];
 
   // An AIP-160 filter selecting signals, as in ListSignals, whose fields
-  // include `id`: `id = "supply-temp"` under `entities/ahu-01` selects one.
+  // include `id`: `id = "temperature"` under `entities/dev-01` selects one.
   string filter = 2 [
     (google.api.field_behavior) = OPTIONAL,
     (mcp.v1.field) = {
       examples: [
-        "id = \"supply-temp\"",
+        "id = \"temperature\"",
         "unit = \"degC\""
       ]
     }

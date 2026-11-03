@@ -19,6 +19,9 @@ path = "src/main.rs"
 [dependencies]
 norn-protocol = { path = "../protocol" }
 norn-ipc = { path = "../ipc" }
+# `--shared-memory`: attaching a ring the daemon grants (opt-in, unix only in
+# effect: a Windows daemon never offers one).
+norn-shared-memory = { path = "../shared-memory" }
 # export and import: the contract, and the formats, through the public API.
 norn-adapter = { path = "../../adapters/contract" }
 norn-adapter-csv = { path = "../../adapters/csv" }

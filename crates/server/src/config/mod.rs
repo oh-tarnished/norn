@@ -13,18 +13,22 @@ mod error;
 mod file;
 mod log;
 mod mcp;
+mod shared;
 
 use std::path::PathBuf;
 use std::time::Duration;
 
 use norn_core::Config;
 use norn_ipc::Endpoint;
+use norn_shared_memory::Settings;
 
 pub use args::{Invocation, USAGE, parse_args};
 pub use error::ConfigError;
 pub use file::MAX_FILE_BYTES;
 pub use log::{LogConfig, LogFormat, LogLevel};
 pub use mcp::{McpConfig, McpTransport};
+/// The `[shared_memory]` settings, `norn-shared-memory`'s own type.
+pub use norn_shared_memory::Settings as SharedMemorySettings;
 
 /// How long in-flight calls may finish after shutdown is requested, before
 /// their connections are aborted (norn-ipc's drain bound). Default 10 s.
@@ -34,7 +38,8 @@ pub const DEFAULT_DRAIN_TIMEOUT: Duration = Duration::from_secs(10);
 ///
 /// `Default` is a working daemon: the core's default engine `Config`, the
 /// platform's default endpoint (`Endpoint::platform_default()`), a 10 s
-/// drain and [`LogConfig::default`]. Concurrency: plain data, `Send + Sync`.
+/// drain, [`LogConfig::default`], and MCP and shared memory off.
+/// Concurrency: plain data, `Send + Sync`.
 #[derive(Debug, Clone, Default)]
 pub struct DaemonConfig {
     pub(crate) engine: Config,
@@ -43,6 +48,7 @@ pub struct DaemonConfig {
     pub(crate) drain_timeout: Option<Duration>,
     pub(crate) log: LogConfig,
     pub(crate) mcp: McpConfig,
+    pub(crate) shared_memory: Settings,
 }
 
 impl DaemonConfig {

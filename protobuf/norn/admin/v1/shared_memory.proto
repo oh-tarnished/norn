@@ -1,0 +1,47 @@
+// SPDX-FileCopyrightText: 2026 Srikanth K
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+syntax = "proto3";
+
+package norn.admin.v1;
+
+option java_multiple_files = true;
+option java_outer_classname = "SharedMemoryProto";
+option java_package = "local.norn.admin.v1";
+
+// How a client reaches the daemon's shared-memory data plane (protocol 1.7):
+// a bounded iceoryx2 ring per TelemetryService.AppendSamples call, beside the
+// gRPC control plane, which still carries every response. A client asks for a
+// ring by sending the request metadata `norn-data-plane: shared-memory` on the
+// call; a daemon that grants one answers with the response metadata
+// `norn-shared-memory-service`, the ring's whole service name. Without that
+// answer the call stays on gRPC, which is always correct.
+message SharedMemoryPlane {
+  // The iceoryx2 service name every ring's name starts with. A granted ring
+  // is named `{service}/{ring}`; a client refuses a name that does not start
+  // so.
+  string service = 1;
+
+  // The owner-only directory iceoryx2 keeps its files in. Only a process of
+  // the daemon's user can open what is there.
+  string root_directory = 2;
+
+  // The prefix of every name iceoryx2 creates for this daemon, so two daemons
+  // of one user stay apart.
+  string name_prefix = 3;
+
+  // The largest frame, one encoded AppendSamplesRequest, a ring takes. A
+  // larger batch travels by gRPC on the same call, in order.
+  int64 max_frame_bytes = 4;
+
+  // Frames a ring holds before the client's send waits: backpressure, never
+  // loss.
+  int32 slot_count = 5;
+
+  // Rings open at once. A call past it is not granted one and stays on gRPC.
+  int32 max_rings = 6;
+
+  // The shared memory one ring maps, in bytes, charged to the daemon's IPC
+  // budget while the ring is open.
+  int64 segment_bytes = 7;
+}

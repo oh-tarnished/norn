@@ -183,8 +183,8 @@ enum Capability {
   CAPABILITY_COMPACTION = 9;
   // StreamService.ExportStream.
   CAPABILITY_EXPORT = 10;
-  // A shared-memory data plane beside gRPC for bulk samples. Transport
-  // selection is the IPC layer's; this only says it exists.
+  // A shared-memory data plane beside gRPC for AppendSamples batches. From
+  // 1.7, NegotiateProtocolResponse.shared_memory says how to attach.
   CAPABILITY_SHARED_MEMORY = 11;
   // StreamService.ApplyStreamRetention, and retention passes.
   CAPABILITY_RETENTION = 12;

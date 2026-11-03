@@ -3,19 +3,14 @@
 
 //! One `AppendSamples` call, one batch in flight: a bounded client by construction.
 
-use std::pin::Pin;
-use std::task::{Context, Poll};
 use std::time::Duration;
 
+use norn_ipc::{AppendCall, AppendOptions, AppendReplies, AppendSender};
 use norn_protocol::common::Sample;
-use norn_protocol::telemetry::telemetry_service_client::TelemetryServiceClient;
 use norn_protocol::telemetry::{
     AcknowledgementLevel, AppendSamplesRequest, AppendSamplesResponse, BackpressureOutcome,
 };
-use tokio::sync::mpsc;
 use tokio::time::{Instant, sleep_until};
-use tonic::Streaming;
-use tonic::codegen::tokio_stream;
 use tonic::transport::Channel;
 
 use super::refused::refused;
@@ -23,21 +18,13 @@ use crate::AdapterError;
 
 const METHOD: &str = "TelemetryService.AppendSamples";
 
-/// A bounded channel as the request stream, so a slow daemon stalls the sender.
-struct Batches(mpsc::Receiver<AppendSamplesRequest>);
-
-impl tokio_stream::Stream for Batches {
-    type Item = AppendSamplesRequest;
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        self.0.poll_recv(cx)
-    }
-}
-
 /// Sends a batch and waits for it, retrying only what the daemon said may be
-/// retried. Waiting is the backpressure: memory stays at one batch.
+/// retried. Waiting is the backpressure: memory stays at one batch. Batches go
+/// by gRPC, or by a shared-memory ring when `ImportOptions::shared_memory` asked
+/// and the daemon granted one; the answers are the same either way.
 pub(crate) struct Appender {
-    tx: mpsc::Sender<AppendSamplesRequest>,
-    replies: Streaming<AppendSamplesResponse>,
+    tx: AppendSender,
+    replies: AppendReplies,
     level: AcknowledgementLevel,
     next_id: i64,
     not_before: Option<Instant>,
@@ -53,12 +40,10 @@ impl Appender {
         channel: Channel,
         level: AcknowledgementLevel,
         max_retries: u32,
+        plane: &AppendOptions,
     ) -> Result<Self, AdapterError> {
-        let (tx, rx) = mpsc::channel(1);
-        let opened = TelemetryServiceClient::new(channel)
-            .append_samples(Batches(rx))
-            .await;
-        let replies = opened.map_err(AdapterError::call(METHOD))?.into_inner();
+        let opened = AppendCall::open(channel, &plane.clone().capacity(1)).await;
+        let (tx, replies) = opened.map_err(AdapterError::call(METHOD))?.into_parts();
         Ok(Self {
             tx,
             replies,

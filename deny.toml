@@ -33,6 +33,10 @@ allow = [
     "ISC",
     "Zlib",
     "Unicode-3.0",
+    # owner decision 2026-11-03: 0BSD (more permissive than MIT) for iceoryx2's
+    # dependency. Zero-clause BSD keeps no conditions at all, so it is compatible
+    # with the AGPL and the commercial licence.
+    "0BSD",
 ]
 confidence-threshold = 0.9
 # The allow-list is policy, not inventory: a licence not yet in the graph is

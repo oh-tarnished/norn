@@ -27,7 +27,7 @@ message FindEventsRequest {
     (mcp.v1.field) = {
       examples: [
         "entities/-",
-        "entities/ahu-01"
+        "entities/dev-01"
       ]
     }
   ];
@@ -36,7 +36,7 @@ message FindEventsRequest {
   string filter = 2 [
     (google.api.field_behavior) = OPTIONAL,
     (mcp.v1.field) = {
-      examples: ["id = \"supply-temp\""]
+      examples: ["id = \"temperature\""]
     }
   ];
 

@@ -3,6 +3,9 @@
 
 //! Reading a source into the daemon.
 
+use std::sync::Arc;
+
+use norn_ipc::{AppendOptions, Attach};
 use norn_protocol::admin::Capability;
 use norn_protocol::common::Sample;
 use norn_protocol::telemetry::AcknowledgementLevel;
@@ -16,12 +19,13 @@ use crate::wire::registry::Registry;
 use crate::{AdapterError, SampleSource, SourceBatch};
 
 /// How an import runs. `Default` waits for `DURABLE`, as `nornctl append` does,
-/// and uses the daemon's published batch limits.
+/// uses the daemon's published batch limits, and sends over gRPC.
 #[derive(Debug, Clone)]
 pub struct ImportOptions {
     level: AcknowledgementLevel,
     batch_samples: Option<usize>,
     max_retries: u32,
+    plane: AppendOptions,
 }
 
 impl Default for ImportOptions {
@@ -30,6 +34,7 @@ impl Default for ImportOptions {
             level: AcknowledgementLevel::Durable,
             batch_samples: None,
             max_retries: 1_000,
+            plane: AppendOptions::default(),
         }
     }
 }
@@ -53,6 +58,13 @@ impl ImportOptions {
     #[must_use]
     pub fn max_retries(mut self, retries: u32) -> Self {
         self.max_retries = retries;
+        self
+    }
+
+    /// Sends through a shared-memory ring `attach` reaches, if one is granted.
+    #[must_use]
+    pub fn shared_memory(mut self, attach: Arc<dyn Attach>) -> Self {
+        self.plane = self.plane.shared_memory(attach);
         self
     }
 }
@@ -159,7 +171,8 @@ pub async fn import<S: SampleSource + ?Sized>(
     let mut registry = Registry::new(channel.clone());
     registry.apply(&source.catalog()?).await?;
     let newest = newest_times(&channel).await?;
-    let mut appender = Appender::open(channel.clone(), options.level, options.max_retries).await?;
+    let (level, retries) = (options.level, options.max_retries);
+    let mut appender = Appender::open(channel.clone(), level, retries, &options.plane).await?;
     let mut report = ImportReport::default();
     while let Some(SourceBatch { signals, samples }) = source.next_batch()? {
         report.samples_read += samples.len() as u64;

@@ -128,12 +128,19 @@ pub(crate) async fn import(
     words: &[&str],
     out: &mut impl Write,
 ) -> Result<(), CliError> {
-    const USE: &str = "import PATH [--format F] [--ack LEVEL] [--batch N]";
+    const USE: &str =
+        "import PATH [--format F] [--ack LEVEL] [--batch N] [--shared-memory] [--timing]";
     let Some((path, flags)) = words.split_first() else {
         return Err(usage(USE));
     };
     let mut kind = None;
     let mut options = ImportOptions::default();
+    if crate::plane::wanted(flags) {
+        options = options.shared_memory(std::sync::Arc::new(norn_shared_memory::SharedMemory));
+    }
+    let timing = flags.contains(&"--timing") || crate::plane::wanted(flags);
+    let flags: Vec<&str> = crate::plane::options(flags).1;
+    let flags: Vec<&str> = flags.into_iter().filter(|f| *f != "--timing").collect();
     let mut flags = flags.iter();
     while let Some(flag) = flags.next() {
         let word = flags.next().ok_or_else(|| usage(USE))?;
@@ -157,8 +164,17 @@ pub(crate) async fn import(
     let kind = kind.map_or_else(|| guess(path), Ok)?;
     let file = File::open(path).map_err(io("opening the input"))?;
     let mut file_source = source(kind, file);
+    let started = std::time::Instant::now();
     let done = run_import(channel, file_source.as_mut(), &options).await;
     let report = done.map_err(CliError::Adapter)?;
+    if timing {
+        let seconds = started.elapsed().as_secs_f64();
+        let rate = report.samples_sent as f64 / seconds.max(1e-9);
+        writeln!(
+            out,
+            "timing seconds={seconds:.3} samples_per_second={rate:.0}"
+        )?;
+    }
     writeln!(
         out,
         "imported read={} sent={} present={} duplicate={} created={} batches={} throttled={} retried={}",

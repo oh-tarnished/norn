@@ -101,7 +101,7 @@ pub mod signal_service_client {
             self.inner.unary(req, path, codec).await
         }
         /** Creates up to 1000 signals in one call, all or none (AIP-233), with one
- durable registry commit for the whole batch: provisioning a site's tens
+ durable registry commit for the whole batch: provisioning a deployment's tens
  of thousands of signals without a call and a commit each.
 
  Safe to repeat: a signal that already exists with the same value type and
@@ -257,7 +257,7 @@ pub mod signal_service_server {
             request: tonic::Request<super::CreateSignalRequest>,
         ) -> std::result::Result<tonic::Response<super::Signal>, tonic::Status>;
         /** Creates up to 1000 signals in one call, all or none (AIP-233), with one
- durable registry commit for the whole batch: provisioning a site's tens
+ durable registry commit for the whole batch: provisioning a deployment's tens
  of thousands of signals without a call and a commit each.
 
  Safe to repeat: a signal that already exists with the same value type and

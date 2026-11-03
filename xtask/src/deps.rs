@@ -6,9 +6,10 @@
 //! Walks each workspace member's normal dependency graph (build and dev edges
 //! excluded: they never ship) and objects to any package that declares a
 //! `links` key or build-depends on a native-build helper. A crate may opt out
-//! only by appearing in [`ALLOW_C`] with its reason. The single exception for
-//! what runtime-rs brings beneath the daemon, and the rule that keeps it
-//! there, are [`crate::runtime_rs`]'s.
+//! only by appearing in [`ALLOW_C`] with its reason. The exception for what
+//! runtime-rs brings beneath the daemon, and the rule that keeps it there, are
+//! [`crate::runtime_rs`]'s; the exception for iceoryx2's audited build helpers
+//! beneath the shared-memory data plane is [`crate::iceoryx2`]'s.
 
 use std::collections::{BTreeSet, VecDeque};
 
@@ -89,6 +90,7 @@ pub fn check(graph: &Graph, allow: &[(&str, &str)]) -> Findings {
                 .build_deps
                 .iter()
                 .filter(|d| NATIVE_BUILD.contains(&d.as_str()))
+                .filter(|d| !crate::iceoryx2::excuses(name, &p.name, d))
             {
                 findings.object(
                     &p.name,
@@ -98,5 +100,6 @@ pub fn check(graph: &Graph, allow: &[(&str, &str)]) -> Findings {
         }
     }
     crate::runtime_rs::check_contained(graph, &mut findings);
+    crate::iceoryx2::check_contained(graph, &mut findings);
     findings
 }

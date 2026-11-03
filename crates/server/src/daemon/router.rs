@@ -36,7 +36,7 @@ use crate::operations::OperationsService;
 use crate::query::Queries;
 use crate::replay::ReplaySessions;
 use crate::state::States;
-use crate::telemetry::Telemetry;
+use crate::telemetry::{Plane, Telemetry};
 
 /// What `build_router` makes, for the daemon to hold and run.
 pub(super) struct Built {
@@ -122,8 +122,6 @@ pub(super) async fn build_router(
         clock,
         engine.maintenance(),
     ));
-    let admin = Admin::new(resource).maintenance(Arc::clone(&maintenance));
-    let admin = AdminServiceServer::new(admin).max_decoding_message_size(MAX_MESSAGE_BYTES);
     let clock = Arc::clone(runtime.clock());
     let (r, i, m) = (&registry, &ingest, &maintenance);
     let catalog = Catalog::new(Arc::clone(r), Arc::clone(i), clock, Arc::clone(m));
@@ -151,9 +149,6 @@ pub(super) async fn build_router(
     );
     let events =
         Subscriptions::new(shared.0, shared.1, shared.2, clock, limit).tracked(calls.clone());
-    let telemetry = Telemetry::new(registry, ingest, engine)
-        .events(Arc::new(events))
-        .tracked(calls.clone());
     let ipc = runtime.budgets().get(Subsystem::Ipc).clone();
     let windows = ipc.try_reserve(ipc.capacity() / 2).map_err(|e| {
         DaemonError::Runtime(RuntimeError::TaskFailed {
@@ -165,6 +160,15 @@ pub(super) async fn build_router(
         max_batch_bytes: max_batch_bytes(engine),
         max_batch_samples: engine.limits().max_batch_samples,
     };
+    let (endpoint, settings) = (config.endpoint(), config.shared_memory_settings());
+    let plane = Plane::new(settings, &endpoint, ipc.clone(), limits, &calls);
+    let admin = Admin::new(resource).maintenance(Arc::clone(&maintenance));
+    let admin = admin.shared_memory(plane.as_ref().map(|p| p.advertised()));
+    let admin = AdminServiceServer::new(admin).max_decoding_message_size(MAX_MESSAGE_BYTES);
+    let telemetry = Telemetry::new(registry, ingest, engine)
+        .events(Arc::new(events))
+        .tracked(calls.clone())
+        .plane(plane);
     let meter = MeterLayer::new(ipc, limits);
     let window = connection_window(engine.memory().ipc_bytes / 2, engine.limits().max_clients);
     let services = super::serve::Registered {

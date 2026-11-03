@@ -74,7 +74,7 @@ pub struct ListEntitiesRequest {
     #[prost(string, tag="2")]
     pub page_token: ::prost::alloc::string::String,
     /// An AIP-160 filter over `display_name` and `annotations`, such as
-    /// `annotations.site = "north"`.
+    /// `annotations.deployment = "north"`.
     #[prost(string, tag="3")]
     pub filter: ::prost::alloc::string::String,
 }

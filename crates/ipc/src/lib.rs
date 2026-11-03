@@ -9,9 +9,16 @@
 //! transport — Unix socket, named pipe, loopback TCP — is chosen by the
 //! endpoint alone; neither services nor clients see it.
 //!
+//! **Also owns:** [`AppendCall`], `AppendSamples` for a client that does not
+//! care which plane carries its batches: gRPC, or a shared-memory ring when
+//! asked for ([`AppendOptions::shared_memory`]), negotiated (protocol 1.7) and
+//! granted, falling back to gRPC transparently otherwise.
+//!
 //! **Does not:** define services or messages (the protocol crate does),
-//! implement transports (`norn-transport` does), or carry bulk data: the
-//! [`DataPlane`] trait is the documented seam for that.
+//! implement transports (`norn-transport` does), or reach shared memory: the
+//! [`DataPlane`] and [`Attach`] traits are the seam a data-plane crate
+//! (`norn-shared-memory`) implements, declared here because this crate, beneath
+//! it, is what falls back.
 //!
 //! **Lifecycle:** [`Server::bind`] claims the endpoint and spawns nothing;
 //! [`Server::serve`] runs until its `CancellationToken` is cancelled, drains
@@ -39,15 +46,19 @@
 //! # Ok(()) }
 //! ```
 
+mod append;
 mod client;
 mod data_plane;
 mod error;
 mod server;
 mod stream;
+mod ticket;
 
+pub use append::{AppendCall, AppendOptions, AppendReplies, AppendSender, DEFAULT_CAPACITY};
 pub use client::{connect, connect_lazy, connect_with};
 pub use data_plane::{ControlPlaneOnly, DataPlane, DataPlaneKind, SendFuture, negotiate};
 pub use error::IpcError;
 pub use norn_transport::{Endpoint, Limits, Overflow};
 pub use server::{Server, ServerConfig, ShutdownReport, serve};
 pub use stream::IpcStream;
+pub use ticket::{Attach, SharedMemoryTicket};

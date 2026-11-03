@@ -1,18 +1,18 @@
 //! SPDX-FileCopyrightText: 2026 Srikanth K
 //! SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! The seam where a bulk data plane will plug in (SPEC §7, stage 12).
+//! The seam where a bulk data plane plugs in (SPEC §7, stage 12).
 //!
-//! Today every byte, control or data, travels as gRPC messages over the
-//! control-plane connection: that is the "regular IPC" fallback SPEC §7
-//! requires, and the only plane implemented. A later `shared-memory` crate
-//! will implement [`DataPlane`] with a memory-mapped ring buffer; the
-//! client and daemon will agree on it through capability negotiation over
-//! the control plane, and fall back to [`ControlPlaneOnly`] whenever it is
-//! unavailable (a different user, a container boundary, an OS without it).
+//! By default every byte, control or data, travels as gRPC messages over the
+//! control-plane connection: the "regular IPC" fallback SPEC §7 requires.
+//! `norn-shared-memory` implements [`DataPlane`] with an iceoryx2 ring, which a
+//! daemon configured for it grants per `AppendSamples` call, after the client
+//! learns of it through `NegotiateProtocol` (protocol 1.7). A client falls back
+//! to [`ControlPlaneOnly`] whenever none is granted (a different user, a
+//! container boundary, an OS without it, a daemon with it off).
 //!
-//! Framing for that plane is deliberately not defined here. See docs/reference/ipc.md
-//! for the options evaluated and why they were deferred.
+//! A frame is one encoded `AppendSamplesRequest`; see
+//! docs/reference/shared-memory.md.
 
 use std::future::Future;
 use std::io;
@@ -24,8 +24,7 @@ use std::pin::Pin;
 pub enum DataPlaneKind {
     /// Batches travel as gRPC messages on the control-plane connection.
     ControlPlane,
-    /// Batches travel through a shared-memory ring buffer. Reserved: no
-    /// implementation exists yet.
+    /// Batches travel through a shared-memory ring (`norn-shared-memory`).
     SharedMemory,
 }
 

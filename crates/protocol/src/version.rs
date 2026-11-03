@@ -52,7 +52,7 @@ impl From<crate::admin::ProtocolVersion> for ProtocolVersion {
 
 /// The version of `protobuf/` this crate was generated from. Bump `minor` with
 /// every compatible addition to the schema.
-pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion { major: 1, minor: 6 };
+pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion { major: 1, minor: 7 };
 
 /// The gRPC metadata key a client may set on any call, valued `major.minor`
 /// (such as `1.0`). A daemon that cannot speak that major fails the call

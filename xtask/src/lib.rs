@@ -22,6 +22,7 @@
 pub mod arch;
 pub mod deps;
 pub mod docs;
+pub mod iceoryx2;
 pub mod metadata;
 pub mod purity;
 pub mod runtime_rs;

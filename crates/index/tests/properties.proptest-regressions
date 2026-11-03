@@ -9,3 +9,4 @@ cc 59b36cfc80f64aafa80513579f3be49012d75ba043fe2a7d23b6f8ababb8ea5e # shrinks to
 cc 7471aaa46e6f4f46709d16f93b0c5279603ec4bbd2d6e3d0b1f9c774442ae8d5 # shrinks to sets = [[], [(0, 1813, 4, 38)]], from = 551, span = 1262, signals = [0]
 cc e10db94dfab9f94f3282466989b4fc5ddb3cdf016f9e43331f501c9bfe7f47c4 # shrinks to sets = [[(0, 0, 1, 1), (0, 1863, 3, 14)], []], cuts = [], from = 1563, signals = [0]
 cc e440302d88e4afdd121c15e048c7f045d74bd8738029ea491c560f735497e168 # shrinks to sets = [[(0, 198, 1, 1), (0, 0, 1, 1)], [(0, 0, 1, 1)]], cuts = [], from = 198, signals = [0]
+cc f1e24772ae5c3a70f1df15e76b04a5ae98104ba272600d4b8cb77bcd94ab3c4c # shrinks to sets = [[(3, 1615, 6, 34)], [(3, 1686, 4, 33), (0, 0, 1, 1)]], from = 1785, span = 0, signals = [3]
