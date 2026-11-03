@@ -69,12 +69,15 @@ CI accepts both `main` and `master`. Dependabot uses the repository's default
 branch. Branch protection and auto-merge settings are configured on GitHub.
 
 A `vX.Y.Z` tag matching every workspace package version, or a manual Release
-workflow run, builds `norn` and `nornctl` for Linux x86-64/AArch64, macOS
+workflow run with `publish=true`, builds `norn` and `nornctl` for Linux x86-64/AArch64, macOS
 Intel/Apple Silicon and Windows x86-64. It attaches archives, documentation
 and SHA-256 checksums to a GitHub release. Linux builds target glibc 2.35.
 Prerelease versions create prereleases. Crates remain unpublished. The release
-also renders a private-download Homebrew formula and updates the tap when
-`HOMEBREW_TAP_TOKEN` is configured; see [Homebrew](docs/guides/homebrew.md).
+also renders a Homebrew formula and updates the tap as **Walle** using the
+`HOMEBREW_TAP_TOKEN` PAT. Tap write access is required and checked before
+building. Update the [changelog](docs/project/changelog.md) and release notes
+for each version; see [Homebrew](docs/guides/homebrew.md) for PAT setup.
+Manual runs default to checking release readiness without publishing.
 To preview locally, run `just release-build <host-target>` followed by
 `just release-package <host-target> <version>`; output goes to `dist/`.
 

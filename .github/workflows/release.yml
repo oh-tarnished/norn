@@ -9,6 +9,11 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the workspace version (otherwise only verify release readiness)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -31,6 +36,23 @@ jobs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - uses: actions/checkout@v7
+      - name: Verify Homebrew tap write access
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAP_REPOSITORY: ${{ vars.HOMEBREW_TAP_REPOSITORY || 'shokki-engineering/homebrew-tap' }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::Set HOMEBREW_TAP_TOKEN to a PAT with Contents read/write access to $TAP_REPOSITORY."
+            exit 1
+          fi
+          permission="$(gh api "repos/${TAP_REPOSITORY}" --jq '.permissions.push')"
+          if [[ "$permission" != true ]]; then
+            echo "::error::HOMEBREW_TAP_TOKEN cannot write to $TAP_REPOSITORY."
+            exit 1
+          fi
+          gh auth setup-git
+          git clone --branch main "https://github.com/${TAP_REPOSITORY}.git" tap-check
+          git -C tap-check push --dry-run origin HEAD:main
       - uses: dtolnay/rust-toolchain@1.99.1
       - uses: extractions/setup-just@v4
       - name: Check tag and workspace versions
@@ -41,6 +63,7 @@ jobs:
   build:
     name: Build ${{ matrix.target }}
     needs: plan
+    if: github.event_name == 'push' || inputs.publish
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -114,37 +137,29 @@ jobs:
           if-no-files-found: error
 
   tap:
-    name: Update the private Homebrew tap
+    name: Update the Homebrew tap as Walle
     needs: [plan, release]
     runs-on: ubuntu-22.04
-    env:
-      TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
       - uses: actions/download-artifact@v8
-        if: env.TAP_TOKEN != ''
         with:
           name: homebrew-formula
       - name: Commit the release formula
-        if: env.TAP_TOKEN != ''
         env:
           VERSION: ${{ needs.plan.outputs.version }}
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           TAP_REPOSITORY: ${{ vars.HOMEBREW_TAP_REPOSITORY || 'shokki-engineering/homebrew-tap' }}
         run: |
           gh auth setup-git
-          git clone "https://github.com/${TAP_REPOSITORY}.git" tap
-          git -C tap branch -M main
+          git clone --branch main "https://github.com/${TAP_REPOSITORY}.git" tap
           mkdir -p tap/Formula
           cp norn.rb tap/Formula/norn.rb
           cp tap-README.md tap/README.md
           cd tap
-          git config user.name "Norn release"
-          git config user.email "releases@shokki.invalid"
+          git config user.name "Walle"
+          git config user.email "walle@shokki.engineering"
           git add Formula/norn.rb README.md
           if ! git diff --cached --quiet; then
             git commit -m "norn $VERSION"
             git push origin HEAD:main
           fi
-      - name: Manual tap update
-        if: env.TAP_TOKEN == ''
-        run: echo "HOMEBREW_TAP_TOKEN is unset; copy norn.rb from the release into Formula/norn.rb in the tap."

@@ -43,12 +43,11 @@ checksummed chunks, indexes them by time, and answers range queries, aggregates,
 state of every signal at an instant, and deterministic replays. It knows entities,
 signals and streams, and never what they mean.
 
-**Version 0.1.0.** The engine, CLI, interchange adapters and MCP server are built
-and tested. [CI passes on Linux, macOS and Windows](https://github.com/shokki-engineering/norn/actions/runs/41585788519),
-with ARMv7 and AArch64 cross-checks. Release automation and the Homebrew service
-are prepared; installation from the tap needs the first published archives and
-the tap setup described under [Installation](#installation). The [roadmap](#roadmap)
-separates implemented features from future work.
+**Version 0.1.0 — first release.** The engine, CLI, interchange adapters and
+MCP server ship together. Homebrew installs the complete program and provides
+a background daemon that starts at login with `brew services start norn`.
+See the [changelog](docs/project/changelog.md) and [Installation](#installation).
+The [roadmap](#roadmap) separates implemented features from future work.
 
 ## Contents
 
@@ -75,7 +74,7 @@ separates implemented features from future work.
 | Guide                                             | What it covers                             | State     |
 | ------------------------------------------------- | ------------------------------------------ | --------- |
 | [Getting started](docs/guides/getting-started.md) | build, run, create, append, list           | works     |
-| [Homebrew](docs/guides/homebrew.md)             | private packages, service, upgrades, health | release setup |
+| [Homebrew](docs/guides/homebrew.md)             | installation, daemon, upgrades, Walle releases | works |
 | [Configuration](docs/guides/configuration.md)     | every key and its default                  | works     |
 | [Ingesting data](docs/guides/ingesting-data.md)   | batches, acknowledgements, backpressure    | works     |
 | [Operations](docs/guides/operations.md)           | stopping, data directory, recovery, damage | partly    |
@@ -99,6 +98,7 @@ separates implemented features from future work.
 
 **Project**
 
+- [Changelog](docs/project/changelog.md): v0.1.0, the first release
 - [Performance](docs/performance.md): every measurement and how it was made
 - [Specification](docs/project/spec.md): the binding brief
 - [Plan](docs/project/plan.md): how the work is split, and its status
@@ -349,16 +349,11 @@ and reported per chunk. File formats: [storage](docs/reference/storage.md).
 
 ### Homebrew on macOS and Linux
 
-The release workflow publishes a formula to `shokki-engineering/homebrew-tap`.
-Before the first install, the maintainer must create that repository, configure
-`HOMEBREW_TAP_TOKEN` for Norn's release workflow, and publish `v0.1.0`.
-Creating an empty tap alone does not make the package available.
-
-Once the formula is published:
+Install Norn 0.1.0 from `shokki-engineering/homebrew-tap`, then start its
+background daemon. The tap and archives are public; no GitHub token is needed:
 
 ```sh
-brew tap --custom-remote shokki-engineering/tap git@github.com:shokki-engineering/homebrew-tap.git
-export HOMEBREW_GITHUB_API_TOKEN="$(gh auth token)"  # needed for private release downloads
+brew tap shokki-engineering/tap
 brew install shokki-engineering/tap/norn
 brew services start norn
 nornctl --endpoint "unix:$(brew --prefix)/var/run/norn/norn.sock" status
@@ -397,9 +392,9 @@ command-line client. Put that directory on your `PATH` for the commands below.
 
 ### Release archives
 
-No release has been published yet. When `v0.1.0` is tagged, the
-[release workflow](.github/workflows/release.yml) builds one archive per target and
-publishes each with a `.sha256` file to check it against:
+Download [Norn v0.1.0](https://github.com/shokki-engineering/norn/releases/tag/v0.1.0).
+The [release workflow](.github/workflows/release.yml) builds one archive per
+target and publishes each with a `.sha256` file to check it against:
 
 - `x86_64-unknown-linux-gnu`: Ubuntu 22.04
 - `aarch64-unknown-linux-gnu`: Ubuntu 22.04 ARM

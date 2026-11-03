@@ -5,8 +5,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Shokki Engineering Homebrew tap
 
-Prebuilt Norn and BACnet tools for macOS and Linux. Formulae are published by
-their release workflows; a package becomes installable after its first release.
+Prebuilt Norn and BACnet tools for macOS and Linux. Norn's first release is
+**v0.1.0**; its release workflow maintains the formula as **Walle**.
 
 | Formula | Provides |
 | --- | --- |
@@ -16,21 +16,21 @@ their release workflows; a package becomes installable after its first release.
 
 ## Install Norn
 
-For a private tap, authenticate Git over SSH. Private release downloads also
-need a GitHub token from an account with access to the release repository:
+The tap and Norn archives are public; installation needs no GitHub token:
 
 ```sh
-brew tap --custom-remote shokki-engineering/tap git@github.com:shokki-engineering/homebrew-tap.git
-export HOMEBREW_GITHUB_API_TOKEN="$(gh auth token)"
+brew tap shokki-engineering/tap
 brew install shokki-engineering/tap/norn
 brew services start norn
 nornctl --endpoint "unix:$(brew --prefix)/var/run/norn/norn.sock" status
 ```
 
 The status must contain `SERVING`. Installation alone does not start the daemon.
-Run the service without `sudo`; launchd starts it at login on macOS, and Linux
-uses a systemd user unit. A fine-grained download token needs Contents read
-access to the repository hosting each private release.
+Run the service without `sudo`; launchd starts it now and at login on macOS,
+and Linux uses a systemd user unit. `brew services list` shows the daemon;
+`brew services stop norn` stops it and removes its login registration.
+For private release repositories, export `HOMEBREW_GITHUB_API_TOKEN` with
+Contents read access to the repository hosting that release.
 
 ## Files and upgrades
 
@@ -65,8 +65,12 @@ dropped counts.
 
 ## Release automation
 
-Norn's release workflow can initialize this repository even when it is empty.
-It needs `HOMEBREW_TAP_TOKEN` with Contents write access to this repository.
+Norn's release workflow uses the `HOMEBREW_TAP_TOKEN` repository secret: a
+fine-grained PAT restricted to this tap with Contents read/write access.
+Tap commits have author and committer **Walle** (`walle@shokki.engineering`).
+The workflow verifies access before building and fails if the PAT is missing,
+expired or unable to push. Initialize the tap with this README before its
+first automated update, and rotate the PAT before expiry.
 The source is [shokki-engineering/norn](https://github.com/shokki-engineering/norn).
 See its [Homebrew guide](https://github.com/shokki-engineering/norn/blob/main/docs/guides/homebrew.md)
 for authenticated curl downloads, configuration and release setup.
