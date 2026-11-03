@@ -26,7 +26,7 @@ Database → Stream → Segment → Chunk → Block → Sample.
 
 A **segment** is one file: append-only while open, immutable once sealed. A
 `StreamWriter` rolls to the next segment when one reaches a limit from
-`StorageOptions`, so no file grows without bound. From 1.0.0-rc1 a segment seals in four
+`StorageOptions`, so no file grows without bound. From 1.0.0-rc.1 a segment seals in four
 cases: when it is full (`max_segment_bytes`), when its samples span
 `max_segment_age_ms` of sample time, when it has been open
 `max_segment_open_time_ms` of the daemon's wall-clock time (default one hour; the
@@ -146,7 +146,7 @@ directory handle, and NTFS journals metadata.
 cache, so a power cut could still lose it. Rust's `std` implements `sync_data` and
 `sync_all` on Apple targets with `fcntl(F_FULLFSYNC)`, which does flush the cache, so
 `DURABLE` holds on macOS with no `unsafe` and no platform code in Norn (documented in
-the code from 1.0.0-rc1). The cost is that `F_FULLFSYNC` is much slower, often
+the code from 1.0.0-rc.1). The cost is that `F_FULLFSYNC` is much slower, often
 milliseconds even on an SSD; group commit spreads one sync over every batch waiting
 on it. A deployment that does not need power-loss safety sets
 `[storage] durable_acks = false` rather than weakening the sync.
@@ -389,7 +389,7 @@ and past that a request fails with `RESOURCE_EXHAUSTED`. A long `verify` delays
 compaction, which is the price.
 
 **Verification.** `VerifyStream` reads every chunk of every sealed segment and checks
-both CRCs. From 1.0.0-rc1 it then reads the chunks already fsynced to the open segment,
+both CRCs. From 1.0.0-rc.1 it then reads the chunks already fsynced to the open segment,
 which has no directory yet: frame by frame, at the offsets the index was given, each
 frame's header checked against that metadata and its body against its CRC. Samples
 still in the write path's buffers are in no file and are not examined; they are
@@ -397,7 +397,7 @@ reported as buffered and reach a chunk within `max_chunk_age_ms`. Without this, 
 stream that had not yet sealed a segment verified as zero chunks, a check that
 examined nothing reported as a pass.
 
-**Sealing by age.** From 1.0.0-rc1 the same worker checks for segments open longer than
+**Sealing by age.** From 1.0.0-rc.1 the same worker checks for segments open longer than
 `max_segment_open_time_ms`, every quarter of that value, kept between 10 ms and 60 s,
 and runs this check even when `[maintenance] background = false`: without it a quiet
 stream never reaches a sealed segment at all.

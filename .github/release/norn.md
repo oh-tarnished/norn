@@ -3,11 +3,11 @@ SPDX-FileCopyrightText: 2026 Srikanth K
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-### norn v1.0.0-rc1
+### norn v1.0.0-rc.1
 
 The first release candidate for norn 1.0. Every platform archive contains the
 `norn` daemon, the `nornctl` client, the built-in MCP server and documentation.
-All workspace crates, including `norn-protocol`, use version `1.0.0-rc1`.
+All workspace crates, including `norn-protocol`, use version `1.0.0-rc.1`.
 Wire negotiation uses protocol 1.7 and remains compatible with v0.1.0 clients.
 
 This release adds an opt-in shared-memory data plane over iceoryx2 for local
@@ -17,7 +17,7 @@ open-segment chunks, and prompt shutdown while append calls remain open.
 Shared memory is off by default; enable it only when all processes of the daemon's
 user are trusted. A maximum-speed replay of a recent window may stop after
 `RUNNING`; this known issue remains under investigation.
-See the [v1.0.0-rc1 changelog](https://github.com/shokki-engineering/norn/blob/v1.0.0-rc1/docs/project/changelog.md).
+See the [v1.0.0-rc.1 changelog](https://github.com/shokki-engineering/norn/blob/v1.0.0-rc.1/docs/project/changelog.md).
 
 `norn.rb` installs the complete program from these archives and supplies a
 Homebrew service. See the [Homebrew guide](https://github.com/shokki-engineering/norn/blob/main/docs/guides/homebrew.md)

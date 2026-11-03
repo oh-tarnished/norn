@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 The `nornctl` command, through the public gRPC API only. It never touches storage.
 Output below is real, from `nornctl` 0.1.0 on macOS, except where a section names
-the next release (1.0.0-rc1, protocol 1.7).
+the next release (1.0.0-rc.1, protocol 1.7).
 
 ```text
 usage: nornctl [OPTIONS] COMMAND
@@ -35,7 +35,7 @@ not parse.
 | `entities create ID`                                  | create an entity                                 |
 | `signals [ENTITY]`                                    | list signals, of one entity or all               |
 | `compact STREAM`                                      | merge sealed segments, and wait                  |
-| `verify STREAM`                                       | read and check every chunk; exit 1 on damage, or (1.0.0-rc1) when it examined nothing |
+| `verify STREAM`                                       | read and check every chunk; exit 1 on damage, or (1.0.0-rc.1) when it examined nothing |
 | `retention get STREAM`                                | show the policy                                  |
 | `retention set STREAM forever\|Nd\|Nmo\|Nb`           | set the policy: time, months or bytes            |
 | `retention apply STREAM [--dry-run]`                  | run the policy now, or list what would go        |
@@ -99,14 +99,14 @@ agreed_protocol: 1.6
 Unlike `status`, this negotiates, so an incompatible daemon fails here with its
 reason.
 
-From 1.0.0-rc1, `client_protocol` is 1.7, and so is `agreed_protocol` against a 1.0.0-rc1
-daemon; against a 0.1.0 daemon the agreed version is 1.6, the lower minor. A 1.0.0-rc1
+From 1.0.0-rc.1, `client_protocol` is 1.7, and so is `agreed_protocol` against a 1.0.0-rc.1
+daemon; against a 0.1.0 daemon the agreed version is 1.6, the lower minor. A 1.0.0-rc.1
 daemon with shared memory enabled adds `CAPABILITY_SHARED_MEMORY` to `status`'s
 capabilities.
 
 ## Connecting
 
-From 1.0.0-rc1, when `nornctl` cannot reach a daemon on a Unix socket, the error names
+From 1.0.0-rc.1, when `nornctl` cannot reach a daemon on a Unix socket, the error names
 the two usual causes: `cannot reach the daemon at ENDPOINT: ... (is the daemon
 running? It also refuses to start unless the socket's directory is mode 0700; its
 log says which)`.
@@ -128,7 +128,7 @@ entities/dev-01/signals/temperature VALUE_TYPE_DOUBLE streams/plant
 `--at T` sets the sample's `observe_time`, as `query` reads `T`; without it the sample is
 timed now. See [ingesting data](../guides/ingesting-data.md).
 
-`--shared-memory` (1.0.0-rc1, protocol 1.7) asks for the daemon's
+`--shared-memory` (1.0.0-rc.1, protocol 1.7) asks for the daemon's
 [shared-memory](shared-memory.md) plane. When a ring is granted, `append` prints
 `plane SHARED_MEMORY` before the acknowledgement lines; otherwise the sample goes by
 the socket and nothing extra is printed. The answers are the same either way, so the
@@ -248,8 +248,8 @@ nornctl import PATH [--format csv|parquet|arrow|mcap] [--ack LEVEL] [--batch N] 
 | `--from`, `--to`, `--select` | as `query` | everything |
 | `--ack` | `buffered`, `persisted` or `durable`, which each batch must reach | `durable` |
 | `--batch` | samples per batch, at most the daemon's `max_batch_samples` | that limit |
-| `--shared-memory` | (1.0.0-rc1) send batches through a shared-memory ring when the daemon grants one, the socket otherwise | the socket |
-| `--timing` | (1.0.0-rc1) also print the elapsed time and rate | off; on with `--shared-memory` |
+| `--shared-memory` | (1.0.0-rc.1) send batches through a shared-memory ring when the daemon grants one, the socket otherwise | the socket |
+| `--timing` | (1.0.0-rc.1) also print the elapsed time and rate | off; on with `--shared-memory` |
 
 `export` prints `exported samples=N signals=N bytes=N to PATH`, and removes its file
 on failure. `import` prints `imported read= sent= present= duplicate= created= batches=
@@ -267,7 +267,7 @@ sends nothing. With `--timing` or `--shared-memory`, a second line follows:
 bounds each poll, not the operation. Output:
 [operations](../guides/operations.md#compaction).
 
-In 1.0.0-rc1:
+In 1.0.0-rc.1:
 
 - `verify` prints `STREAM segments=N chunks=N samples=N bytes=N damaged_chunks=N
   damaged_samples=N buffered=N`. `segments` counts sealed segments; `chunks` and

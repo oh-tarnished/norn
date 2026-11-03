@@ -62,7 +62,7 @@ max_value_bytes = 1024
 [storage]
 max_segment_bytes = 268435456
 max_segment_age_ms = 3600000
-max_segment_open_time_ms = 3600000  # 1.0.0-rc1: wall-clock time a segment may stay open
+max_segment_open_time_ms = 3600000  # 1.0.0-rc.1: wall-clock time a segment may stay open
 group_commit_interval_ms = 5   # the longest a DURABLE batch waits to share an fsync
 max_chunk_age_ms = 60000       # the longest a sample waits to be encoded into a chunk
 durable_acks = true            # false: no fsync, and DURABLE is refused, not weakened
@@ -80,7 +80,7 @@ holds at most 1,000 requests. That bound is part of protocol 1.6, documented in 
 schema, and not a key: a client must be able to rely on it whatever the daemon's file
 says.
 
-**Sealing** (1.0.0-rc1). A segment seals when it reaches `max_segment_bytes`, when its
+**Sealing** (1.0.0-rc.1). A segment seals when it reaches `max_segment_bytes`, when its
 samples span `max_segment_age_ms` of *sample* time, when it has been open
 `max_segment_open_time_ms` of the daemon's *wall-clock* time however little it holds,
 and on a clean stop. The open-time limit is what lets a quiet or short-lived stream
@@ -128,7 +128,7 @@ transport serves stdio. A non-loopback `http:` address is refused. The
 
 ## Shared memory
 
-New in 1.0.0-rc1 (protocol 1.7), and off by default. When enabled, a client that asks for
+New in 1.0.0-rc.1 (protocol 1.7), and off by default. When enabled, a client that asks for
 it sends `AppendSamples` batches through a bounded iceoryx2 ring instead of the socket;
 the socket still carries every response, and any call without a ring stays on the
 socket.

@@ -87,7 +87,7 @@ For a Homebrew daemon configured with gRPC on
 `unix:/opt/homebrew/var/run/norn/mcp.sock`, use two separate Postman request types.
 
 For gRPC, choose **New → gRPC**, set the address to
-`unix:///opt/homebrew/var/run/norn/norn.sock`, and leave TLS off. From `1.0.0-rc1`,
+`unix:///opt/homebrew/var/run/norn/norn.sock`, and leave TLS off. From `1.0.0-rc.1`,
 reflection on Unix sockets and named pipes discovers the schema automatically,
 including imports. Both reflection v1 and v1alpha are served. The installed
 `0.1.0` daemon still needs imported protobuf definitions.

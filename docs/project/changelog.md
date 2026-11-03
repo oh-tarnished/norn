@@ -5,10 +5,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Changelog
 
-## Unreleased (1.0.0-rc1)
+## Unreleased (1.0.0-rc.1)
 
-Release title: `norn v1.0.0-rc1`. All workspace crates, including `norn-protocol`,
-are versioned `1.0.0-rc1`; wire negotiation remains at protocol 1.7. Not yet released.
+Release title: `norn v1.0.0-rc.1`. All workspace crates, including `norn-protocol`,
+are versioned `1.0.0-rc.1`; wire negotiation remains at protocol 1.7. Not yet released.
 
 ### Shared memory
 

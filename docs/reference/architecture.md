@@ -73,7 +73,7 @@ metadata) must reach none of it, not even rustls; `xtask/tests/runtime_gates.rs`
 proves each rule bites and checks this repository. Norn configures no TLS, and
 building `norn` needs no C compiler.
 
-A second exception arrives with shared memory in 1.0.0-rc1, `xtask/src/iceoryx2.rs`: two of
+A second exception arrives with shared memory in 1.0.0-rc.1, `xtask/src/iceoryx2.rs`: two of
 iceoryx2's platform crates name `cc` and `bindgen` as build-dependencies that run only
 on a QNX build host. Exactly those helpers, of exactly those crates, are excused beneath
 `norn-shared-memory`, `norn-server` and `norn-cli`, and any other crate that reaches

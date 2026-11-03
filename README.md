@@ -21,7 +21,7 @@ It stores the history of sensor data and device telemetry, answers questions abo
 <p>
 <a href="#installation"><img alt="Platforms: Linux, macOS, Windows" src="https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey?style=flat-square"></a>
 <a href="https://grpc.io"><img alt="gRPC: always on" src="https://img.shields.io/badge/gRPC-always%20on-244C5A?style=flat-square"></a>
-<a href="protobuf"><img alt="Protocol crate 1.0.0-rc1" src="https://img.shields.io/badge/protocol-1.0.0--rc1-244C5A?style=flat-square"></a>
+<a href="protobuf"><img alt="Protocol crate 1.0.0-rc.1" src="https://img.shields.io/badge/protocol-1.0.0--rc.1-244C5A?style=flat-square"></a>
 <a href="https://modelcontextprotocol.io"><img alt="MCP: optional, built in" src="https://img.shields.io/badge/MCP-optional%2C%20built%20in-244C5A?style=flat-square&logo=modelcontextprotocol&logoColor=white"></a>
 <a href="docs/reference/architecture.md#no-c"><img alt="No C, no TLS" src="https://img.shields.io/badge/build-no%20C%2C%20no%20TLS-50ABF1?style=flat-square"></a>
 </p>
@@ -43,8 +43,8 @@ checksummed chunks, indexes them by time, and answers range queries, aggregates,
 state of every signal at an instant, and deterministic replays. It knows entities,
 signals and streams, and never what they mean.
 
-**Next release: `norn v1.0.0-rc1`.** The daemon, `nornctl`, interchange adapters,
-MCP server and protocol crate are versioned together at `1.0.0-rc1`. This release
+**Next release: `norn v1.0.0-rc.1`.** The daemon, `nornctl`, interchange adapters,
+MCP server and protocol crate are versioned together at `1.0.0-rc.1`. This release
 candidate adds an opt-in [shared-memory](#shared-memory) data plane and the
 stability work under [Operations](#operations). The wire protocol negotiates
 version 1.7. Homebrew installs the complete program; start the background service
@@ -101,7 +101,7 @@ release candidate is published.
 
 **Project**
 
-- [Changelog](docs/project/changelog.md): upcoming v1.0.0-rc1 and the v0.1.0 release
+- [Changelog](docs/project/changelog.md): upcoming v1.0.0-rc.1 and the v0.1.0 release
 - [Performance](docs/performance.md): every measurement and how it was made
 - [Specification](docs/project/spec.md): the binding brief
 - [Plan](docs/project/plan.md): how the work is split, and its status
@@ -153,8 +153,8 @@ any domain.
 - **`nornctl` command-line client**: Done. No `inspect`, `stats` or `benchmark` yet
 - **MCP for AI agents, served by the daemon**: Done. `norn --mcp`, 17 read-only tools; off by default. See [MCP](#mcp)
 - **Homebrew package and background service**: Done. `brew services start norn`
-- **Shared-memory data plane**: Done, in 1.0.0-rc1 (protocol 1.7). Opt-in, Unix sockets only, transparent socket fallback; see [Shared memory](#shared-memory)
-- **Stability**: Done, in 1.0.0-rc1. Verify reads the open segment, sealing by open time, a shutdown that no open call delays, macOS durability documented
+- **Shared-memory data plane**: Done, in 1.0.0-rc.1 (protocol 1.7). Opt-in, Unix sockets only, transparent socket fallback; see [Shared memory](#shared-memory)
+- **Stability**: Done, in 1.0.0-rc.1. Verify reads the open segment, sealing by open time, a shutdown that no open call delays, macOS durability documented
 - **Pattern detection, GGML-accelerated**: Planned. Opt-in, outside the engine; scope still to be decided
 - **Fuzzing, security review**: Planned. Stage 16
 - **Further device-protocol adapters**: Planned. As clients of the public API, outside this repository
@@ -218,7 +218,7 @@ only when all have stopped. Details: [architecture](docs/reference/architecture.
 
 - **gRPC**: Always on. It cannot be disabled. It is the only API. `nornctl`, the adapters and every client use it; nothing reaches storage another way.
 - **MCP**: Optional and off by default. Served inside `norn` with `norn --mcp TRANSPORT` or `[mcp] enabled = true`, over stdio, a local socket or pipe, or loopback HTTP. No separate MCP executable is needed.
-- **Shared-memory data plane**: Optional and off by default, from 1.0.0-rc1 (protocol 1.7). Unix sockets only; the socket stays the control plane. See [Shared memory](#shared-memory).
+- **Shared-memory data plane**: Optional and off by default, from 1.0.0-rc.1 (protocol 1.7). Unix sockets only; the socket stays the control plane. See [Shared memory](#shared-memory).
 - **InfluxDB**: Not used. Norn has no InfluxDB dependency.
 
 ### The write path
@@ -358,7 +358,7 @@ and reported per chunk. File formats: [storage](docs/reference/storage.md).
 
 ## Shared memory
 
-**Built, landing in Norn 1.0.0-rc1 with protocol 1.7.** Not in v0.1.0.
+**Built, landing in Norn 1.0.0-rc.1 with protocol 1.7.** Not in v0.1.0.
 
 An opt-in data plane for bulk sensor data: `AppendSamples` batches travel from a
 client on the same machine through a bounded [iceoryx2](https://github.com/eclipse-iceoryx/iceoryx2)
@@ -723,9 +723,9 @@ cannot leave a limit at its default. The settings that matter most:
 - `[storage] durable_acks`: Default true. False: no fsync, and `DURABLE` is refused, not weakened
 - `[maintenance] compaction_interval_ms`: Default 300000. How often compaction looks for work
 - `[maintenance] retention_interval_ms`: Default 3600000. How often retention policies are applied
-- `[storage] max_segment_open_time_ms`: Default 3600000. From 1.0.0-rc1, the wall-clock time a segment may stay open before it is sealed
+- `[storage] max_segment_open_time_ms`: Default 3600000. From 1.0.0-rc.1, the wall-clock time a segment may stay open before it is sealed
 - `[mcp] enabled`: Default false. MCP stays off unless enabled here or with `--mcp`
-- `[shared_memory] enabled`: Default false. From 1.0.0-rc1, offer shared-memory rings on a Unix socket
+- `[shared_memory] enabled`: Default false. From 1.0.0-rc.1, offer shared-memory rings on a Unix socket
 - `[log] format`: Default `text`. `text`, or `json` for one object per line
 
 These defaults were picked, not measured; stage 15 revisits them. Every key, with a
@@ -753,7 +753,7 @@ batch 1 reached ACKNOWLEDGEMENT_LEVEL_BUFFERED
 batch 1 reached ACKNOWLEDGEMENT_LEVEL_DURABLE
 ```
 
-Any gRPC tool that speaks HTTP/2 over a Unix socket works too. From `1.0.0-rc1`,
+Any gRPC tool that speaks HTTP/2 over a Unix socket works too. From `1.0.0-rc.1`,
 the daemon offers v1 and v1alpha server reflection on Unix sockets and named pipes,
 so Postman can discover the methods without importing schemas. Reflection stays off
 on TCP. For older daemons, give the tool a descriptor set built by `buf`:
@@ -803,7 +803,7 @@ with the data directory and damage handling.
   vouches for its sealed segments, so a start reads no chunk. After a crash, whatever
   the marker does not vouch for is read and checked, and the journal is replayed.
 - **Verify.** `nornctl verify STREAM` reads every chunk of every sealed segment,
-  changes nothing, and exits 1 on damage. From 1.0.0-rc1 it also reads the chunks already
+  changes nothing, and exits 1 on damage. From 1.0.0-rc.1 it also reads the chunks already
   fsynced to the open segment, prints `buffered=` for samples still in memory, and
   exits 1 when it examined nothing while the stream holds samples. A start does not look for bit rot in
   segments the marker vouches for, so schedule `verify`. Damage is reported and never
@@ -816,11 +816,11 @@ with the data directory and damage handling.
 - **Segment sealing.** A segment is append-only while open and immutable once sealed;
   only sealed segments are compacted, verified and vouched for by the `CLEAN` marker.
   A segment seals when it reaches `max_segment_bytes`, spans `max_segment_age_ms` of
-  sample time, or on a clean stop; from 1.0.0-rc1 also after `max_segment_open_time_ms`
+  sample time, or on a clean stop; from 1.0.0-rc.1 also after `max_segment_open_time_ms`
   of wall-clock time open (default one hour), so a quiet stream is sealed without a
   stop. `nornctl compact` says so when nothing sealed is waiting.
 - **Stopping.** SIGINT or SIGTERM drains in-flight calls for up to `drain_timeout_ms`.
-  From 1.0.0-rc1, an idle connection or an `AppendSamples` call held open between batches
+  From 1.0.0-rc.1, an idle connection or an `AppendSamples` call held open between batches
   no longer delays the stop: the call answers what it admitted, ends with
   `UNAVAILABLE` and `ERROR_REASON_SHUTTING_DOWN`, and the client reconnects.
 - **Durability on macOS.** `fsync` is `F_FULLFSYNC`, which also flushes the drive's
@@ -831,7 +831,7 @@ with the data directory and damage handling.
   first; only whole segments go, the newest always stays, and every removal is logged
   at `WARN`.
 
-**In 1.0.0-rc1.** Sealing by open time, `verify` covering the open segment, the shutdown
+**In 1.0.0-rc.1.** Sealing by open time, `verify` covering the open segment, the shutdown
 drain and the macOS durability notes above are built and tested, and land in the next
 release. In 0.1.0, a clean stop seals the open segment, after which `verify` reads it.
 
@@ -876,7 +876,7 @@ Caveats:
 
 ## Roadmap
 
-**v0.1.0 is released.** **1.0.0-rc1 (protocol 1.7) is built:** stability (verify of the
+**v0.1.0 is released.** **1.0.0-rc.1 (protocol 1.7) is built:** stability (verify of the
 open segment, sealing by open time, the shutdown drain, macOS durability) and the
 opt-in [shared-memory](#shared-memory) data plane are done and tested, and ship in that
 release. What comes after, in order:
@@ -899,17 +899,17 @@ Tests that need Unix signals or Unix sockets run on Linux and macOS only;
 | Stage | Subject       | Scope                                                       | State       | Today                                                                                                                                                                      |
 | ----- | ------------- | ----------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | Foundation    | workspace, docs, core types, errors, config, gates          | done        |                                                                                                                                                                            |
-| 2     | Protocol      | Protobuf, gRPC, buf, AIP lint, versioning                   | done        | 1.6, with `BatchCreateEntities` and `BatchCreateSignals`; 1.7 in 1.0.0-rc1 adds `SharedMemoryPlane`; `ExportStream` unimplemented by decision: export is client-side           |
+| 2     | Protocol      | Protobuf, gRPC, buf, AIP lint, versioning                   | done        | 1.6, with `BatchCreateEntities` and `BatchCreateSignals`; 1.7 in 1.0.0-rc.1 adds `SharedMemoryPlane`; `ExportStream` unimplemented by decision: export is client-side           |
 | 3     | IPC           | Unix sockets, named pipes, transport, framing               | done        | named pipes run in CI on `windows-latest`: `nornctl` against a real daemon, and the owner-only DACL                                                                        |
-| 4     | Basic daemon  | lifecycle, config, health                                   | done        | Homebrew service; in 1.0.0-rc1 an open append call or idle connection no longer delays shutdown                                                                                |
-| 5     | Storage       | format, chunks, segments, checksums, recovery               | done        | compaction, retention, `verify` and a clean-start marker run in the daemon; 1.0.0-rc1 adds sealing by open time and verifying the open segment                                 |
+| 4     | Basic daemon  | lifecycle, config, health                                   | done        | Homebrew service; in 1.0.0-rc.1 an open append call or idle connection no longer delays shutdown                                                                                |
+| 5     | Storage       | format, chunks, segments, checksums, recovery               | done        | compaction, retention, `verify` and a clean-start marker run in the daemon; 1.0.0-rc.1 adds sealing by open time and verifying the open segment                                 |
 | 6     | Encoding      | timestamp, integer, float, boolean, enum, zstd              | done        |                                                                                                                                                                            |
 | 7     | Index         | sparse temporal index, rebuild                              | done        | a per-signal summary answers for silent signals                                                                                                                            |
 | 8     | Write path    | append, batch, backpressure, durability                     | done        | live subscribers fed from the commit thread, never waited for                                                                                                              |
 | 9     | Query         | range, latest, aggregates                                   | done        | sees buffered samples; measured at 200 signals, not 16,000                                                                                                                 |
 | 10    | State         | checkpoints, `StateAt`                                      | done        | `StateAt` from the index; checkpoints measured and deferred                                                                                                                |
 | 11    | Replay        | virtual clock, pause, seek, speed                           | done        | sessions in memory, ended by a restart                                                                                                                                     |
-| 12    | Shared memory | ring buffer, fallback                                       | done        | in 1.0.0-rc1, protocol 1.7: `norn-shared-memory` over iceoryx2, opt-in, Unix sockets only, transparent socket fallback                                                          |
+| 12    | Shared memory | ring buffer, fallback                                       | done        | in 1.0.0-rc.1, protocol 1.7: `norn-shared-memory` over iceoryx2, opt-in, Unix sockets only, transparent socket fallback                                                          |
 | 13    | Adapters      | device protocols, MCAP, Parquet, others                     | done        | CSV, Parquet, Arrow IPC and MCAP, export and import through `nornctl`; device-protocol adapters are separate programs over IPC                                             |
 | 14    | MCP           | MCP server and the rest of `nornctl`                        | done        | MCP inside `norn` (`norn --mcp`): 17 read-only tools, stdio, a socket, a pipe or loopback-only HTTP; `nornctl` adds export, import, compact, verify, retention; no `inspect`, `stats` or `benchmark` yet |
 | 15    | Optimisation  | measured defaults, the full benchmark matrix                | planned     | write path, storage, index, query and IPC measured once                                                                                                                    |
@@ -955,7 +955,7 @@ a commercial licence.
 Contributions follow the [Contributor Licence Agreement](.github/CLA.md);
 sign off each commit with `git commit -s`. Third-party dependencies retain
 their own licences; `deny.toml` keeps those dependencies permissively licensed. From
-1.0.0-rc1 that list includes 0BSD, for iceoryx2's `enum-iterator` dependency: zero-clause
+1.0.0-rc.1 that list includes 0BSD, for iceoryx2's `enum-iterator` dependency: zero-clause
 BSD keeps no conditions, so it is compatible with both of Norn's licences.
 
 SPDX headers name Srikanth K on Norn-authored material, including the generated
