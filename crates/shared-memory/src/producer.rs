@@ -117,7 +117,7 @@ impl DataPlane for Producer {
         self.limit
     }
 
-    /// Waits while the ring is full, [`FULL_WAIT`] at a time; cancel the future
+    /// Waits while the ring is full, 50 microseconds at a time; cancel the future
     /// to stop waiting. Every other outcome of [`Producer::try_send`] returns.
     fn send<'a>(&'a self, frame: &'a [u8]) -> SendFuture<'a> {
         Box::pin(async move {
