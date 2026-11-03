@@ -16,6 +16,7 @@ use norn_runtime::ingest::{Ingest, IngestRecovery};
 use norn_runtime::maintenance::Maintenance;
 use norn_runtime::sessions::Replays;
 use norn_runtime::{Reservation, Runtime, RuntimeError, Subsystem};
+use tokio_util::task::TaskTracker;
 use tonic_health::ServingStatus;
 use tonic_health::server::HealthReporter;
 use tpp_grpc::HybridServer;
@@ -42,6 +43,9 @@ pub(super) struct Built {
     pub(super) reporter: HealthReporter,
     pub(super) replays: Arc<Replays>,
     pub(super) maintenance: Arc<Maintenance>,
+    /// The tasks calls spawn: shutdown closes it and waits, before ingestion
+    /// closes, so no call outlives the database it holds.
+    pub(super) calls: TaskTracker,
 }
 
 /// The recovered database.
@@ -124,7 +128,8 @@ pub(super) async fn build_router(
     let reading = ingest
         .query_engine(reads, engine)
         .ok_or(DaemonError::IndexMissing)?;
-    let queries = Queries::new(Arc::clone(&registry), Arc::clone(&reading));
+    let calls = TaskTracker::new();
+    let queries = Queries::new(Arc::clone(&registry), Arc::clone(&reading)).tracked(calls.clone());
     let clock = Arc::clone(runtime.clock());
     let states = States::new(Arc::clone(&registry), Arc::clone(&reading), clock);
     let replay_budget = runtime.budgets().get(Subsystem::Replay).clone();
@@ -141,8 +146,11 @@ pub(super) async fn build_router(
         Arc::clone(&ingest),
         Arc::clone(&replays),
     );
-    let events = Subscriptions::new(shared.0, shared.1, shared.2, clock, limit);
-    let telemetry = Telemetry::new(registry, ingest, engine).events(Arc::new(events));
+    let events =
+        Subscriptions::new(shared.0, shared.1, shared.2, clock, limit).tracked(calls.clone());
+    let telemetry = Telemetry::new(registry, ingest, engine)
+        .events(Arc::new(events))
+        .tracked(calls.clone());
     let ipc = runtime.budgets().get(Subsystem::Ipc).clone();
     let windows = ipc.try_reserve(ipc.capacity() / 2).map_err(|e| {
         DaemonError::Runtime(RuntimeError::TaskFailed {
@@ -175,5 +183,6 @@ pub(super) async fn build_router(
         reporter,
         replays,
         maintenance,
+        calls,
     })
 }

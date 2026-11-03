@@ -18,6 +18,7 @@ use norn_runtime::ingest::Ingest;
 use norn_runtime::replay::MAX_BATCH_EVENTS;
 use norn_runtime::sessions::Replays;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore, mpsc};
+use tokio_util::task::TaskTracker;
 use tonic::codegen::tokio_stream::Stream;
 use tonic::{Code, Status};
 
@@ -91,6 +92,7 @@ pub struct Subscriptions {
     pub(crate) replays: Arc<Replays>,
     pub(crate) clock: Arc<dyn Clock>,
     permits: Arc<Semaphore>,
+    calls: TaskTracker,
 }
 
 impl Subscriptions {
@@ -110,7 +112,15 @@ impl Subscriptions {
             replays,
             clock,
             permits,
+            calls: TaskTracker::new(),
         }
+    }
+
+    /// Runs each subscription's task on `calls`, which shutdown waits for.
+    #[must_use]
+    pub fn tracked(mut self, calls: TaskTracker) -> Self {
+        self.calls = calls;
+        self
     }
 
     fn permit(&self) -> Result<OwnedSemaphorePermit, Status> {
@@ -133,7 +143,7 @@ impl Subscriptions {
                     return Err(bad_field("replay_session", "must be empty for LIVE"));
                 }
                 let task = live::start(self, &r.parent, &r.filter, self.permit()?).await?;
-                tokio::spawn(task.run(out));
+                self.calls.spawn(task.run(out));
             }
             Ok(SubscriptionMode::Replay) => {
                 if !r.parent.is_empty() || !r.filter.is_empty() {
@@ -144,7 +154,7 @@ impl Subscriptions {
                 }
                 let permit = self.permit()?;
                 let task = replayed::start(self, &r.replay_session, permit).await?;
-                tokio::spawn(task.run(out));
+                self.calls.spawn(task.run(out));
             }
             _ => return Err(bad_field("mode", "is required")),
         }

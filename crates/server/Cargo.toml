@@ -30,7 +30,8 @@ http-body = { workspace = true }
 bytes = { workspace = true }
 # The tokio runtime the daemon runs on, and SIGINT/SIGTERM (Ctrl-C on Windows).
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "signal", "time"] }
-tokio-util = { workspace = true }
+# TaskTracker (`rt`): the tasks calls spawn, which shutdown waits for.
+tokio-util = { workspace = true, features = ["rt"] }
 # The UNIMPLEMENTED stub services are plain tower services over http types.
 tower = { workspace = true }
 http = { workspace = true }

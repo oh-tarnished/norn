@@ -18,6 +18,7 @@ use norn_runtime::sessions::Replays;
 use norn_runtime::{HealthWatch, Reservation, RunReport, Runtime};
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
+use tokio_util::task::TaskTracker;
 use tonic_health::server::HealthReporter;
 
 use self::router::{build_router, open_database};
@@ -54,6 +55,8 @@ pub struct Daemon {
     recovery: IngestRecovery,
     replays: Arc<Replays>,
     maintenance: Arc<Maintenance>,
+    /// The tasks calls spawn, waited for before ingestion closes.
+    calls: TaskTracker,
     /// The half of `ipc_bytes` promised to flow-control windows.
     _windows: Reservation,
 }
@@ -107,6 +110,7 @@ impl Daemon {
             recovery,
             replays: built.replays,
             maintenance: built.maintenance,
+            calls: built.calls,
             _windows: built.windows,
         })
     }
@@ -154,6 +158,7 @@ impl Daemon {
             recovery: _,
             replays,
             maintenance,
+            calls,
             _windows,
         } = self;
         // Nothing has been answered until now; every task below is added first.
@@ -182,15 +187,7 @@ impl Daemon {
         runtime.add_task("ipc", move |token| async move {
             let _ = opening.send(true);
             token.cancelled().await;
-            let served = server.stop().await;
-            // Files stop moving before the clean markers list them.
-            quiet.cancelled().await;
-            // After the last call: everything admitted is committed, whether
-            // serving ended cleanly or not.
-            tokio::task::spawn_blocking(move || ingest.close()).await?;
-            served?;
-            tracing::info!("ipc drained");
-            Ok(())
+            tasks::stop_serving(server, calls, quiet, ingest).await
         })?;
         Ok(runtime.run(cancel).await?)
     }

@@ -23,6 +23,7 @@ use norn_protocol::query::{
 };
 use norn_runtime::query::{Charge, Engine, Query, Result as QueryResult};
 use tokio::sync::mpsc;
+use tokio_util::task::TaskTracker;
 use tonic::codegen::tokio_stream::Stream;
 use tonic::{Request, Response, Status};
 
@@ -57,13 +58,26 @@ impl Stream for Pages {
 pub struct Queries {
     registry: Arc<Registry>,
     engine: Arc<Engine>,
+    calls: TaskTracker,
 }
 
 impl Queries {
     /// A service selecting signals from `registry` and reading through `engine`.
     #[must_use]
     pub fn new(registry: Arc<Registry>, engine: Arc<Engine>) -> Self {
-        Self { registry, engine }
+        let calls = TaskTracker::new();
+        Self {
+            registry,
+            engine,
+            calls,
+        }
+    }
+
+    /// Runs each call's task on `calls`, which shutdown waits for.
+    #[must_use]
+    pub fn tracked(mut self, calls: TaskTracker) -> Self {
+        self.calls = calls;
+        self
     }
 
     /// Runs a unary read on the blocking pool: it lists signals, waits on the
@@ -130,7 +144,7 @@ impl QueryService for Queries {
         .await
         .map_err(|_| Status::internal("a query panicked"))??;
         let (out, pages) = mpsc::channel(QUEUED_PAGES);
-        tokio::spawn(pump(query, print, out));
+        self.calls.spawn(pump(query, print, out));
         Ok(Response::new(Pages(pages)))
     }
 

@@ -15,6 +15,7 @@ use norn_protocol::telemetry::{
 };
 use norn_runtime::ingest::{Completion, Ingest};
 use tokio::sync::mpsc;
+use tokio_util::task::TaskTracker;
 use tonic::codegen::tokio_stream::Stream;
 use tonic::{Request, Response, Status, Streaming};
 
@@ -48,6 +49,8 @@ pub struct Telemetry {
     max_batch_samples: usize,
     max_pending: usize,
     events: Option<Arc<Subscriptions>>,
+    /// Where each call's task runs, so shutdown can wait for it.
+    calls: TaskTracker,
 }
 
 impl Telemetry {
@@ -61,7 +64,16 @@ impl Telemetry {
             max_batch_samples: limits.max_batch_samples,
             max_pending: limits.max_pending_batches,
             events: None,
+            calls: TaskTracker::new(),
         }
+    }
+
+    /// Runs each call's task on `calls`, which the daemon closes and waits
+    /// for before closing ingestion, so no admitted batch is left unanswered.
+    #[must_use]
+    pub fn tracked(mut self, calls: TaskTracker) -> Self {
+        self.calls = calls;
+        self
     }
 
     /// Serves `SubscribeEvents` from `events`; without it the method is
@@ -135,7 +147,7 @@ impl TelemetryService for Telemetry {
         let (out, responses) = mpsc::channel(capacity);
         let (waits_tx, waits) = mpsc::channel(self.max_pending.max(1));
         let reader = self.clone().read(input, held, out.clone(), waits_tx);
-        tokio::spawn(async move {
+        self.calls.spawn(async move {
             tokio::join!(reader, forward(waits, out));
         });
         Ok(Response::new(Responses(responses)))
