@@ -8,7 +8,7 @@
 //! is the agent services `[mcp]` names. Every call, from a socket or from MCP
 //! through the loopback, passes the opening gate, the version gate and metered
 //! decoding, as layers around every service. Health is the daemon's own, which goes
-//! `NOT_SERVING` for the drain; reflection stays off (`Production`).
+//! `NOT_SERVING` for the drain; reflection serves owner-only sockets and pipes.
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -113,7 +113,7 @@ pub(super) fn build<H: Health>(
     s: Registered<H>,
     meter: MeterLayer,
     window: u32,
-) -> HybridServer {
+) -> Result<HybridServer, DaemonError> {
     let dial = Dial::new();
     let mcp = transport::services(config.mcp_settings(), dial.clone(), &wiring.ended);
     let drain = config.drain();
@@ -148,8 +148,10 @@ pub(super) fn build<H: Health>(
             dial.publish(loopback);
             NoRest
         });
-    mcp.into_iter()
-        .fold(server, HybridServer::with_agent_service_dyn)
+    let server = mcp
+        .into_iter()
+        .fold(server, HybridServer::with_agent_service_dyn);
+    super::reflection::register(server, &config.endpoint())
 }
 
 /// A started server. Dropped unstopped, it stops itself on a task, so a bound daemon

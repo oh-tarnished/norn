@@ -753,8 +753,10 @@ batch 1 reached ACKNOWLEDGEMENT_LEVEL_BUFFERED
 batch 1 reached ACKNOWLEDGEMENT_LEVEL_DURABLE
 ```
 
-Any gRPC tool that speaks HTTP/2 over a Unix socket works too. The daemon offers no
-server reflection, so give the tool a descriptor set built by `buf`:
+Any gRPC tool that speaks HTTP/2 over a Unix socket works too. From `1.0.0-rc1`,
+the daemon offers v1 and v1alpha server reflection on Unix sockets and named pipes,
+so Postman can discover the methods without importing schemas. Reflection stays off
+on TCP. For older daemons, give the tool a descriptor set built by `buf`:
 
 ```console
 $ buf build -o norn.binpb

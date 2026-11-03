@@ -18,6 +18,8 @@ pub enum DaemonError {
     Ipc(IpcError),
     /// The server would not start or did not stop cleanly.
     Server(tpp_grpc::Error),
+    /// The committed protocol descriptors could not form a reflection service.
+    Reflection(tonic_reflection::server::Error),
     /// The runtime refused the configuration, or a task failed.
     Runtime(RuntimeError),
     /// The registry could not be opened.
@@ -35,6 +37,7 @@ impl fmt::Display for DaemonError {
         match self {
             Self::Ipc(e) => write!(f, "{e}"),
             Self::Server(e) => write!(f, "{e}"),
+            Self::Reflection(e) => write!(f, "cannot build gRPC reflection: {e}"),
             Self::Runtime(e) => write!(f, "{e}"),
             Self::Metadata(e) => write!(f, "{e}"),
             Self::Storage(e) => write!(f, "{e}"),
@@ -49,6 +52,7 @@ impl std::error::Error for DaemonError {
         match self {
             Self::Ipc(e) => Some(e),
             Self::Server(e) => Some(e),
+            Self::Reflection(e) => Some(e),
             Self::Runtime(e) => Some(e),
             Self::Metadata(e) => Some(e),
             Self::Storage(e) => Some(e),

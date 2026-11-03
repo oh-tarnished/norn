@@ -26,6 +26,7 @@ norn-shared-memory = { path = "../shared-memory" }
 # Serving: generated service servers, the router, and Status.
 tonic = { workspace = true, features = ["codegen", "router", "transport"] }
 tonic-health = { workspace = true }
+tonic-reflection = { workspace = true, features = ["server"] }
 # google.protobuf.Timestamp and Duration in the Server resource.
 prost-types = { workspace = true }
 # Reading the google.rpc.Status a tonic error carries into a SampleError.

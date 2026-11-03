@@ -55,6 +55,9 @@ tonic-types = { version = "0.14", default-features = false }
 # The standard grpc.health.v1 service: docs/reference/protocol.md makes health that, not a
 # Norn method.
 tonic-health = { version = "0.14", default-features = false }
+# Standard schema discovery over owner-only IPC, including v1alpha for Postman.
+# Already in runtime-rs's graph; adds no new transitive dependency.
+tonic-reflection = { version = "0.14", default-features = false }
 
 # --- Async runtime and IPC (norn-transport, norn-ipc, the daemon); docs/reference/ipc.md.
 # The runtime tonic requires; also Unix sockets, named pipes and signals.

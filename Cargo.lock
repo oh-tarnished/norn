@@ -1864,6 +1864,7 @@ dependencies = [
  "toml 1.1.8+spec-1.1.0",
  "tonic",
  "tonic-health",
+ "tonic-reflection",
  "tower",
  "tpp-agents",
  "tpp-grpc",

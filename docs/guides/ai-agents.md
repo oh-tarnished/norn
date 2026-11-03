@@ -80,6 +80,23 @@ With Claude Code, `claude mcp add norn -- /path/to/norn --mcp stdio` does the sa
 client that speaks streamable HTTP connects to `http://127.0.0.1:8090/mcp` of a daemon
 started with `--mcp http:127.0.0.1:8090`.
 
+## Postman with Unix sockets
+
+For a Homebrew daemon configured with gRPC on
+`unix:/opt/homebrew/var/run/norn/norn.sock` and MCP on
+`unix:/opt/homebrew/var/run/norn/mcp.sock`, use two separate Postman request types.
+
+For gRPC, choose **New → gRPC**, set the address to
+`unix:///opt/homebrew/var/run/norn/norn.sock`, and leave TLS off. From `1.0.0-rc1`,
+reflection on Unix sockets and named pipes discovers the schema automatically,
+including imports. Both reflection v1 and v1alpha are served. The installed
+`0.1.0` daemon still needs imported protobuf definitions.
+
+Postman's MCP client supports STDIO and HTTP but does not directly dial a Unix
+socket. Its STDIO command field expects an executable, not a `unix:///` address.
+Use Norn's native `--mcp stdio` transport when Postman launches a dedicated daemon,
+or configure an HTTP MCP transport for a daemon already running as a service.
+
 ## Using the tools
 
 The tools are the schema's read methods, named `<service>-<method>_v1`, and take the

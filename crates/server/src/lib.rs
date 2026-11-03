@@ -34,6 +34,7 @@
 //! - **May import**: `norn-core`, `norn-protocol`, `norn-transport`,
 //!   `norn-ipc`, `norn-shared-memory`, `norn-metadata`, `norn-runtime`;
 //!   third-party: `tpp-grpc`, `tpp-agents`, `rmcp`, `prost-reflect`, `async-trait`,
+//!   `tonic-reflection` for schema discovery on owner-only IPC,
 //!   `axum`, `serde_json`, `tonic`, `tonic-health`, `prost`, `prost-types`, `tokio`,
 //!   `tokio-util`, `tower`, `http`, `http-body`, `bytes`, `tracing`,
 //!   `tracing-subscriber`, `serde`, `toml`.

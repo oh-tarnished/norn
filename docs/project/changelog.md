@@ -44,6 +44,12 @@ are versioned `1.0.0-rc1`; wire negotiation remains at protocol 1.7. Not yet rel
 - Durability on macOS: `fsync` is `F_FULLFSYNC` through Rust's `std`, now documented
   with its cost.
 
+### Client discovery
+
+- Standard gRPC reflection v1 and v1alpha on Unix sockets and named pipes, so
+  Postman discovers methods and their imported schemas. Reflection remains off
+  on TCP.
+
 ### Known issue
 
 - A maximum-speed replay of a recent window may stop after `RUNNING`; under
