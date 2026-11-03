@@ -117,12 +117,6 @@ jobs:
     env:
       TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
-        if: env.TAP_TOKEN != ''
-        with:
-          repository: ${{ vars.HOMEBREW_TAP_REPOSITORY || 'shokki-engineering/homebrew-tap' }}
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          path: tap
       - uses: actions/download-artifact@v8
         if: env.TAP_TOKEN != ''
         with:
@@ -131,7 +125,12 @@ jobs:
         if: env.TAP_TOKEN != ''
         env:
           VERSION: ${{ needs.plan.outputs.version }}
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAP_REPOSITORY: ${{ vars.HOMEBREW_TAP_REPOSITORY || 'shokki-engineering/homebrew-tap' }}
         run: |
+          gh auth setup-git
+          git clone "https://github.com/${TAP_REPOSITORY}.git" tap
+          git -C tap branch -M main
           mkdir -p tap/Formula
           cp norn.rb tap/Formula/norn.rb
           cd tap
@@ -140,7 +139,7 @@ jobs:
           git add Formula/norn.rb
           if ! git diff --cached --quiet; then
             git commit -m "norn $VERSION"
-            git push
+            git push origin HEAD:main
           fi
       - name: Manual tap update
         if: env.TAP_TOKEN == ''
