@@ -29,11 +29,15 @@ or change the rule in `xtask` deliberately and say why in the commit.
 
 ## CI and releases
 
-Install Rust 1.99.1 (see `rust-toolchain.toml`), `just`, Buf 1.75.0, cargo-deny 0.20.2 and
-Go, then run `just api-lint-tools gen-tools` to install the pinned protobuf
+Install Rust 1.99.1 (see `rust-toolchain.toml`), `just`, protoc 36.2, Buf 1.75.0,
+cargo-deny 0.20.2 and Go, then run `just api-lint-tools gen-tools` to install the pinned protobuf
 tools. Make sure Go's bin directory is on `PATH`. `just ci` runs the local
 build, lint, tests, benchmark smoke runs, rustdoc, repository gates, dependency
 checks, protobuf lint, strict Google AIP lint and generated-code checks.
+Keep `protoc` on `PATH` (or set `PROTOC` to its executable): runtime-rs's
+`prost-protovalidate-types` dependency generates its validation types at build
+time, including during cross-compilation. CI and release builds install the
+host compiler before building Rust code.
 `just gen-check` compares a fresh generation in a temporary directory, so it
 also works before the first commit and does not rewrite the working tree.
 

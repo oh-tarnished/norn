@@ -57,6 +57,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: release-${{ matrix.target }}
+      # runtime-rs's validation types are generated at build time.
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "36.2"
+          repo-token: ${{ github.token }}
       - run: just release-build "$TARGET"
       - run: just release-package "$TARGET" "$VERSION"
       - uses: actions/upload-artifact@v7

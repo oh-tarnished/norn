@@ -8,8 +8,11 @@ commands on Linux and Windows too.
 
 ## Build
 
-Rust 1.99.1, pinned in `rust-toolchain.toml`. No `protoc`: the generated code is committed. No C compiler: runtime-rs is built
-without TLS, so nothing in the graph links C.
+Install Rust 1.99.1, pinned in `rust-toolchain.toml`, and `protoc` (CI uses 36.2).
+Keep `protoc` on `PATH`, or set `PROTOC` to its executable. Norn's generated code
+is committed, but runtime-rs's validation dependency generates its types during
+the build. No C compiler is needed: runtime-rs is built without TLS, so nothing
+in the graph links C.
 
 ```sh
 cargo build -p norn-server -p norn-cli

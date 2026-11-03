@@ -119,8 +119,8 @@ any domain.
   annotations.
 - **Time first.** Storage, indexing, queries, state at an instant and replay are all
   organised around time.
-- **Pure Rust.** No C in any shipped dependency graph (`xtask deps` enforces it), and
-  no `protoc` needed to build. `unsafe` is denied workspace-wide, with one audited
+- **Pure Rust.** No C in any shipped dependency graph (`xtask deps` enforces it).
+  `unsafe` is denied workspace-wide, with one audited
   exception: the owner-only security descriptor for Windows named pipes.
 - **Bounded.** Every memory budget and count limit is configured and enforced. When a
   budget runs out, clients are slowed or refused, and nothing is dropped silently.
@@ -342,7 +342,9 @@ and reported per chunk. File formats: [storage](docs/reference/storage.md).
 ### Prerequisites
 
 - **Rust**: 1.99.1. Pinned in `rust-toolchain.toml`; `rustup` installs it on first build
-- **C toolchain, `protoc`**: None. The generated protocol code is committed
+- **`protoc`**: 36.2 is used in CI. The daemon's runtime-rs validation dependency
+  compiles its own protobuf types during the build; Norn's generated code is committed
+- **C toolchain**: None
 - **Operating system**: Linux, macOS, Windows. Linux release builds need glibc 2.35 or newer
 - `just`: Any recent. Optional; runs the same commands CI runs
 

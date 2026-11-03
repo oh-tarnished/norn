@@ -48,7 +48,12 @@ jobs:
           components: rustfmt, clippy
       - uses: extractions/setup-just@v4
       - uses: Swatinem/rust-cache@v2
-      # Generated protocol sources are committed: no protoc is needed.
+      # Norn's generated sources are committed, but runtime-rs's
+      # prost-protovalidate-types dependency still needs the host protoc.
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "36.2"
+          repo-token: ${{ github.token }}
       - run: just build
       - run: just lint
       - run: just test
@@ -83,4 +88,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
+      # Build scripts run on the host, even when checking an ARM target.
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "36.2"
+          repo-token: ${{ github.token }}
       - run: just cross "${{ matrix.target }}"
