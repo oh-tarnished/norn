@@ -88,7 +88,7 @@ in one directory, then run:
 
 ```sh
 gh api repos/shokki-engineering/norn/releases/tags/v0.1.0 > dist/release.json
-python3 .github/release/formula.py 0.1.0 dist v0.1.0 > dist/norn.rb
+bash .github/release/formula.sh 0.1.0 dist v0.1.0 > dist/norn.rb
 ```
 
 The renderer refuses missing or duplicate platform archives, malformed

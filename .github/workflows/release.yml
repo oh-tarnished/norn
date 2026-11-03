@@ -99,7 +99,7 @@ jobs:
       - name: Generate the authenticated Homebrew formula
         run: |
           gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" > dist/release.json
-          python3 .github/release/formula.py "$VERSION" dist "$TAG" > dist/norn.rb
+          bash .github/release/formula.sh "$VERSION" dist "$TAG" > dist/norn.rb
           gh release upload "$TAG" dist/norn.rb
       - uses: actions/upload-artifact@v7
         with:
