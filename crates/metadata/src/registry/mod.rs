@@ -4,6 +4,8 @@ mod batch;
 mod batch_signals;
 mod commit;
 mod entity;
+#[cfg(test)]
+mod lock_tests;
 mod signal;
 mod signal_update;
 mod spec;
@@ -67,6 +69,15 @@ pub struct Registry {
     pub(crate) limits: Limits,
     metadata: MetadataLimits,
     _lock: File,
+}
+
+impl Drop for Registry {
+    fn drop(&mut self) {
+        // Closing our descriptor alone does not release a Unix flock if a
+        // concurrent process spawn temporarily inherited the open description.
+        // File drop still closes the handle if the explicit unlock fails.
+        let _ = self._lock.unlock();
+    }
 }
 
 impl Registry {

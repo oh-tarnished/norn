@@ -119,10 +119,6 @@ serving gRPC is just one of its tasks.
   cancelled. The IPC task releases the endpoint, sends GOAWAY, lets in-flight
   calls finish for the drain bound (default 10 s), and aborts what remains. The
   runtime gives its tasks that bound plus 5 s, then aborts any still running.
-  The daemon tracks gRPC service clones and request futures as well as spawned
-  streaming tasks. Shutdown waits for their resources to drop before closing
-  ingestion, so a completed stop releases the metadata lock for an immediate
-  restart, including after maintenance calls.
   Budgets close, health becomes `stopped`, the socket is gone, and `norn` exits
   0. A later signal is ignored: the bounds above, not a second Ctrl-C, end it.
 - **A task returning an error is fatal**: the others drain as above and `norn`

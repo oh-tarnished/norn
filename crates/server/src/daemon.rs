@@ -1,6 +1,5 @@
 //! The daemon: a runtime whose tasks serve gRPC over local IPC.
 
-mod drain;
 mod error;
 mod router;
 mod serve;

@@ -257,6 +257,10 @@ repairing recovery runs; a second one fails with `StorageError::Locked`. The OS
 drops the lock when the process dies, however it dies, so a crash needs no stale
 lock cleanup; the file's contents are only the holder's process ID, for a human.
 `<database>/metadata/LOCK` likewise keeps a second daemon off a whole database.
+Both owners explicitly unlock before closing their files on drop. On Unix, a
+concurrent process spawn can temporarily inherit the same open file description;
+closing only the owner's handle would leave the lock held until that inherited
+handle closes. Explicit unlock makes a completed stop immediately restartable.
 
 **The index.** The store thread tells `TemporalIndex` about chunks only after
 `writer.sync` has returned, so a locator never points past what the file holds:

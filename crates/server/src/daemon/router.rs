@@ -176,7 +176,7 @@ pub(super) async fn build_router(
         states: StateServiceServer::new(states),
         operations: OperationsServer::new(OperationsService::new(Arc::clone(&maintenance))),
     };
-    let server = super::serve::build(config, wiring, services, calls.clone(), meter, window);
+    let server = super::serve::build(config, wiring, services, meter, window);
     Ok(Built {
         server,
         windows,

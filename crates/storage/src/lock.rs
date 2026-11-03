@@ -6,6 +6,9 @@ use std::path::{Path, PathBuf};
 
 use crate::error::{Result, StorageError};
 
+#[cfg(test)]
+mod tests;
+
 /// The lock file's name inside a stream directory.
 pub const LOCK_FILE: &str = "LOCK";
 
@@ -30,6 +33,14 @@ pub const LOCK_FILE: &str = "LOCK";
 pub struct StreamLock {
     _file: File,
     path: PathBuf,
+}
+
+impl Drop for StreamLock {
+    fn drop(&mut self) {
+        // A child being spawned can briefly inherit the Unix open description.
+        // Unlock it explicitly instead of waiting for its last handle to close.
+        let _ = self._file.unlock();
+    }
 }
 
 impl StreamLock {
