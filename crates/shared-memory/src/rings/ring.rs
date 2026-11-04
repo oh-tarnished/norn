@@ -8,8 +8,8 @@ use iceoryx2::prelude::*;
 use iceoryx2::service::port_factory::publish_subscribe::PortFactory as Ports;
 use norn_ipc::SharedMemoryTicket;
 
-use crate::error::{PlaneError, setup};
-use crate::node::{BORROWED, Flavour, name, node};
+use super::node::{BORROWED, Flavour, name, node, setup};
+use crate::error::PlaneError;
 
 /// One bounded service with one subscriber, created by the daemon so the client
 /// cannot choose its limits: one publisher, one subscriber, two nodes, no

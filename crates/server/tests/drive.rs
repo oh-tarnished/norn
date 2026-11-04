@@ -62,10 +62,10 @@ fn samples(r: &DriveReplaySessionResponse) -> Vec<Sample> {
     each.collect()
 }
 
-/// `entities/ahu`'s samples in [from, to), in replay order.
+/// `entities/dev`'s samples in [from, to), in replay order.
 async fn by_time(c: &Channel, from: i64, to: i64) -> Vec<Sample> {
     let r = BrowseSamplesRequest {
-        parent: "entities/ahu".into(),
+        parent: "entities/dev".into(),
         interval: Some(Interval {
             start_time: at(from),
             end_time: at(to),

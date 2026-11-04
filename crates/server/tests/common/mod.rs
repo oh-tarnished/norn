@@ -77,7 +77,7 @@ impl Running {
     }
 }
 
-/// `streams/plant`, `entities/ahu`, and `entities/ahu/signals/{id}` for `kinds`.
+/// `streams/plant`, `entities/dev`, and `entities/dev/signals/{id}` for `kinds`.
 pub async fn seed(channel: &Channel, kinds: &[(&str, ValueType)]) {
     let stream = CreateStreamRequest {
         stream_id: "plant".into(),
@@ -89,7 +89,7 @@ pub async fn seed(channel: &Channel, kinds: &[(&str, ValueType)]) {
         .await
         .unwrap();
     let entity = CreateEntityRequest {
-        entity_id: "ahu".into(),
+        entity_id: "dev".into(),
         entity: Some(Entity::default()),
         validate_only: false,
     };
@@ -99,7 +99,7 @@ pub async fn seed(channel: &Channel, kinds: &[(&str, ValueType)]) {
         .unwrap();
     for (id, kind) in kinds {
         let signal = CreateSignalRequest {
-            parent: "entities/ahu".into(),
+            parent: "entities/dev".into(),
             signal_id: (*id).into(),
             signal: Some(Signal {
                 value_type: *kind as i32,
@@ -117,7 +117,7 @@ pub async fn seed(channel: &Channel, kinds: &[(&str, ValueType)]) {
 
 pub fn double(signal: &str, sequence: i64) -> Sample {
     Sample {
-        signal: format!("entities/ahu/signals/{signal}"),
+        signal: format!("entities/dev/signals/{signal}"),
         observe_time: Some(prost_types::Timestamp {
             seconds: 1_000 + sequence,
             nanos: 0,

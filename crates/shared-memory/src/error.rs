@@ -48,11 +48,3 @@ impl From<PlaneError> for std::io::Error {
         Self::other(e)
     }
 }
-
-/// Wraps an iceoryx2 error, which is `Debug` and has no stable text.
-pub(crate) fn setup<E: fmt::Debug>(step: &'static str) -> impl FnOnce(E) -> PlaneError {
-    move |e| PlaneError::Setup {
-        step,
-        detail: format!("{e:?}"),
-    }
-}

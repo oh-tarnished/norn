@@ -77,8 +77,8 @@ async fn step_seek_and_pace_move_the_clock_and_tell_subscribers() {
     assert_eq!(
         held,
         [
-            ("entities/ahu/signals/a".into(), 9),
-            ("entities/ahu/signals/b".into(), 9)
+            ("entities/dev/signals/a".into(), 9),
+            ("entities/dev/signals/b".into(), 9)
         ]
     );
 

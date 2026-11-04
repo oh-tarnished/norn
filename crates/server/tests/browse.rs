@@ -133,7 +133,7 @@ async fn defaults_are_bounded_and_a_long_value_is_cut_and_flagged() {
     assert_eq!(page.samples.len(), 100, "the default page");
     assert!(!page.next_page_token.is_empty());
     let r = BrowseSamplesRequest {
-        parent: "entities/ahu".into(),
+        parent: "entities/dev".into(),
         filter: "id = \"mode\"".into(),
         page_size: 1000,
         ..BrowseSamplesRequest::default()
@@ -172,6 +172,6 @@ async fn a_token_serves_only_its_own_request_and_bad_fields_are_refused() {
     r.page_size = -1;
     let refused = query(&d.channel).browse_samples(r).await.unwrap_err();
     assert_eq!(reason(&refused), "ERROR_REASON_INVALID_ARGUMENT");
-    assert!(TEMP.starts_with("entities/ahu"));
+    assert!(TEMP.starts_with("entities/dev"));
     d.stop().await;
 }

@@ -10,7 +10,7 @@ use norn_core::{
 
 #[test]
 fn a_name_must_be_non_empty_bounded_and_printable() {
-    assert_eq!(Name::new("AHU-01").unwrap().as_str(), "AHU-01");
+    assert_eq!(Name::new("DEV-01").unwrap().as_str(), "DEV-01");
     let reason = |s: &str| match Name::new(s) {
         Err(Error::InvalidName { reason }) => reason,
         other => panic!("expected a refusal, got {other:?}"),
@@ -63,20 +63,17 @@ fn metadata_refuses_entries_past_its_limits_and_stays_unchanged() {
 
 #[test]
 fn an_adapter_describes_its_domain_only_through_metadata() {
-    let entity = EntityDescriptor::new(EntityId::new(1), Name::new("AHU-01").unwrap());
+    let entity = EntityDescriptor::new(EntityId::new(1), Name::new("DEV-01").unwrap());
     let mut signal = SignalDescriptor::new(
         SignalId::new(7),
         entity.id,
-        Name::new("SupplyAirTemperature").unwrap(),
+        Name::new("Temperature").unwrap(),
         ValueKind::F64,
     );
-    signal.metadata.insert("protocol", "BACnet").unwrap();
-    signal
-        .metadata
-        .insert("object_type", "analogInput")
-        .unwrap();
+    signal.metadata.insert("source", "simulator").unwrap();
+    signal.metadata.insert("channel", "analog").unwrap();
     let keys: Vec<_> = signal.metadata.iter().map(|(k, _)| k).collect();
-    assert_eq!(keys, ["object_type", "protocol"], "iteration is ordered");
+    assert_eq!(keys, ["channel", "source"], "iteration is ordered");
     let sample = Sample::new(
         Timestamp::from_nanos(5),
         signal.id,

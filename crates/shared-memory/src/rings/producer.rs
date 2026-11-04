@@ -13,8 +13,8 @@ use iceoryx2::prelude::*;
 use iceoryx2::service::port_factory::publish_subscribe::PortFactory as Ports;
 use norn_ipc::{DataPlane, DataPlaneKind, SendFuture, SharedMemoryTicket};
 
-use crate::error::{PlaneError, setup};
-use crate::node::{Flavour, LOANS, name, node};
+use super::node::{Flavour, LOANS, name, node, setup};
+use crate::error::PlaneError;
 
 /// How long a full ring is waited on between attempts.
 pub(crate) const FULL_WAIT: Duration = Duration::from_micros(50);

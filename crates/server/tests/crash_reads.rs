@@ -50,7 +50,7 @@ async fn after_kill_9_state_and_replay_return_every_durable_sample() {
     for id in &acked {
         for n in [(id - 1) * BATCH, id * BATCH - 1] {
             let request = ComputeStateRequest {
-                parent: "entities/ahu".into(),
+                parent: "entities/dev".into(),
                 state_time: Some(prost_types::Timestamp {
                     seconds: 1_000 + n,
                     nanos: 0,

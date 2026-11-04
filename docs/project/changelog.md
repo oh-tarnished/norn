@@ -18,6 +18,9 @@ are versioned `1.0.0-rc.1`; wire negotiation remains at protocol 1.7. Not yet re
   (`[shared_memory] enabled = false`), offered only on Unix sockets and never on
   Windows. Any call without a ring falls back to the socket transparently, with the
   same acknowledgements, backpressure and errors.
+- Windows builds no iceoryx2 at all: `norn-shared-memory` keeps its settings and
+  sizes there, with `Ring` and `SharedMemory` stand-ins that refuse, so the daemon
+  and `nornctl` compile unchanged and stay on the named pipe.
 - Protocol 1.7: `SharedMemoryPlane`, `NegotiateProtocolResponse.shared_memory`, and the
   metadata keys `norn-data-plane` and `norn-shared-memory-service`.
 - `nornctl append --shared-memory` (prints `plane SHARED_MEMORY` when a ring carried
@@ -41,6 +44,9 @@ are versioned `1.0.0-rc.1`; wire negotiation remains at protocol 1.7. Not yet re
 - Shutdown: an `AppendSamples` call held open answers its admitted batches and ends
   with `UNAVAILABLE` and `ERROR_REASON_SHUTTING_DOWN`; an idle connection no longer
   delays the stop.
+- Shutdown: a held `grpc.health.v1.Health/Watch` stream sends `NOT_SERVING` and
+  ends `UNAVAILABLE` with `ERROR_REASON_SHUTTING_DOWN` when the drain begins,
+  instead of holding the drain until its bound.
 - Durability on macOS: `fsync` is `F_FULLFSYNC` through Rust's `std`, now documented
   with its cost.
 

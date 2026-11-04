@@ -20,7 +20,7 @@ use norn_protocol::stream::stream_service_client::StreamServiceClient;
 use norn_protocol::stream::{CreateStreamRequest, Stream};
 use tonic::transport::Channel;
 
-/// How big a site is: `devices` entities of `points` signals each.
+/// How big a deployment is: `devices` entities of `points` signals each.
 #[derive(Debug, Clone, Copy)]
 pub struct Shape {
     pub devices: usize,
@@ -41,7 +41,7 @@ pub struct Daemon {
 }
 
 impl Daemon {
-    /// Starts one, raising `max_signals` so the largest site fits twice.
+    /// Starts one, raising `max_signals` so the largest deployment fits twice.
     pub fn start(tag: &str) -> Self {
         let root = std::env::temp_dir().join(format!("nprov-{}-{tag}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
@@ -96,7 +96,7 @@ pub async fn connect(socket: &Path) -> Channel {
 
 pub async fn create_stream(channel: &Channel) {
     let stream = CreateStreamRequest {
-        stream_id: "site".into(),
+        stream_id: "deployment".into(),
         stream: Some(Stream::default()),
         validate_only: false,
     };
@@ -107,15 +107,15 @@ pub async fn create_stream(channel: &Channel) {
 /// Device `d`, as its create request.
 pub fn entity(d: usize) -> CreateEntityRequest {
     let annotations = HashMap::from([
-        ("protocol".to_owned(), "bacnet".to_owned()),
-        ("device_instance".to_owned(), (100_000 + d).to_string()),
+        ("source".to_owned(), "simulator".to_owned()),
+        ("device_number".to_owned(), (100_000 + d).to_string()),
         ("network".to_owned(), "2001".to_owned()),
         ("vendor".to_owned(), "Example Controls".to_owned()),
     ]);
     CreateEntityRequest {
         entity_id: format!("device-{d}"),
         entity: Some(Entity {
-            display_name: format!("Level {} AHU {d}", d % 40),
+            display_name: format!("Rack {} device {d}", d % 40),
             annotations,
             ..Entity::default()
         }),
@@ -126,23 +126,23 @@ pub fn entity(d: usize) -> CreateEntityRequest {
 /// Point `p` of device `d`, as its create request.
 pub fn signal(d: usize, p: usize) -> CreateSignalRequest {
     let annotations = HashMap::from([
-        ("protocol".to_owned(), "bacnet".to_owned()),
-        ("device_instance".to_owned(), (100_000 + d).to_string()),
-        ("object_type".to_owned(), "analog-input".to_owned()),
-        ("object_instance".to_owned(), p.to_string()),
+        ("source".to_owned(), "simulator".to_owned()),
+        ("device_number".to_owned(), (100_000 + d).to_string()),
+        ("channel_type".to_owned(), "analog-input".to_owned()),
+        ("channel_number".to_owned(), p.to_string()),
         (
-            "object_name".to_owned(),
-            format!("L{}.AHU{d}.SAT{p}", d % 40),
+            "channel_name".to_owned(),
+            format!("R{}.DEV{d}.TMP{p}", d % 40),
         ),
-        ("cov".to_owned(), "true".to_owned()),
+        ("on_change".to_owned(), "true".to_owned()),
     ]);
     CreateSignalRequest {
         parent: format!("entities/device-{d}"),
         signal_id: format!("ai-{p}"),
         signal: Some(Signal {
-            display_name: format!("Supply air temperature {p}"),
+            display_name: format!("Temperature sensor {p}"),
             value_type: ValueType::Double as i32,
-            stream: "streams/site".into(),
+            stream: "streams/deployment".into(),
             unit: "degree_celsius".into(),
             annotations,
             ..Signal::default()

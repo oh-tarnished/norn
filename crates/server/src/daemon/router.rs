@@ -29,7 +29,7 @@ use crate::admin::Admin;
 use crate::catalog::Catalog;
 use crate::config::DaemonConfig;
 use crate::events::Subscriptions;
-use crate::health::report;
+use crate::health::{health_server, report};
 use crate::info::{MAX_MESSAGE_BYTES, connection_window, max_batch_bytes, server_resource};
 use crate::metered::{MeterLayer, MeterLimits};
 use crate::operations::OperationsService;
@@ -110,7 +110,7 @@ pub(super) async fn build_router(
         ingest,
         recovery,
     } = database;
-    let (reporter, health) = tonic_health::server::health_reporter();
+    let (reporter, health) = health_server(ingest.draining());
     report(&reporter, ServingStatus::NotServing).await;
     let resource = server_resource(engine, runtime.start_time(), &recovery);
     let upkeep_memory = runtime.budgets().get(Subsystem::ChunkCache).clone();

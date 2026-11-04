@@ -29,7 +29,7 @@ type Row = (usize, i64, i64, u64);
 fn wire(i: usize, row: Row) -> Sample {
     let (signal, seconds, sequence, bits) = row;
     Sample {
-        signal: format!("entities/ahu/signals/{}", SIGNALS.get(signal).unwrap()),
+        signal: format!("entities/dev/signals/{}", SIGNALS.get(signal).unwrap()),
         observe_time: Some(prost_types::Timestamp { seconds, nanos: 0 }),
         value: Some(Value {
             kind: Some(Kind::DoubleValue(f64::from_bits(bits))),
@@ -59,7 +59,7 @@ async fn answers(channel: &Channel) -> Vec<String> {
     }
     for seconds in [1_005, 1_050, 2_000] {
         let request = ComputeStateRequest {
-            parent: "entities/ahu".into(),
+            parent: "entities/dev".into(),
             state_time: Some(prost_types::Timestamp { seconds, nanos: 0 }),
             ..ComputeStateRequest::default()
         };

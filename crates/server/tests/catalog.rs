@@ -26,12 +26,12 @@ fn reason(status: &tonic::Status) -> String {
         .reason
 }
 
-fn create(id: &str, name: &str, site: &str) -> CreateEntityRequest {
+fn create(id: &str, name: &str, deployment: &str) -> CreateEntityRequest {
     CreateEntityRequest {
         entity_id: id.into(),
         entity: Some(Entity {
             display_name: name.into(),
-            annotations: [("site".to_owned(), site.to_owned())].into(),
+            annotations: [("deployment".to_owned(), deployment.to_owned())].into(),
             ..Entity::default()
         }),
         validate_only: false,
@@ -67,7 +67,10 @@ async fn entities_are_created_read_updated_and_deleted_and_survive_a_restart() {
     };
     let updated = c.update_entity(request.clone()).await.unwrap().into_inner();
     assert_eq!(updated.display_name, "Renamed");
-    assert_eq!(updated.annotations["site"], "north", "the mask spared it");
+    assert_eq!(
+        updated.annotations["deployment"], "north",
+        "the mask spared it"
+    );
     let stale = c.update_entity(request).await.unwrap_err();
     assert_eq!(stale.code(), Code::Aborted);
     assert_eq!(reason(&stale), "ERROR_REASON_ETAG_MISMATCH");
@@ -98,8 +101,8 @@ async fn listing_pages_through_everything_and_a_token_is_bound_to_its_request() 
     let d = start(DaemonConfig::default(), temp("catalog")).await;
     let mut c = EntityServiceClient::new(d.channel.clone());
     for i in 0..5 {
-        let site = if i % 2 == 0 { "north" } else { "south" };
-        c.create_entity(create(&format!("e{i}"), "", site))
+        let deployment = if i % 2 == 0 { "north" } else { "south" };
+        c.create_entity(create(&format!("e{i}"), "", deployment))
             .await
             .unwrap();
     }
@@ -135,7 +138,7 @@ async fn listing_pages_through_everything_and_a_token_is_bound_to_its_request() 
             "entities/e4"
         ]
     );
-    let filter = "annotations.site = \"north\"".to_owned();
+    let filter = "annotations.deployment = \"north\"".to_owned();
     let list = ListEntitiesRequest {
         filter,
         ..Default::default()
@@ -150,7 +153,7 @@ async fn listing_pages_through_everything_and_a_token_is_bound_to_its_request() 
         3
     );
     let list = ListEntitiesRequest {
-        filter: "site ~ 1".into(),
+        filter: "deployment ~ 1".into(),
         ..Default::default()
     };
     let bad = c.list_entities(list).await.unwrap_err();

@@ -168,7 +168,7 @@ async fn a_match_needs_a_predicate_and_a_kind_is_required() {
         assert_eq!(reason(&refused), "ERROR_REASON_INVALID_ARGUMENT");
     }
     let mut r = request(TEMP, EventKind::ValueChange, "");
-    r.page_token = "e1.0000000000000000..s.1.1.entities/ahu/signals/temp".into();
+    r.page_token = "e1.0000000000000000..s.1.1.entities/dev/signals/temp".into();
     let refused = query(&d.channel).find_events(r).await.unwrap_err();
     assert_eq!(reason(&refused), "ERROR_REASON_INVALID_TOKEN");
     d.stop().await;

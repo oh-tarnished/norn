@@ -27,14 +27,14 @@ pub fn replays(c: &Channel) -> ReplayServiceClient<Channel> {
     ReplayServiceClient::new(c.clone())
 }
 
-/// A session over `entities/ahu`, from `start` to `end` seconds.
+/// A session over `entities/dev`, from `start` to `end` seconds.
 pub async fn create(c: &Channel, start: i64, end: i64, pace: Pace) -> ReplaySession {
     let session = ReplaySession {
         interval: Some(Interval {
             start_time: seconds(start),
             end_time: seconds(end),
         }),
-        scope: "entities/ahu".into(),
+        scope: "entities/dev".into(),
         pace: Some(pace),
         ..ReplaySession::default()
     };
@@ -68,7 +68,7 @@ pub fn replay(name: &str) -> SubscribeEventsRequest {
 pub fn live() -> SubscribeEventsRequest {
     SubscribeEventsRequest {
         mode: SubscriptionMode::Live as i32,
-        parent: "entities/ahu".into(),
+        parent: "entities/dev".into(),
         ..SubscribeEventsRequest::default()
     }
 }

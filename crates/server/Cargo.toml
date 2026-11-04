@@ -65,8 +65,11 @@ proptest = { workspace = true }
 # Real MCP clients against the real `norn` binary, over stdio and a Unix socket.
 rmcp = { workspace = true, features = ["client", "transport-streamable-http-client-unix-socket"] }
 tokio = { workspace = true, features = ["process", "io-util"] }
+
 # A crash test's writer stops halfway through a frame, which the client's
-# Producer never lets it do; so it publishes through iceoryx2 directly.
+# Producer never lets it do; so it publishes through iceoryx2 directly. Unix
+# only, like the rings.
+[target.'cfg(unix)'.dev-dependencies]
 iceoryx2 = { workspace = true }
 
 [lints]

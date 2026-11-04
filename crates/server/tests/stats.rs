@@ -77,7 +77,7 @@ fn stats(parent: &str, filter: &str) -> ComputeStatsRequest {
 async fn statistics_agree_with_hand_computation_across_pages() {
     let d = start(DaemonConfig::default(), temp("stats")).await;
     seed(&d.channel).await;
-    let mut r = stats("entities/ahu", "id = \"temp\"");
+    let mut r = stats("entities/dev", "id = \"temp\"");
     r.interval = between(1_000, 1_200);
     let page = query(&d.channel)
         .compute_stats(r)
@@ -111,7 +111,7 @@ async fn statistics_agree_with_hand_computation_across_pages() {
     );
     check(&rows[3], &of(FLOW, |_| true));
 
-    let mut r = stats("entities/ahu", "id = \"temp\"");
+    let mut r = stats("entities/dev", "id = \"temp\"");
     r.interval = between(5_000, 5_001);
     let empty = &query(&d.channel)
         .compute_stats(r)
@@ -148,7 +148,7 @@ async fn a_comparison_is_both_periods_and_their_difference() {
     assert_eq!(change.average.unwrap(), mean(&b) - mean(&a));
     assert_eq!(change.sample_count, 100);
     let r2 = ComparePeriodsRequest {
-        parent: "entities/ahu".into(),
+        parent: "entities/dev".into(),
         filter: "id = \"on\"".into(),
         baseline_interval: between(1_000, 1_010),
         comparison_interval: between(1_010, 1_020),

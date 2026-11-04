@@ -52,17 +52,17 @@ async fn deletes_refuse_anything_holding_children_or_samples() {
     };
     held(
         &signals
-            .delete_signal(del("entities/ahu/signals/t"))
+            .delete_signal(del("entities/dev/signals/t"))
             .await
             .unwrap_err(),
     );
     signals
-        .delete_signal(del("entities/ahu/signals/idle"))
+        .delete_signal(del("entities/dev/signals/idle"))
         .await
         .unwrap();
     let mut entities = EntityServiceClient::new(d.channel.clone());
     let e = DeleteEntityRequest {
-        name: "entities/ahu".into(),
+        name: "entities/dev".into(),
         ..Default::default()
     };
     held(&entities.delete_entity(e).await.unwrap_err());
@@ -77,7 +77,7 @@ async fn deletes_refuse_anything_holding_children_or_samples() {
     let d = start(DaemonConfig::default(), data).await;
     let mut signals = SignalServiceClient::new(d.channel.clone());
     let refused = signals
-        .delete_signal(del("entities/ahu/signals/t"))
+        .delete_signal(del("entities/dev/signals/t"))
         .await
         .unwrap_err();
     held(&refused);

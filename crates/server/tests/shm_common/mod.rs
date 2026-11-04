@@ -24,7 +24,7 @@ use tonic::transport::Channel;
 use super::common::{Running, seed, temp};
 
 /// A daemon configured by `toml` (a whole file), on a Unix socket in its own
-/// directory, seeded with `entities/ahu/signals/t` in `streams/plant`.
+/// directory, seeded with `entities/dev/signals/t` in `streams/plant`.
 pub async fn start(toml: &str) -> Running {
     let dir = temp("shm");
     std::fs::create_dir_all(&dir).unwrap();

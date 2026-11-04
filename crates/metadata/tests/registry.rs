@@ -24,21 +24,21 @@ fn records_survive_a_restart_with_their_ids_and_revisions() {
     seed(&r);
     let patch = EntityPatch::new(Some("Air handler".into()), None);
     let updated = r
-        .update_entity("ahu-01", patch, Some(1), t(2), Write::Commit)
+        .update_entity("dev-01", patch, Some(1), t(2), Write::Commit)
         .unwrap();
     assert_eq!(updated.revision, 2);
-    let signal = r.signal("ahu-01", "temp").unwrap();
+    let signal = r.signal("dev-01", "temp").unwrap();
     drop(r);
     let r = open(&dir.0);
-    let entity = r.entity("ahu-01").unwrap();
+    let entity = r.entity("dev-01").unwrap();
     assert_eq!(entity.display_name, updated.display_name);
     assert_eq!(entity.revision, 2);
     assert_eq!(entity.descriptor.id, updated.descriptor.id);
-    let back = r.signal("ahu-01", "temp").unwrap();
+    let back = r.signal("dev-01", "temp").unwrap();
     assert_eq!(back.descriptor.id, signal.descriptor.id);
     assert_eq!(back.stream, signal.stream);
     let view = r.view();
-    let route = view.route("entities/ahu-01/signals/temp").unwrap();
+    let route = view.route("entities/dev-01/signals/temp").unwrap();
     assert_eq!(route.id, signal.descriptor.id);
     assert_eq!(route.kind, ValueKind::F64);
 }
@@ -64,7 +64,7 @@ fn creating_a_name_twice_and_a_bad_id_are_refused() {
     let dir = Dir::new();
     let r = open(&dir.0);
     seed(&r);
-    let again = r.create_entity("ahu-01", EntitySpec::default(), t(1), Write::Commit);
+    let again = r.create_entity("dev-01", EntitySpec::default(), t(1), Write::Commit);
     assert!(matches!(again, Err(MetadataError::AlreadyExists { .. })));
     for bad in ["", "Upper", "1digit", "under_score", &"x".repeat(64)] {
         let e = r.create_entity(bad, EntitySpec::default(), t(1), Write::Commit);
@@ -89,12 +89,12 @@ fn a_stale_revision_is_refused_and_changes_nothing() {
     let r = open(&dir.0);
     seed(&r);
     let patch = SignalPatch::new(None, Some("Cel".into()), None);
-    let e = r.update_signal("ahu-01", "temp", patch, Some(9), t(2), Write::Commit);
+    let e = r.update_signal("dev-01", "temp", patch, Some(9), t(2), Write::Commit);
     assert!(matches!(
         e,
         Err(MetadataError::RevisionMismatch { current: 1 })
     ));
-    assert_eq!(r.signal("ahu-01", "temp").unwrap().unit, "");
+    assert_eq!(r.signal("dev-01", "temp").unwrap().unit, "");
 }
 
 #[test]
@@ -103,23 +103,23 @@ fn deletes_refuse_anything_holding_children_or_data() {
     let r = open(&dir.0);
     seed(&r);
     let holds = |e| matches!(e, Err(MetadataError::NotEmpty { .. }));
-    assert!(holds(r.delete_entity("ahu-01", None, Write::Commit)));
+    assert!(holds(r.delete_entity("dev-01", None, Write::Commit)));
     assert!(holds(r.delete_stream("plant", None, Write::Commit)));
     r.view()
-        .route("entities/ahu-01/signals/temp")
+        .route("entities/dev-01/signals/temp")
         .unwrap()
         .mark_data();
     assert!(holds(r.delete_signal(
-        "ahu-01",
+        "dev-01",
         "temp",
         None,
         Write::Commit
     )));
     drop(r);
     let r = open(&dir.0);
-    r.delete_signal("ahu-01", "temp", None, Write::Commit)
+    r.delete_signal("dev-01", "temp", None, Write::Commit)
         .unwrap();
-    r.delete_entity("ahu-01", None, Write::Commit).unwrap();
+    r.delete_entity("dev-01", None, Write::Commit).unwrap();
     r.delete_stream("plant", None, Write::Commit).unwrap();
 }
 
@@ -128,16 +128,16 @@ fn listing_pages_in_name_order_and_across_entities() {
     let dir = Dir::new();
     let r = open(&dir.0);
     seed(&r);
-    r.create_entity("ahu-02", EntitySpec::default(), t(1), Write::Commit)
+    r.create_entity("dev-02", EntitySpec::default(), t(1), Write::Commit)
         .unwrap();
     for id in ["b", "a"] {
         let spec = SignalSpec::new(ValueKind::I32, "plant".into());
-        r.create_signal("ahu-02", id, spec, t(1), Write::Commit)
+        r.create_signal("dev-02", id, spec, t(1), Write::Commit)
             .unwrap();
     }
     let page = r.list_entities(None, 1, |_| true);
-    assert_eq!(page[0].descriptor.name.as_str(), "ahu-01");
-    let page = r.list_entities(Some("ahu-01"), 10, |_| true);
+    assert_eq!(page[0].descriptor.name.as_str(), "dev-01");
+    let page = r.list_entities(Some("dev-01"), 10, |_| true);
     assert_eq!(page.len(), 1);
     let all = r.list_signals(None, None, 10, |_| true);
     let names: Vec<_> = all
@@ -146,10 +146,10 @@ fn listing_pages_in_name_order_and_across_entities() {
         .collect();
     assert_eq!(
         names,
-        [("ahu-01", "temp"), ("ahu-02", "a"), ("ahu-02", "b")]
+        [("dev-01", "temp"), ("dev-02", "a"), ("dev-02", "b")]
     );
-    let after = Some(("ahu-02".to_owned(), "a".to_owned()));
-    assert_eq!(r.list_signals(Some("ahu-02"), after, 10, |_| true).len(), 1);
+    let after = Some(("dev-02".to_owned(), "a".to_owned()));
+    assert_eq!(r.list_signals(Some("dev-02"), after, 10, |_| true).len(), 1);
 }
 
 #[test]

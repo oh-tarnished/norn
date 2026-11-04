@@ -39,7 +39,7 @@ async fn an_append_at_persisted_is_immediately_queryable_and_counted() {
     append(&d.channel, vec![batch(1, vec![double("t", 7)], Persisted)]).await;
     let got = samples(&d.channel, all()).await;
     assert_eq!(got.len(), 1);
-    assert_eq!(got[0].signal, "entities/ahu/signals/t");
+    assert_eq!(got[0].signal, "entities/dev/signals/t");
     assert_eq!(
         got[0].value.as_ref().unwrap().kind,
         Some(Kind::DoubleValue(7.0))

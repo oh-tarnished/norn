@@ -100,16 +100,16 @@ async fn status_and_version_work_and_cancelling_drains_and_removes_the_socket() 
     assert!(version.contains(norn_server::SERVER_VERSION), "{version}");
 
     stdout(&nornctl(&wanted, "streams create plant"));
-    stdout(&nornctl(&wanted, "entities create ahu-01"));
-    stdout(&nornctl(&wanted, "signals create ahu-01 temp plant double"));
+    stdout(&nornctl(&wanted, "entities create dev-01"));
+    stdout(&nornctl(&wanted, "signals create dev-01 temp plant double"));
     let listed = stdout(&nornctl(&wanted, "streams"));
     assert!(listed.contains("streams/plant"), "{listed}");
     let listed = stdout(&nornctl(&wanted, "entities"));
-    assert!(listed.contains("entities/ahu-01"), "{listed}");
+    assert!(listed.contains("entities/dev-01"), "{listed}");
     let listed = stdout(&nornctl(&wanted, "signals"));
-    assert!(listed.contains("entities/ahu-01/signals/temp"), "{listed}");
+    assert!(listed.contains("entities/dev-01/signals/temp"), "{listed}");
     assert!(listed.contains("VALUE_TYPE_DOUBLE"), "{listed}");
-    let sent = "append plant entities/ahu-01/signals/temp 21.5 --ack durable";
+    let sent = "append plant entities/dev-01/signals/temp 21.5 --ack durable";
     let appended = stdout(&nornctl(&wanted, sent));
     assert!(
         appended.contains("ACKNOWLEDGEMENT_LEVEL_DURABLE"),
@@ -127,21 +127,21 @@ async fn status_and_version_work_and_cancelling_drains_and_removes_the_socket() 
         let text = stdout(&run);
         assert!(text.contains("ACKNOWLEDGEMENT_LEVEL_DURABLE"), "{text}");
     }
-    let queried = stdout(&nornctl(&wanted, "query entities/ahu-01/signals/temp"));
+    let queried = stdout(&nornctl(&wanted, "query entities/dev-01/signals/temp"));
     assert!(
-        queried.contains("entities/ahu-01/signals/temp 21.5 GOOD"),
+        queried.contains("entities/dev-01/signals/temp 21.5 GOOD"),
         "{queried}"
     );
-    let counted = stdout(&nornctl(&wanted, "query ahu-01 --agg count"));
+    let counted = stdout(&nornctl(&wanted, "query dev-01 --agg count"));
     assert!(counted.contains("count=1"), "{counted}");
     if let Some(client) = example("query_client") {
         let run = Command::new(client)
-            .args([&wanted.to_string(), "entities/ahu-01", "temp"])
+            .args([&wanted.to_string(), "entities/dev-01", "temp"])
             .output()
             .unwrap();
         assert!(stdout(&run).contains("1 samples"), "{run:?}");
     }
-    let wrong = nornctl(&wanted, "append plant entities/ahu-01/signals/none 1");
+    let wrong = nornctl(&wanted, "append plant entities/dev-01/signals/none 1");
     assert_eq!(wrong.status.code(), Some(1));
 
     cancel.cancel();
