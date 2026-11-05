@@ -14,6 +14,8 @@ import "norn/stream/v1/stream.proto";
 import "norn/stream/v1/stream_maintenance.proto";
 import "norn/stream/v1/stream_messages.proto";
 import "norn/stream/v1/stream_operations.proto";
+import "norn/stream/v1/stream_segment.proto";
+import "norn/stream/v1/stream_segment_messages.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "StreamServiceProto";
@@ -62,6 +64,20 @@ service StreamService {
     };
     option (google.api.http) = {get: "/v1/streams"};
     option (google.api.method_signature) = "";
+  }
+
+  // Reads one segment file of a stream: its chunks, samples, size and span,
+  // and with SEGMENT_VIEW_FULL its encodings. Changes nothing. Since 1.8.
+  rpc GetSegment(GetSegmentRequest) returns (Segment) {
+    option (google.api.http) = {get: "/v1/{name=streams/*/segments/*}"};
+    option (google.api.method_signature) = "name";
+  }
+
+  // Lists a stream's segment files, sealed and open, in name order: how its
+  // history sits on disk. Changes nothing. Since 1.8.
+  rpc ListSegments(ListSegmentsRequest) returns (ListSegmentsResponse) {
+    option (google.api.http) = {get: "/v1/{parent=streams/*}/segments"};
+    option (google.api.method_signature) = "parent";
   }
 
   // Changes the fields named in `update_mask`. Tightening `retention` takes

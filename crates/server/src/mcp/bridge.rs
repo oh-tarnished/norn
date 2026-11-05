@@ -168,7 +168,7 @@ bridge! {
     stream::StreamServiceMcpServer = "norn.stream.v1.StreamService" {
         reads: get_stream, list_streams;
         none: create_stream, update_stream, delete_stream, compact_stream, verify_stream,
-            apply_stream_retention, export_stream
+            apply_stream_retention, export_stream, get_segment, list_segments
     }
     state::StateServiceMcpServer = "norn.state.v1.StateService" { reads: compute_state; none: }
     query::QueryServiceMcpServer = "norn.query.v1.QueryService" {

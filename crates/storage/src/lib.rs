@@ -55,7 +55,7 @@ mod retention;
 mod segment;
 mod stream;
 
-pub use chunk::{Chunk, Column, EncodedChunk};
+pub use chunk::{Chunk, ChunkLayout, Column, EncodedChunk, SectionLayout};
 pub use clean::{CLEAN_FILE, CleanMarker, CleanSegment};
 pub use compact::{
     CompactionObserver, CompactionOutcome, CompactionPhase, Unobserved, compact, compact_observed,

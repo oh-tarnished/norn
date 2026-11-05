@@ -518,5 +518,218 @@ impl ExportFormat {
         }
     }
 }
+/// One segment file of a stream: how part of its history sits on disk (SPEC
+/// sections 12 and 13). Read-only and for inspection: segments come and go
+/// with sealing, compaction and retention, so a name read now may be gone at
+/// the next call. Since 1.8.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Segment {
+    /// The resource name, `streams/{stream}/segments/{segment}`. `{segment}`
+    /// is the file's name without its extension, such as
+    /// `000000000000002a-g0000`: the first sequence number it covers and its
+    /// compaction generation, both in hexadecimal.
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// Whether the segment is sealed and so never changes. The newest segment
+    /// of a stream receiving samples is open: its counts grow.
+    #[prost(bool, tag="2")]
+    pub sealed: bool,
+    /// How many times compaction has rewritten this history; 0 as ingested.
+    #[prost(int32, tag="3")]
+    pub generation: i32,
+    /// Chunks in the segment. A chunk holds one signal's samples over a span.
+    #[prost(int64, tag="4")]
+    pub chunk_count: i64,
+    /// Samples over all its chunks, damaged ones included.
+    #[prost(int64, tag="5")]
+    pub sample_count: i64,
+    /// The file's size: header, chunks and, once sealed, directory.
+    #[prost(int64, tag="6")]
+    pub size_bytes: i64,
+    /// The earliest `observe_time` in any chunk.
+    #[prost(message, optional, tag="7")]
+    pub oldest_sample_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// The latest `observe_time` in any chunk.
+    #[prost(message, optional, tag="8")]
+    pub newest_sample_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// SEGMENT_VIEW_FULL only: distinct signals with a chunk here.
+    #[prost(int32, tag="9")]
+    pub signal_count: i32,
+    /// SEGMENT_VIEW_FULL only: the samples at their in-memory width (8 bytes of
+    /// time, 8 of sequence, 2 of quality and the value's own: 1 for a bool, 4 or
+    /// 8 for a number, the length of a string or bytes). `decoded_bytes` divided
+    /// by `size_bytes` is the compression ratio.
+    #[prost(int64, tag="10")]
+    pub decoded_bytes: i64,
+    /// SEGMENT_VIEW_FULL only: how the chunks' columns are encoded, one entry
+    /// per column, codec and compression in use, in that order.
+    #[prost(message, repeated, tag="11")]
+    pub column_encodings: ::prost::alloc::vec::Vec<ColumnEncoding>,
+    /// SEGMENT_VIEW_FULL only: chunks that failed their checksum or did not
+    /// decode, and so are left out of every figure above but `chunk_count` and
+    /// `sample_count`. VerifyStream reports where they are.
+    #[prost(int64, tag="12")]
+    pub damaged_chunk_count: i64,
+}
+impl ::prost::Name for Segment {
+const NAME: &'static str = "Segment";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.Segment".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.Segment".into() }}
+/// The chunks of a segment whose `column` uses one codec and one compression.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ColumnEncoding {
+    /// Which of a chunk's four columns.
+    #[prost(enumeration="ChunkColumn", tag="1")]
+    pub column: i32,
+    /// The codec, such as `float64-gorilla` or `timestamp-delta-of-delta`. For
+    /// display: new codecs arrive with new storage formats, so never match on
+    /// the set of values.
+    #[prost(string, tag="2")]
+    pub codec: ::prost::alloc::string::String,
+    /// The zstd level the encoded column was compressed at; 0 when it was
+    /// stored uncompressed, which happens when zstd would not shrink it.
+    #[prost(int32, tag="3")]
+    pub zstd_level: i32,
+    /// Chunks whose column is encoded this way.
+    #[prost(int64, tag="4")]
+    pub chunk_count: i64,
+    /// Those columns' bytes on disk.
+    #[prost(int64, tag="5")]
+    pub stored_bytes: i64,
+    /// Those columns' bytes after decompression and before decoding.
+    #[prost(int64, tag="6")]
+    pub encoded_bytes: i64,
+}
+impl ::prost::Name for ColumnEncoding {
+const NAME: &'static str = "ColumnEncoding";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.ColumnEncoding".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.ColumnEncoding".into() }}
+/// One of the four columns every chunk stores, each encoded and compressed
+/// on its own.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ChunkColumn {
+    /// Not set. Never sent.
+    Unspecified = 0,
+    /// The samples' `observe_time`s.
+    Timestamps = 1,
+    /// The samples' values.
+    Values = 2,
+    /// The samples' quality codes.
+    Qualities = 3,
+    /// The samples' sequence numbers.
+    Sequences = 4,
+}
+impl ChunkColumn {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "CHUNK_COLUMN_UNSPECIFIED",
+            Self::Timestamps => "CHUNK_COLUMN_TIMESTAMPS",
+            Self::Values => "CHUNK_COLUMN_VALUES",
+            Self::Qualities => "CHUNK_COLUMN_QUALITIES",
+            Self::Sequences => "CHUNK_COLUMN_SEQUENCES",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CHUNK_COLUMN_UNSPECIFIED" => Some(Self::Unspecified),
+            "CHUNK_COLUMN_TIMESTAMPS" => Some(Self::Timestamps),
+            "CHUNK_COLUMN_VALUES" => Some(Self::Values),
+            "CHUNK_COLUMN_QUALITIES" => Some(Self::Qualities),
+            "CHUNK_COLUMN_SEQUENCES" => Some(Self::Sequences),
+            _ => None,
+        }
+    }
+}
+/// How much of a Segment to return (AIP-157).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SegmentView {
+    /// SEGMENT_VIEW_BASIC.
+    Unspecified = 0,
+    /// What the temporal index already holds; reads no chunk.
+    Basic = 1,
+    /// Also reads and checks every chunk of the segment for its encodings:
+    /// the cost of reading the whole file.
+    Full = 2,
+}
+impl SegmentView {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SEGMENT_VIEW_UNSPECIFIED",
+            Self::Basic => "SEGMENT_VIEW_BASIC",
+            Self::Full => "SEGMENT_VIEW_FULL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SEGMENT_VIEW_UNSPECIFIED" => Some(Self::Unspecified),
+            "SEGMENT_VIEW_BASIC" => Some(Self::Basic),
+            "SEGMENT_VIEW_FULL" => Some(Self::Full),
+            _ => None,
+        }
+    }
+}
+/// The request for StreamService.GetSegment.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetSegmentRequest {
+    /// The segment, as `streams/{stream}/segments/{segment}`.
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
+    /// How much to return; SEGMENT_VIEW_BASIC when unset.
+    #[prost(enumeration="SegmentView", tag="2")]
+    pub view: i32,
+}
+impl ::prost::Name for GetSegmentRequest {
+const NAME: &'static str = "GetSegmentRequest";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.GetSegmentRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.GetSegmentRequest".into() }}
+/// The request for StreamService.ListSegments.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListSegmentsRequest {
+    /// The stream, as `streams/{stream}`.
+    #[prost(string, tag="1")]
+    pub parent: ::prost::alloc::string::String,
+    /// The most segments to return; capped at 1000, 100 when zero. With
+    /// SEGMENT_VIEW_FULL, capped at 10, since each is read whole.
+    #[prost(int32, tag="2")]
+    pub page_size: i32,
+    /// The `next_page_token` of a previous call with otherwise equal fields,
+    /// `page_size` aside.
+    #[prost(string, tag="3")]
+    pub page_token: ::prost::alloc::string::String,
+    /// How much of each segment to return; SEGMENT_VIEW_BASIC when unset.
+    #[prost(enumeration="SegmentView", tag="4")]
+    pub view: i32,
+}
+impl ::prost::Name for ListSegmentsRequest {
+const NAME: &'static str = "ListSegmentsRequest";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.ListSegmentsRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.ListSegmentsRequest".into() }}
+/// The response for StreamService.ListSegments.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListSegmentsResponse {
+    /// The segments on this page, in name order, which is the order they were
+    /// first written in.
+    #[prost(message, repeated, tag="1")]
+    pub segments: ::prost::alloc::vec::Vec<Segment>,
+    /// Passed as `page_token` to read the next page; empty on the last one.
+    #[prost(string, tag="2")]
+    pub next_page_token: ::prost::alloc::string::String,
+}
+impl ::prost::Name for ListSegmentsResponse {
+const NAME: &'static str = "ListSegmentsResponse";
+const PACKAGE: &'static str = "norn.stream.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.stream.v1.ListSegmentsResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.stream.v1.ListSegmentsResponse".into() }}
 include!("norn.stream.v1.tonic.rs");
 // @@protoc_insertion_point(module)

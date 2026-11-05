@@ -11,6 +11,7 @@ use super::load::{load_directory, read_frame, read_header};
 use super::{SegmentSummary, scan_headers};
 use crate::chunk::Chunk;
 use crate::chunk::decode::decode_body;
+use crate::chunk::layout::{ChunkLayout, layout_body};
 use crate::error::Result;
 use crate::format::frame::ChunkMeta;
 use crate::format::{FRAME_HEADER_LEN, HEADER_LEN, SegmentHeader};
@@ -104,6 +105,19 @@ impl SegmentReader {
         read_frame(&mut self.src, meta, &self.opts, &mut self.buf)?;
         let body = self.buf.get(FRAME_HEADER_LEN..).unwrap_or_default();
         decode_body(meta, body, self.src.path())
+    }
+
+    /// Reads, verifies and decodes one chunk, and reports how each of its
+    /// columns is stored, for inspection tools. Keeps no sample.
+    ///
+    /// Cost: as [`SegmentReader::read_chunk`].
+    ///
+    /// # Errors
+    /// As [`SegmentReader::read_chunk`].
+    pub fn read_layout(&mut self, meta: &ChunkMeta) -> Result<ChunkLayout> {
+        read_frame(&mut self.src, meta, &self.opts, &mut self.buf)?;
+        let body = self.buf.get(FRAME_HEADER_LEN..).unwrap_or_default();
+        layout_body(meta, body, self.src.path())
     }
 
     /// Streams the samples of `signal` in `from..=to`, one decoded chunk at

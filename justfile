@@ -17,6 +17,18 @@ gates:
 test:
     cargo test --workspace --locked --no-fail-fast
 
+# The real nornctl against a real daemon, the bugs unit tests cannot see.
+e2e:
+    cargo test --locked -p norn-cli --tests
+
+# Killed processes and damaged files: recovery must keep what was acknowledged.
+crash:
+    cargo test --locked -p norn-storage --test crash --test compaction_crash --test corruption
+    cargo test --locked -p norn-codec --test corruption
+    cargo test --locked -p norn-runtime --test journal
+    cargo test --locked -p norn-metadata --test batch_recovery
+    cargo test --locked -p norn-server --test crash --test compaction_kill --test shared_memory_crash --test query_damage
+
 # Benchmark smoke runs include real daemons over Unix sockets.
 [unix]
 bench-smoke:

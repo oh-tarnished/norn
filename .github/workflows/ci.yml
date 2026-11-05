@@ -66,6 +66,45 @@ jobs:
       - run: just bench-smoke
       - run: just doc
 
+  # Separate from `test` so a failure names the kind of bug, and a hang is bounded.
+  e2e:
+    name: End-to-end, daemon and nornctl (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: extractions/setup-just@v4
+      - uses: Swatinem/rust-cache@v2
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "36.2"
+          repo-token: ${{ github.token }}
+      - run: just e2e
+
+  crash:
+    name: Crash and corruption (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: extractions/setup-just@v4
+      - uses: Swatinem/rust-cache@v2
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "36.2"
+          repo-token: ${{ github.token }}
+      - run: just crash
+
   deny:
     name: Licences and advisories
     runs-on: ubuntu-latest

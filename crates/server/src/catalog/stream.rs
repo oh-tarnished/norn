@@ -8,8 +8,9 @@ use norn_protocol::google::longrunning::Operation;
 use norn_protocol::stream::stream_service_server::{SERVICE_NAME, StreamService};
 use norn_protocol::stream::{
     ApplyStreamRetentionRequest, CompactStreamRequest, CreateStreamRequest, DeleteStreamRequest,
-    ExportStreamRequest, GetStreamRequest, ListStreamsRequest, ListStreamsResponse, Stream,
-    StreamStats, UpdateStreamRequest, VerifyStreamRequest,
+    ExportStreamRequest, GetSegmentRequest, GetStreamRequest, ListSegmentsRequest,
+    ListSegmentsResponse, ListStreamsRequest, ListStreamsResponse, Segment, Stream, StreamStats,
+    UpdateStreamRequest, VerifyStreamRequest,
 };
 use norn_runtime::maintenance::Request as Job;
 use tonic::{Request, Response, Status};
@@ -103,6 +104,22 @@ impl StreamService for Catalog {
             streams: page.iter().map(|s| self.stream_to_wire(s)).collect(),
             next_page_token,
         }))
+    }
+
+    async fn get_segment(
+        &self,
+        request: Request<GetSegmentRequest>,
+    ) -> Result<Response<Segment>, Status> {
+        let found = self.get_segment_impl(request.into_inner()).await;
+        found.map(Response::new)
+    }
+
+    async fn list_segments(
+        &self,
+        request: Request<ListSegmentsRequest>,
+    ) -> Result<Response<ListSegmentsResponse>, Status> {
+        let page = self.list_segments_impl(request.into_inner()).await;
+        page.map(Response::new)
     }
 
     async fn update_stream(

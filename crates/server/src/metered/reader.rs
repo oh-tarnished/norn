@@ -16,13 +16,11 @@ use tonic::{Code, Status};
 use super::cost::{Settled, settle_batch, worst_batch_cost};
 use super::wire::strip_samples;
 use super::{Held, MeterLimits, StepResult};
+use crate::info::MAX_REQUEST_BYTES;
 use crate::status::error_info;
 
 /// gRPC's message prefix: a compressed flag and a big-endian length.
 pub(crate) const PREFIX: usize = 5;
-/// The largest message of any method but `AppendSamples`. The largest legal one
-/// is an annotated create: 64 entries of about 1.2 KiB.
-const MAX_OTHER_BYTES: usize = 256 * 1024;
 /// What prost can make of one encoded byte, at worst: a map entry of two empty
 /// strings costs a few bytes on the wire and tens of bytes of `String`s and
 /// table slots.
@@ -154,7 +152,7 @@ impl Reader {
         let limit = if self.append {
             self.limits.max_batch_bytes
         } else {
-            MAX_OTHER_BYTES
+            MAX_REQUEST_BYTES
         };
         if length > limit {
             return Err(too_large(limit, length));

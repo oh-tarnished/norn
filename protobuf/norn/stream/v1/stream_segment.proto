@@ -1,0 +1,123 @@
+// SPDX-FileCopyrightText: 2026 Srikanth K
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+syntax = "proto3";
+
+package norn.stream.v1;
+
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StreamSegmentProto";
+option java_package = "local.norn.stream.v1";
+
+// One segment file of a stream: how part of its history sits on disk (SPEC
+// sections 12 and 13). Read-only and for inspection: segments come and go
+// with sealing, compaction and retention, so a name read now may be gone at
+// the next call. Since 1.8.
+message Segment {
+  option (google.api.resource) = {
+    type: "norn.local/Segment"
+    pattern: "streams/{stream}/segments/{segment}"
+    singular: "segment"
+    plural: "segments"
+  };
+
+  // The resource name, `streams/{stream}/segments/{segment}`. `{segment}`
+  // is the file's name without its extension, such as
+  // `000000000000002a-g0000`: the first sequence number it covers and its
+  // compaction generation, both in hexadecimal.
+  string name = 1 [(google.api.field_behavior) = IDENTIFIER];
+
+  // Whether the segment is sealed and so never changes. The newest segment
+  // of a stream receiving samples is open: its counts grow.
+  bool sealed = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // How many times compaction has rewritten this history; 0 as ingested.
+  int32 generation = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Chunks in the segment. A chunk holds one signal's samples over a span.
+  int64 chunk_count = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Samples over all its chunks, damaged ones included.
+  int64 sample_count = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The file's size: header, chunks and, once sealed, directory.
+  int64 size_bytes = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The earliest `observe_time` in any chunk.
+  google.protobuf.Timestamp oldest_sample_time = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The latest `observe_time` in any chunk.
+  google.protobuf.Timestamp newest_sample_time = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // SEGMENT_VIEW_FULL only: distinct signals with a chunk here.
+  int32 signal_count = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // SEGMENT_VIEW_FULL only: the samples at their in-memory width (8 bytes of
+  // time, 8 of sequence, 2 of quality and the value's own: 1 for a bool, 4 or
+  // 8 for a number, the length of a string or bytes). `decoded_bytes` divided
+  // by `size_bytes` is the compression ratio.
+  int64 decoded_bytes = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // SEGMENT_VIEW_FULL only: how the chunks' columns are encoded, one entry
+  // per column, codec and compression in use, in that order.
+  repeated ColumnEncoding column_encodings = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // SEGMENT_VIEW_FULL only: chunks that failed their checksum or did not
+  // decode, and so are left out of every figure above but `chunk_count` and
+  // `sample_count`. VerifyStream reports where they are.
+  int64 damaged_chunk_count = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// The chunks of a segment whose `column` uses one codec and one compression.
+message ColumnEncoding {
+  // Which of a chunk's four columns.
+  ChunkColumn column = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The codec, such as `float64-gorilla` or `timestamp-delta-of-delta`. For
+  // display: new codecs arrive with new storage formats, so never match on
+  // the set of values.
+  string codec = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // The zstd level the encoded column was compressed at; 0 when it was
+  // stored uncompressed, which happens when zstd would not shrink it.
+  int32 zstd_level = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Chunks whose column is encoded this way.
+  int64 chunk_count = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Those columns' bytes on disk.
+  int64 stored_bytes = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Those columns' bytes after decompression and before decoding.
+  int64 encoded_bytes = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// One of the four columns every chunk stores, each encoded and compressed
+// on its own.
+enum ChunkColumn {
+  // Not set. Never sent.
+  CHUNK_COLUMN_UNSPECIFIED = 0;
+  // The samples' `observe_time`s.
+  CHUNK_COLUMN_TIMESTAMPS = 1;
+  // The samples' values.
+  CHUNK_COLUMN_VALUES = 2;
+  // The samples' quality codes.
+  CHUNK_COLUMN_QUALITIES = 3;
+  // The samples' sequence numbers.
+  CHUNK_COLUMN_SEQUENCES = 4;
+}
+
+// How much of a Segment to return (AIP-157).
+enum SegmentView {
+  // SEGMENT_VIEW_BASIC.
+  SEGMENT_VIEW_UNSPECIFIED = 0;
+  // What the temporal index already holds; reads no chunk.
+  SEGMENT_VIEW_BASIC = 1;
+  // Also reads and checks every chunk of the segment for its encodings:
+  // the cost of reading the whole file.
+  SEGMENT_VIEW_FULL = 2;
+}

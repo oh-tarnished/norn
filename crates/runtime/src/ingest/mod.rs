@@ -16,6 +16,8 @@ mod decision;
 mod dedup;
 mod indexing;
 mod journal;
+mod layout;
+mod layout_detail;
 mod lifecycle;
 mod record;
 mod recover;
@@ -33,6 +35,7 @@ pub use admit::THROTTLE_DELAY;
 pub use decision::{AckFailure, AckLevel, Admission, Batch, Completion, Decision, Outcome, Reason};
 pub use indexing::RecoverError;
 pub use journal::{JOURNAL_DIR, SyncGate};
+pub use layout::{ChunkColumn, ColumnEncoding, LayoutError, SegmentDetail, SegmentInfo};
 pub use report::{IndexSummary, IngestRecovery};
 pub use stats::StreamStats;
 

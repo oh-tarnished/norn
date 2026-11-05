@@ -178,7 +178,7 @@ accounts for the other:
   (tonic's buffer, then prost's strings). A batch over `max_batch_samples`, or too
   costly for that cap, has its samples stripped, so the handler rejects it by id
   with `BATCH_TOO_LARGE`. At the default budget the cap cannot be reached by a
-  batch within the published limits. Every other method is limited to 256 KiB and
+  batch within the published limits. Every other method is limited to `max_message_bytes`, 256 KiB, and
   costs 32 × length, the expansion of a map entry.
 
 `ipc_bytes` does not cover what hyper holds for responses, connection state, or

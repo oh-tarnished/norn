@@ -7,6 +7,7 @@ mod batch;
 mod entity;
 pub(crate) mod names;
 mod query;
+mod segments;
 pub(crate) mod select;
 mod signal;
 mod stream;

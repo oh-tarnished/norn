@@ -134,8 +134,10 @@ fn full_name() -> ::prost::alloc::string::String { "norn.entity.v1.DeleteEntityR
 /// The request for EntityService.BatchCreateEntities (AIP-233). Entities are
 /// top-level resources, so there is no parent.
 ///
-/// At most 1000 requests, and the whole message at most 4 MiB; a larger batch
-/// fails with INVALID_ARGUMENT naming `requests`. The bound keeps one batch's
+/// At most norn.admin.v1.Limits `max_batch_create_requests` (1000), or fails
+/// with INVALID_ARGUMENT naming `requests`; and the whole encoded message at
+/// most `max_message_bytes` (256 KiB), or fails with RESOURCE_EXHAUSTED and
+/// ERROR_REASON_LIMIT_EXCEEDED before it is decoded. The bound keeps one batch's
 /// memory, the time it holds the catalogue's lock, and recovery's work bounded.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BatchCreateEntitiesRequest {

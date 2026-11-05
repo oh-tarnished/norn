@@ -7,6 +7,7 @@ package norn.admin.v1;
 
 import "google/api/field_behavior.proto";
 import "google/api/resource.proto";
+import "norn/admin/v1/limits.proto";
 import "norn/admin/v1/server.proto";
 import "norn/admin/v1/shared_memory.proto";
 

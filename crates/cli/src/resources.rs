@@ -16,10 +16,13 @@ use tonic::transport::Channel;
 
 use crate::CliError;
 use crate::append::{append, value_type};
+use crate::benchmark::benchmark;
+use crate::inspect::inspect;
 use crate::query::query;
 use crate::replay::replay;
 use crate::retention::retention;
 use crate::state::state;
+use crate::stats::stats;
 use crate::subscribe::subscribe;
 use crate::transfer::{export, import};
 use crate::upkeep::compact;
@@ -42,6 +45,9 @@ pub async fn run(channel: Channel, words: &[String], out: &mut impl Write) -> Re
     let words: Vec<&str> = words.iter().map(String::as_str).collect();
     match words.as_slice() {
         ["state", rest @ ..] => state(channel, rest, out).await,
+        ["inspect", rest @ ..] => inspect(channel, rest, out).await,
+        ["stats", rest @ ..] => stats(channel, rest, out).await,
+        ["benchmark", rest @ ..] => benchmark(channel, rest, out).await,
         ["replay", rest @ ..] => replay(channel, rest, out).await,
         ["subscribe", rest @ ..] => subscribe(channel, rest, out).await,
         ["export", rest @ ..] => export(channel, rest, out).await,

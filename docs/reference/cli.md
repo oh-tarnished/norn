@@ -7,7 +7,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 The `nornctl` command, through the public gRPC API only. It never touches storage.
 Output below is real, from `nornctl` 0.1.0 on macOS, except where a section names
-the next release (1.0.0-rc.1, protocol 1.7).
+the next release (1.0.0-rc.1, protocol 1.7). `inspect`, `stats` and `benchmark` are newer
+still (protocol 1.8), their output from a debug build.
 
 ```text
 usage: nornctl [OPTIONS] COMMAND
@@ -47,6 +48,9 @@ not parse.
 | `subscribe live TARGET`, `subscribe replay NAME`      | events as they come, numbered                    |
 | `export TARGET --format F --output PATH`              | samples to a new CSV, Parquet, Arrow or MCAP file |
 | `import PATH [--shared-memory] [--timing]`            | a file into the daemon, safe to repeat           |
+| `inspect STREAM [SEGMENT] [--basic]`                  | how it sits on disk, read-only                   |
+| `stats [TARGET] [--from T] [--to T]`                  | samples and rates over a window                  |
+| `benchmark [FLAGS]`                                   | a quick append and query run, on its own stream  |
 
 `TYPE` is `bool`, `int32`, `int64`, `uint32`, `uint64`, `float`, `double`,
 `string`, `bytes` or `enum`. `--ack` takes `buffered`, `persisted` or `durable`,
@@ -63,6 +67,8 @@ capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUER
 start_time: 1793625130.214140000
 limits.max_batch_samples: 10000
 limits.max_batch_bytes: 4194304
+limits.max_message_bytes: 262144
+limits.max_batch_create_requests: 1000
 limits.max_pending_batches: 256
 limits.max_streams: 1024
 limits.max_replay_sessions: 16
@@ -133,12 +139,6 @@ timed now. See [ingesting data](../guides/ingesting-data.md).
 `plane SHARED_MEMORY` before the acknowledgement lines; otherwise the sample goes by
 the socket and nothing extra is printed. The answers are the same either way, so the
 flag never changes what is stored.
-
-## Not implemented
-
-SPEC section 33 also names `inspect`, `stats` and `benchmark`. None exists yet; each gives
-`unexpected argument` and exit status 2. They come with the stages that build them
-([roadmap](../../README.md#roadmap)).
 
 ## streams
 
@@ -260,6 +260,93 @@ sends nothing. With `--timing` or `--shared-memory`, a second line follows:
 `QuerySamples` and `AppendSamples`; the daemon's `ExportStream` is not used. The
 [import and export guide](../guides/import-export.md) has real output, and
 [adapters](adapters.md) has the formats.
+
+## inspect
+
+How a stream's history sits on disk, through `StreamService.ListSegments` and
+`GetSegment` ([protocol](protocol.md#inspecting-storage)). It changes nothing.
+
+```console
+$ nornctl inspect nornctl-benchmark
+streams/nornctl-benchmark samples=10050 buffered=0 corrupt=0 stored_bytes=17260
+streams/nornctl-benchmark/segments/0000000000000000-g0000 sealed=false generation=0 chunks=120 samples=10050 bytes=17308 from=2026-11-05T16:26:35.744919Z to=2026-11-05T16:26:37.745212049Z signals=4 decoded_bytes=261300 ratio=15.10 damaged_chunks=0
+  TIMESTAMPS codec=timestamp-delta zstd=0 chunks=120 stored_bytes=5580 encoded_bytes=5220
+  VALUES codec=float64-alp zstd=0 chunks=120 stored_bytes=1820 encoded_bytes=1460
+  QUALITIES codec=enum-dict zstd=0 chunks=120 stored_bytes=1080 encoded_bytes=720
+  SEQUENCES codec=integer-regular zstd=0 chunks=120 stored_bytes=1100 encoded_bytes=740
+total segments=1 chunks=120 samples=10050 bytes=17308 ratio=15.10
+```
+
+`ratio` is the samples' in-memory width over the file's size. A column's `zstd` is the
+level it was compressed at, 0 when stored uncompressed; one line appears per column,
+codec and level in use. A name such as `0000000000000000-g0000` can be given as `SEGMENT`
+to read one segment. Reading the codecs reads every chunk, the cost of reading the whole
+file; `--basic` answers from the index alone, without codecs, signals or `ratio`. A long
+stream may need a larger `--timeout`.
+
+## stats
+
+Per signal and per stream, over a window that defaults to the last hour. `TARGET` is as in
+`query`, default `all`.
+
+```console
+$ nornctl stats --from now-1m
+signal entities/nornctl-benchmark/signals/s0 stream=streams/nornctl-benchmark samples=505 rate=8.417/s
+signal entities/nornctl-benchmark/signals/s1 stream=streams/nornctl-benchmark samples=505 rate=8.417/s
+stream streams/nornctl-benchmark signals=2 samples=1010 rate=16.833/s stored_bytes=4306
+```
+
+`samples` and `rate` cover the window, from `ComputeStats`. `stored_bytes` does not: it is
+the whole stream's size on disk, since the API has no bytes per window. No per-signal bytes
+are printed, for the same reason: a chunk's size is only known per segment
+([inspect](#inspect)).
+
+## benchmark
+
+A quick append and query run from this client against a running daemon. It writes real
+samples, which stay until removed.
+
+```console
+$ nornctl benchmark --signals 4 --rate 5000 --duration 2s --queries 3
+stream: streams/nornctl-benchmark
+signals: 4
+target_rate: 5000
+duration: 2.000s
+batch_samples: 50
+ack: ACKNOWLEDGEMENT_LEVEL_PERSISTED
+append.samples: 10050
+append.batches: 201
+append.rejected_batches: 0
+append.duplicates: 0
+append.samples_per_second: 5015
+append.ack_p50_ms: 0.708
+append.ack_p99_ms: 10.316
+query.calls: 3
+query.samples: 30150
+query.samples_per_second: 280878
+query.p50_ms: 36.129
+query.p99_ms: 36.246
+```
+
+The figures above are from a debug build and show the format, not Norn's performance.
+
+| Flag | Default | |
+| --- | --- | --- |
+| `--stream ID` | `nornctl-benchmark` | the stream, and the entity holding its signals; created if absent |
+| `--signals N` | 10 | double signals, `s0` and on, written in turn |
+| `--rate N\|max` | 10000 | samples per second over all signals; `max` is as fast as acknowledged |
+| `--duration D` | 5s | how long to send |
+| `--batch N` | a hundredth of the rate; 1000 at `max` | samples a batch; refused past the daemon's published limits |
+| `--ack L` | `persisted` | the level latency is measured to |
+| `--queries N` | 10 | `QuerySamples` of everything sent; 0 skips them |
+| `--allow-non-empty` | off | run against a stream that already holds samples |
+
+It refuses, before creating or writing anything, a stream that already holds samples, so a
+second run needs another `--stream` or `--allow-non-empty`. Latency runs from a batch's send
+to its reply at the `--ack` level. At most `max_pending_batches` are outstanding, so a daemon
+that cannot keep up slows the sender and time spent waiting to send is not in the latency:
+read `append.samples_per_second` against `target_rate` beside it. `--timeout` bounds each
+call to start, not the run.
 
 ## Long-running commands
 

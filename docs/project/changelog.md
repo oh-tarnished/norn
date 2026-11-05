@@ -5,6 +5,19 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Changelog
 
+## Unreleased (next release candidate)
+
+Protocol 1.8.
+
+- Published limits: `Limits.max_message_bytes` (256 KiB) and
+  `Limits.max_batch_create_requests` (1000), the values the daemon already enforced, so a
+  client sizes batches from them instead of guessing. `nornctl status` prints them. The
+  batch create comments said 4 MiB; the limit in force was always 256 KiB.
+- `StreamService.GetSegment` and `ListSegments`: a stream's on-disk layout, read-only.
+- `nornctl inspect`, `stats` and `benchmark`.
+- CI: separate end-to-end (`just e2e`) and crash and corruption (`just crash`) jobs on
+  Linux and macOS.
+
 ## Unreleased (1.0.0-rc.1)
 
 Release title: `norn v1.0.0-rc.1`. All workspace crates, including `norn-protocol`,

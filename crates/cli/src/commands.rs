@@ -159,6 +159,12 @@ fn capabilities(numbers: &[i32]) -> String {
 fn write_limits(out: &mut impl Write, l: &Limits) -> std::io::Result<()> {
     writeln!(out, "limits.max_batch_samples: {}", l.max_batch_samples)?;
     writeln!(out, "limits.max_batch_bytes: {}", l.max_batch_bytes)?;
+    writeln!(out, "limits.max_message_bytes: {}", l.max_message_bytes)?;
+    writeln!(
+        out,
+        "limits.max_batch_create_requests: {}",
+        l.max_batch_create_requests
+    )?;
     writeln!(out, "limits.max_pending_batches: {}", l.max_pending_batches)?;
     writeln!(out, "limits.max_streams: {}", l.max_streams)?;
     writeln!(out, "limits.max_replay_sessions: {}", l.max_replay_sessions)?;

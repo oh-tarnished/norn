@@ -150,7 +150,7 @@ any domain.
 - **Crash recovery**: Done. Tested by killing the process, not by cutting power
 - **Compaction, retention, verification**: Done. In the background and on demand; see [Operations](#operations)
 - **Import and export: CSV, Parquet, Arrow IPC, MCAP**: Done. Through `nornctl`, over the public API
-- **`nornctl` command-line client**: Done. No `inspect`, `stats` or `benchmark` yet
+- **`nornctl` command-line client**: Done, including `inspect`, `stats` and `benchmark`
 - **MCP for AI agents, served by the daemon**: Done. `norn --mcp`, 17 read-only tools; off by default. See [MCP](#mcp)
 - **Homebrew package and background service**: Done. `brew services start norn`
 - **Shared-memory data plane**: Done, in 1.0.0-rc.1 (protocol 1.7). Opt-in, Unix sockets only, transparent socket fallback; see [Shared memory](#shared-memory)
@@ -911,7 +911,7 @@ Tests that need Unix signals or Unix sockets run on Linux and macOS only;
 | 11    | Replay        | virtual clock, pause, seek, speed                           | done        | sessions in memory, ended by a restart                                                                                                                                     |
 | 12    | Shared memory | ring buffer, fallback                                       | done        | in 1.0.0-rc.1, protocol 1.7: `norn-shared-memory` over iceoryx2, opt-in, Unix sockets only, transparent socket fallback                                                          |
 | 13    | Adapters      | device protocols, MCAP, Parquet, others                     | done        | CSV, Parquet, Arrow IPC and MCAP, export and import through `nornctl`; device-protocol adapters are separate programs over IPC                                             |
-| 14    | MCP           | MCP server and the rest of `nornctl`                        | done        | MCP inside `norn` (`norn --mcp`): 17 read-only tools, stdio, a socket, a pipe or loopback-only HTTP; `nornctl` adds export, import, compact, verify, retention; no `inspect`, `stats` or `benchmark` yet |
+| 14    | MCP           | MCP server and the rest of `nornctl`                        | done        | MCP inside `norn` (`norn --mcp`): 17 read-only tools, stdio, a socket, a pipe or loopback-only HTTP; `nornctl` adds export, import, compact, verify, retention, `inspect`, `stats`, `benchmark` |
 | 15    | Optimisation  | measured defaults, the full benchmark matrix                | planned     | write path, storage, index, query and IPC measured once                                                                                                                    |
 | 16    | Hardening     | fuzzing, crash, corruption, cross-platform, security review | in progress | crash and corruption tests exist (Unix only: they `kill -9`); CI on Linux, macOS, Windows; no fuzzing, no review                                                           |
 

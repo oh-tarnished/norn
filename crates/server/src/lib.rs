@@ -78,7 +78,10 @@ pub use config::{
 pub use daemon::{Daemon, DaemonError};
 pub use events::{Events, Subscriptions};
 pub use health::serving_status;
-pub use info::{MAX_MESSAGE_BYTES, SERVER_VERSION, capabilities, max_batch_bytes, server_resource};
+pub use info::{
+    MAX_MESSAGE_BYTES, MAX_REQUEST_BYTES, SERVER_VERSION, capabilities, max_batch_bytes,
+    server_resource,
+};
 pub use mcp::read_only_tool_names;
 pub use metered::{Meter, MeterLayer};
 pub use operations::OperationsService;

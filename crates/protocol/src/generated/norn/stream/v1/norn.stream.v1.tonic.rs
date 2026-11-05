@@ -10,6 +10,11 @@ pub mod stream_service_client {
     )]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
+    /** StreamService manages streams and the long-running work done on their
+ stored history: compaction, verification, retention and export. Those return a
+ google.longrunning.Operation, polled through the google.longrunning.
+ Operations service the daemon also serves.
+*/
     #[derive(Debug, Clone)]
     pub struct StreamServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -147,6 +152,57 @@ pub mod stream_service_client {
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("norn.stream.v1.StreamService", "ListStreams"));
+            self.inner.unary(req, path, codec).await
+        }
+        /** Reads one segment file of a stream: its chunks, samples, size and span,
+ and with SEGMENT_VIEW_FULL its encodings. Changes nothing. Since 1.8.
+*/
+        pub async fn get_segment(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetSegmentRequest>,
+        ) -> std::result::Result<tonic::Response<super::Segment>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.stream.v1.StreamService/GetSegment",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("norn.stream.v1.StreamService", "GetSegment"));
+            self.inner.unary(req, path, codec).await
+        }
+        /** Lists a stream's segment files, sealed and open, in name order: how its
+ history sits on disk. Changes nothing. Since 1.8.
+*/
+        pub async fn list_segments(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListSegmentsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListSegmentsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/norn.stream.v1.StreamService/ListSegments",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("norn.stream.v1.StreamService", "ListSegments"));
             self.inner.unary(req, path, codec).await
         }
         /** Changes the fields named in `update_mask`. Tightening `retention` takes
@@ -350,6 +406,23 @@ pub mod stream_service_server {
             tonic::Response<super::ListStreamsResponse>,
             tonic::Status,
         >;
+        /** Reads one segment file of a stream: its chunks, samples, size and span,
+ and with SEGMENT_VIEW_FULL its encodings. Changes nothing. Since 1.8.
+*/
+        async fn get_segment(
+            &self,
+            request: tonic::Request<super::GetSegmentRequest>,
+        ) -> std::result::Result<tonic::Response<super::Segment>, tonic::Status>;
+        /** Lists a stream's segment files, sealed and open, in name order: how its
+ history sits on disk. Changes nothing. Since 1.8.
+*/
+        async fn list_segments(
+            &self,
+            request: tonic::Request<super::ListSegmentsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListSegmentsResponse>,
+            tonic::Status,
+        >;
         /** Changes the fields named in `update_mask`. Tightening `retention` takes
  effect at the next retention pass, never inside this call.
 */
@@ -409,6 +482,11 @@ pub mod stream_service_server {
             tonic::Status,
         >;
     }
+    /** StreamService manages streams and the long-running work done on their
+ stored history: compaction, verification, retention and export. Those return a
+ google.longrunning.Operation, polled through the google.longrunning.
+ Operations service the daemon also serves.
+*/
     #[derive(Debug)]
     pub struct StreamServiceServer<T> {
         inner: Arc<T>,
@@ -605,6 +683,96 @@ pub mod stream_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListStreamsSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.stream.v1.StreamService/GetSegment" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetSegmentSvc<T: StreamService>(pub Arc<T>);
+                    impl<
+                        T: StreamService,
+                    > tonic::server::UnaryService<super::GetSegmentRequest>
+                    for GetSegmentSvc<T> {
+                        type Response = super::Segment;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetSegmentRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StreamService>::get_segment(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetSegmentSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/norn.stream.v1.StreamService/ListSegments" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListSegmentsSvc<T: StreamService>(pub Arc<T>);
+                    impl<
+                        T: StreamService,
+                    > tonic::server::UnaryService<super::ListSegmentsRequest>
+                    for ListSegmentsSvc<T> {
+                        type Response = super::ListSegmentsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListSegmentsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as StreamService>::list_segments(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = ListSegmentsSvc(inner);
                         let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

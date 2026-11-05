@@ -26,8 +26,10 @@
 
 mod append;
 mod args;
+mod benchmark;
 mod commands;
 mod error;
+mod inspect;
 mod plane;
 mod query;
 mod replay;
@@ -35,6 +37,7 @@ pub mod resources;
 mod retention;
 mod session;
 mod state;
+mod stats;
 mod subscribe;
 mod time;
 mod transfer;

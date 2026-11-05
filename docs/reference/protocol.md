@@ -113,7 +113,7 @@ across all of them.
 `EntityService.BatchCreateEntities` and `SignalService.BatchCreateSignals`, for a
 client that provisions a whole deployment at start: a device adapter creates about
 60,000 signals for 1,000 devices, and one create per call dropped readings while it ran. A
-batch holds 1 to 1,000 `Create...Request`s and fits the 4 MiB message limit.
+batch holds 1 to 1,000 `Create...Request`s and fits `Limits.max_message_bytes`, 256 KiB.
 `BatchCreateSignals` takes a parent of `entities/{entity}`, or `entities/-` when the
 signals belong to several entities. A child request's `parent` is then empty or equal
 to the batch's, or under `entities/-` names its own entity. A child's `validate_only`
@@ -470,11 +470,32 @@ with metadata `field`, and also a `google.rpc.BadRequest` field violation.
 
 A request is decoded only after its size is reserved from the IPC memory budget,
 as it arrives. A message above the method's limit (`Limits.max_batch_bytes` for
-`AppendSamples`, 256 KiB for every other method) fails with
+`AppendSamples`, `Limits.max_message_bytes`, 256 KiB, for every other method, streaming
+or not) fails with
 `RESOURCE_EXHAUSTED` and `ERROR_REASON_LIMIT_EXCEEDED` before it is buffered. When
 the budget stays full past a bound, the call fails with `RESOURCE_EXHAUSTED` and
 `ERROR_REASON_CAPACITY_EXHAUSTED`. A batch with too many samples is counted
-before it is decoded and rejected with `BATCH_TOO_LARGE`; the call goes on.
+before it is decoded and rejected with `BATCH_TOO_LARGE`; the call goes on. The size
+refusal's metadata names the `limit` it met.
+
+Size batches from these fields, never from a constant. A `BatchCreateEntities` or
+`BatchCreateSignals` request must fit both `max_batch_create_requests` entries and
+`max_message_bytes` encoded bytes, and at scale the bytes run out first: split on the
+request's encoded length. An `AppendSamples` batch must fit `max_batch_samples` and
+`max_batch_bytes`. A daemon before 1.8 leaves `max_message_bytes` and
+`max_batch_create_requests` zero and enforces 262144 and 1000.
+
+## Inspecting storage
+
+`StreamService.ListSegments` and `GetSegment` (1.8) say how a stream's history sits on
+disk, and change nothing. `SEGMENT_VIEW_BASIC`, the default, answers from the temporal
+index and reads no chunk. `SEGMENT_VIEW_FULL` also reads and checks every chunk of the
+segment for its signals, codecs, compression and decoded size, which costs a read of the
+whole file, so a FULL list page holds at most 10 segments. Segments come and go with
+sealing, compaction and retention: a name read now may answer `NOT_FOUND` at the next
+call, and a FULL list skips a segment that went while it was being read. Neither method
+is an MCP tool. A damaged chunk is counted in `damaged_chunk_count`, not an error;
+`VerifyStream` says where it is.
 
 ## Versioning and capability negotiation (SPEC §40)
 
@@ -483,8 +504,8 @@ package, all versioned in lockstep; it changes only with a new package
 version, which is the only place wire-incompatible changes may happen. `minor`
 counts compatible additions within a major: methods, fields, enum values,
 error reasons, capabilities. `buf breaking` enforces that a minor never breaks
-the wire or JSON form. The published v0.1.0 release speaks 1.6; the next,
-1.0.0-rc.1, speaks 1.7 (`norn_protocol::PROTOCOL_VERSION`).
+the wire or JSON form. The published v0.1.0 release speaks 1.6; 1.0.0-rc.1 speaks 1.7, and this tree
+1.8 (`norn_protocol::PROTOCOL_VERSION`).
 The protocol crate is versioned `1.0.0-rc.1` with the rest of the workspace;
 this release identifier is separate from the integer major/minor wire version.
 1.1 added error reasons, `Server.recovery` and
@@ -516,6 +537,11 @@ ring's whole service, `{service}/{ring}`. Without that answer the call stays on 
 Every response still travels on the gRPC call, so acknowledgements, backpressure and
 errors are unchanged.
 
+1.8 adds `Limits.max_message_bytes` and `Limits.max_batch_create_requests` (see
+"Message limits"), and `StreamService.GetSegment` and `ListSegments` (see "Inspecting
+storage"). The limits themselves are not new: a 1.7 daemon enforces the same values
+without publishing them.
+
 A client calls `AdminService.NegotiateProtocol` once per connection, before
 anything else, with its version and the capabilities it cannot work without:
 
@@ -546,8 +572,9 @@ Capabilities describe what this daemon's build and configuration offer:
 `Server.maintenance` what compaction and retention have done since the start.
 
 `Limits` are published, not discovered by failure: batch size in samples and
-bytes, pending batches per call, streams, replay sessions, subscriptions, and
-the replay idle timeout (SPEC §16, §41).
+bytes, pending batches per call, streams, replay sessions, subscriptions, the
+replay idle timeout, and from 1.8 the largest request of any other method and the
+most requests in a batch create (SPEC §16, §41). See "Message limits".
 
 The daemon offers `APPEND_SAMPLES`, `ACK_PERSISTED`, `QUERY_RANGE`,
 `QUERY_AGGREGATES`, `STATE_AT`, `LIVE_SUBSCRIPTION`, `REPLAY`, `COMPACTION`,

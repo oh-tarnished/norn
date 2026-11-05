@@ -67,6 +67,18 @@ commands:
   retention apply STREAM [--dry-run]
                               run the policy now; --dry-run removes nothing and
                               lists what would go
+  inspect STREAM [SEGMENT] [--basic]
+                              how it sits on disk: segments, chunks, codecs,
+                              compression ratio, time span; --basic reads only
+                              the index, so no codecs and no ratio
+  stats [TARGET] [--from T] [--to T]
+                              per signal and stream: samples and rate over the
+                              window (default the last hour), stored bytes
+  benchmark [--stream ID] [--signals N] [--rate N|max] [--duration D]
+            [--batch N] [--ack LEVEL] [--queries N] [--allow-non-empty]
+                              append then query, printing samples/s and p50/p99
+                              latency; writes to its own stream, and refuses
+                              one holding samples unless --allow-non-empty
 
 options:
   --endpoint ENDPOINT  the daemon's endpoint, such as unix:/run/norn/norn.sock
@@ -142,6 +154,7 @@ pub fn parse<I: IntoIterator<Item = OsString>>(args: I) -> Result<Args, String> 
             "version" if command.is_none() => command = Some(Command::Version),
             "streams" | "entities" | "signals" | "append" | "query" | "state" | "replay"
             | "subscribe" | "export" | "import" | "compact" | "verify" | "retention"
+            | "inspect" | "stats" | "benchmark"
                 if command.is_none() =>
             {
                 command = Some(Command::Resource(vec![arg]));

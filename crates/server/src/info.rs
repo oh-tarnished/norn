@@ -11,10 +11,18 @@ use norn_runtime::ingest::IngestRecovery;
 /// The daemon's release, from its Cargo package version.
 pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// The largest gRPC message the daemon decodes, in bytes; larger requests
-/// fail with `RESOURCE_EXHAUSTED` before any handler runs. It caps
-/// [`max_batch_bytes`]. 4 MiB is tonic's default.
+/// The largest gRPC message the daemon's transport decodes, in bytes; larger
+/// requests fail with `RESOURCE_EXHAUSTED` before any handler runs. It caps
+/// [`max_batch_bytes`]. 4 MiB is tonic's default. Every request but an
+/// `AppendSamples` batch meets the lower [`MAX_REQUEST_BYTES`] first.
 pub const MAX_MESSAGE_BYTES: usize = 4 * 1024 * 1024;
+
+/// The largest request message of any method but `AppendSamples`, in bytes,
+/// published as `Limits.max_message_bytes` and enforced by the metered
+/// reader as each message arrives, before it is buffered. The largest legal
+/// single-resource request is an annotated create, 64 entries of about
+/// 1.2 KiB; a batch create must be split to fit.
+pub const MAX_REQUEST_BYTES: usize = 256 * 1024;
 
 /// The capabilities a daemon with `config` offers. `ACK_DURABLE` needs a
 /// durability boundary, so `durable_acks = false` withdraws it.
@@ -107,6 +115,8 @@ fn limits(config: &Config) -> Limits {
             seconds: idle,
             nanos: 0,
         }),
+        max_message_bytes: i64::try_from(MAX_REQUEST_BYTES).unwrap_or(i64::MAX),
+        max_batch_create_requests: count(norn_metadata::MAX_BATCH_CREATE),
     }
 }
 

@@ -7,8 +7,8 @@ package norn.admin.v1;
 
 import "google/api/field_behavior.proto";
 import "google/api/resource.proto";
-import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+import "norn/admin/v1/limits.proto";
 import "norn/admin/v1/maintenance.proto";
 
 option java_multiple_files = true;
@@ -125,34 +125,6 @@ message ProtocolVersion {
 
   // The minor version within `major`.
   int32 minor = 2 [(google.api.field_behavior) = REQUIRED];
-}
-
-// The bounds the daemon enforces, published so clients size their work to
-// fit instead of discovering the bounds by failure (SPEC sections 16 and
-// 41). Exceeding one fails with ERROR_REASON_LIMIT_EXCEEDED or
-// ERROR_REASON_CAPACITY_EXHAUSTED.
-message Limits {
-  // The most samples in one AppendSamplesRequest.
-  int32 max_batch_samples = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
-
-  // The largest AppendSamplesRequest, in encoded bytes.
-  int64 max_batch_bytes = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
-
-  // The most batches one AppendSamples call may have unacknowledged at
-  // the level it asked for.
-  int32 max_pending_batches = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
-
-  // The most streams the daemon holds.
-  int32 max_streams = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
-
-  // The most replay sessions that may exist at once.
-  int32 max_replay_sessions = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
-
-  // The most SubscribeEvents calls open at once.
-  int32 max_subscriptions = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
-
-  // How long a replay session may sit idle before the daemon deletes it.
-  google.protobuf.Duration replay_session_idle_timeout = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // Something a daemon may or may not offer. A client lists the ones it

@@ -12,9 +12,11 @@
 mod column;
 pub(crate) mod decode;
 pub(crate) mod encode;
+pub(crate) mod layout;
 
 pub use column::Column;
 pub use encode::EncodedChunk;
+pub use layout::{ChunkLayout, SectionLayout};
 
 use norn_core::{Quality, Sample, Sequence, SignalId, Timestamp, Value, ValueKind};
 

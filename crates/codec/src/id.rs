@@ -114,6 +114,35 @@ impl CodecId {
         ALL_CODECS.iter().copied().find(|c| *c as u8 == id)
     }
 
+    /// A stable lowercase name, such as `float64-gorilla`, for display in
+    /// inspection tools. Never parsed back: the byte is the identity.
+    #[must_use]
+    pub fn name(self) -> &'static str {
+        use CodecId::*;
+        match self {
+            TimestampRegular => "timestamp-regular",
+            TimestampDelta => "timestamp-delta",
+            TimestampDeltaOfDelta => "timestamp-delta-of-delta",
+            TimestampFor => "timestamp-for",
+            TimestampRle => "timestamp-rle",
+            IntegerRegular => "integer-regular",
+            IntegerDelta => "integer-delta",
+            IntegerDeltaOfDelta => "integer-delta-of-delta",
+            IntegerFor => "integer-for",
+            IntegerRle => "integer-rle",
+            BooleanBits => "boolean-bits",
+            BooleanRle => "boolean-rle",
+            EnumDict => "enum-dict",
+            EnumDictRle => "enum-dict-rle",
+            Float64Gorilla => "float64-gorilla",
+            Float64Alp => "float64-alp",
+            Float32Gorilla => "float32-gorilla",
+            Float32Alp => "float32-alp",
+            BytesPlain => "bytes-plain",
+            BytesDict => "bytes-dict",
+        }
+    }
+
     /// The column type this codec encodes.
     pub fn column(self) -> ColumnType {
         match self as u8 >> 4 {
