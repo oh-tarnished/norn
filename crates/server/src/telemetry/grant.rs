@@ -13,8 +13,9 @@ use tokio::sync::mpsc;
 use tonic::metadata::MetadataValue;
 use tonic::{Request, Response, Streaming};
 
+use super::call::forward;
 use super::source::Source;
-use super::{Responses, Telemetry, forward};
+use super::{Responses, Telemetry};
 use crate::metered::Held;
 
 impl Telemetry {

@@ -132,7 +132,10 @@ audited by this project.
 iceoryx2 0.10 creates file mappings with no security attributes, so a mapping
 gets the token's default descriptor, not an owner-only one, and offers no way to
 pass one. The daemon therefore never offers rings on Windows; clients stay on the
-named pipe.
+named pipe. iceoryx2 is not built for Windows at all: `norn-shared-memory` keeps
+its settings and sizes there, and its `Ring` and `SharedMemory` are stand-ins that
+refuse, so the daemon and `nornctl` compile unchanged and `--shared-memory` falls
+back to the pipe.
 
 ## Dependencies and gates
 

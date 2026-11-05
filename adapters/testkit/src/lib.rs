@@ -41,7 +41,7 @@ pub fn catalog() -> Catalog {
                 value_type: n,
                 stream: "streams/s".to_owned(),
                 unit: "Cel".to_owned(),
-                annotations: annotations("protocol", "BACnet"),
+                annotations: annotations("source", "simulator"),
                 ..Signal::default()
             }
         })
@@ -50,13 +50,13 @@ pub fn catalog() -> Catalog {
         streams: vec![Stream {
             name: "streams/s".to_owned(),
             display_name: "a stream".to_owned(),
-            annotations: annotations("site", "north"),
+            annotations: annotations("deployment", "north"),
             ..Stream::default()
         }],
         entities: vec![Entity {
             name: "entities/e".to_owned(),
             display_name: "an entity".to_owned(),
-            annotations: annotations("kind", "ahu"),
+            annotations: annotations("kind", "sensor"),
             ..Entity::default()
         }],
         signals,

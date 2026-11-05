@@ -36,24 +36,24 @@ fn a_batch_creates_every_signal_with_its_own_id_and_survives_a_restart() {
     let r = open(&dir.0);
     seed(&r);
     let made = r
-        .create_signals(signals("ahu-01", 500), t(2), Write::Commit)
+        .create_signals(signals("dev-01", 500), t(2), Write::Commit)
         .unwrap();
     assert_eq!(made.len(), 500);
     assert_eq!(made[7].descriptor.name.as_str(), "s-7");
     let mut ids: Vec<_> = made.iter().map(|s| s.descriptor.id).collect();
-    ids.push(r.signal("ahu-01", "temp").unwrap().descriptor.id);
+    ids.push(r.signal("dev-01", "temp").unwrap().descriptor.id);
     ids.sort_unstable();
     ids.dedup();
     assert_eq!(ids.len(), 501, "every signal has its own compact ID");
     drop(r);
     let r = open(&dir.0);
     assert_eq!(
-        r.list_signals(Some("ahu-01"), None, 1000, |_| true).len(),
+        r.list_signals(Some("dev-01"), None, 1000, |_| true).len(),
         501
     );
-    let back = r.signal("ahu-01", "s-499").unwrap();
+    let back = r.signal("dev-01", "s-499").unwrap();
     assert_eq!(back.descriptor.id, made[499].descriptor.id);
-    assert!(r.view().route("entities/ahu-01/signals/s-499").is_some());
+    assert!(r.view().route("entities/dev-01/signals/s-499").is_some());
 }
 
 #[test]
@@ -62,11 +62,11 @@ fn repeating_a_batch_returns_what_exists_and_writes_nothing() {
     let r = open(&dir.0);
     seed(&r);
     let first = r
-        .create_signals(signals("ahu-01", 50), t(2), Write::Commit)
+        .create_signals(signals("dev-01", 50), t(2), Write::Commit)
         .unwrap();
     let before = log_len(&dir);
     let again = r
-        .create_signals(signals("ahu-01", 50), t(3), Write::Commit)
+        .create_signals(signals("dev-01", 50), t(3), Write::Commit)
         .unwrap();
     assert_eq!(log_len(&dir), before);
     for (a, b) in first.iter().zip(&again) {
@@ -76,8 +76,8 @@ fn repeating_a_batch_returns_what_exists_and_writes_nothing() {
     let mixed = r
         .create_entities(
             vec![
-                ("ahu-01".into(), EntitySpec::default()),
-                ("ahu-02".into(), EntitySpec::default()),
+                ("dev-01".into(), EntitySpec::default()),
+                ("dev-02".into(), EntitySpec::default()),
             ],
             t(4),
             Write::Commit,
@@ -98,14 +98,14 @@ fn a_signal_that_disagrees_on_its_value_kind_or_stream_fails_the_whole_batch() {
         SignalSpec::new(ValueKind::Bool, "plant".into()),
         SignalSpec::new(ValueKind::F64, "other".into()),
     ] {
-        let mut batch = signals("ahu-01", 3);
-        batch.push(("ahu-01".into(), "temp".into(), spec));
+        let mut batch = signals("dev-01", 3);
+        batch.push(("dev-01".into(), "temp".into(), spec));
         let e = r.create_signals(batch, t(2), Write::Commit);
         assert!(
             matches!(e, Err(MetadataError::AlreadyExists { .. })),
             "{e:?}"
         );
-        assert!(r.signal("ahu-01", "s-0").is_err(), "nothing was created");
+        assert!(r.signal("dev-01", "s-0").is_err(), "nothing was created");
     }
 }
 
@@ -114,12 +114,12 @@ fn a_missing_parent_a_repeated_id_or_a_bad_id_creates_nothing() {
     let dir = Dir::new();
     let r = open(&dir.0);
     seed(&r);
-    let mut missing = signals("ahu-01", 3);
+    let mut missing = signals("dev-01", 3);
     missing.extend(signals("nope", 1));
     let e = r.create_signals(missing, t(2), Write::Commit);
     assert!(matches!(e, Err(MetadataError::NotFound { .. })), "{e:?}");
-    let mut twice = signals("ahu-01", 3);
-    twice.extend(signals("ahu-01", 1));
+    let mut twice = signals("dev-01", 3);
+    twice.extend(signals("dev-01", 1));
     let e = r.create_signals(twice, t(2), Write::Commit);
     assert!(matches!(e, Err(MetadataError::Invalid { .. })), "{e:?}");
     let bad = vec![
@@ -128,7 +128,7 @@ fn a_missing_parent_a_repeated_id_or_a_bad_id_creates_nothing() {
     ];
     let e = r.create_entities(bad, t(2), Write::Commit);
     assert!(matches!(e, Err(MetadataError::Invalid { .. })), "{e:?}");
-    assert!(r.signal("ahu-01", "s-0").is_err());
+    assert!(r.signal("dev-01", "s-0").is_err());
     assert!(r.entity("ok").is_err());
 }
 
@@ -139,7 +139,7 @@ fn a_batch_past_a_limit_is_refused_whole() {
     limits.max_signals = 10;
     let (r, _) = Registry::open(&dir.0, limits, MetadataLimits::default()).unwrap();
     seed(&r);
-    let e = r.create_signals(signals("ahu-01", 10), t(2), Write::Commit);
+    let e = r.create_signals(signals("dev-01", 10), t(2), Write::Commit);
     assert!(matches!(
         e,
         Err(MetadataError::LimitExceeded {
@@ -148,7 +148,7 @@ fn a_batch_past_a_limit_is_refused_whole() {
         })
     ));
     assert_eq!(r.list_signals(None, None, 100, |_| true).len(), 1);
-    let e = r.create_signals(signals("ahu-01", MAX_BATCH_CREATE + 1), t(2), Write::Commit);
+    let e = r.create_signals(signals("dev-01", MAX_BATCH_CREATE + 1), t(2), Write::Commit);
     assert!(matches!(
         e,
         Err(MetadataError::LimitExceeded {
@@ -165,9 +165,9 @@ fn validate_only_answers_with_the_records_and_stores_nothing() {
     seed(&r);
     let before = log_len(&dir);
     let made = r
-        .create_signals(signals("ahu-01", 5), t(2), Write::ValidateOnly)
+        .create_signals(signals("dev-01", 5), t(2), Write::ValidateOnly)
         .unwrap();
     assert_eq!(made.len(), 5);
-    assert!(r.signal("ahu-01", "s-0").is_err());
+    assert!(r.signal("dev-01", "s-0").is_err());
     assert_eq!(log_len(&dir), before);
 }

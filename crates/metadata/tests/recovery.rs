@@ -42,8 +42,8 @@ fn a_torn_tail_is_kept_aside_and_cut_and_earlier_records_survive() {
         assert!(report.torn_bytes > 0);
         let side = report.torn_to.clone().unwrap();
         assert!(side.exists());
-        assert!(r.entity("ahu-01").is_ok());
-        assert!(r.signal("ahu-01", "temp").is_err());
+        assert!(r.entity("dev-01").is_ok());
+        assert!(r.signal("dev-01", "temp").is_err());
     }
 }
 
@@ -68,14 +68,14 @@ fn a_log_full_of_dead_records_is_rewritten_and_replays_the_same() {
     seed(&r);
     for i in 0..1_500 {
         let patch = EntityPatch::new(Some(format!("name {i}")), Some(Metadata::default()));
-        r.update_entity("ahu-01", patch, None, t(i), Write::Commit)
+        r.update_entity("dev-01", patch, None, t(i), Write::Commit)
             .unwrap();
     }
     let len = std::fs::metadata(dir.0.join("metadata.log")).unwrap().len();
     assert!(len < 120_000, "log was not rewritten: {len} bytes");
-    let last = r.entity("ahu-01").unwrap();
+    let last = r.entity("dev-01").unwrap();
     drop(r);
-    let back = open(&dir.0).entity("ahu-01").unwrap();
+    let back = open(&dir.0).entity("dev-01").unwrap();
     assert_eq!(back.display_name, last.display_name);
     assert_eq!(back.revision, last.revision);
 }

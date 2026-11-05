@@ -30,7 +30,7 @@ async fn a_change_is_bit_for_bit_so_signed_zero_differs_and_nan_equals_itself() 
     append(&d.channel, vec![batch(1, samples.collect(), Persisted)]).await;
     for size in [100, 1] {
         let mut r = FindEventsRequest {
-            parent: "entities/ahu".into(),
+            parent: "entities/dev".into(),
             kind: EventKind::ValueChange as i32,
             page_size: size,
             ..FindEventsRequest::default()

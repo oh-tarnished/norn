@@ -7,7 +7,7 @@ use std::io;
 
 use norn_ipc::{Attach, DataPlane, SharedMemoryTicket};
 
-use crate::producer::Producer;
+use super::producer::Producer;
 
 /// Attaches `norn_ipc::AppendCall`s to the rings a daemon grants. Pass it to
 /// `norn_ipc::AppendOptions::shared_memory`; that is the client's whole opt-in.

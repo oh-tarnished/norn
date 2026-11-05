@@ -87,7 +87,7 @@ async fn queries_and_state_lose_and_double_nothing_while_ingest_and_compaction_r
                 let acknowledged = (next.load(Ordering::Acquire) - 1).max(0) * 40;
                 check_whole(&channel, acknowledged).await;
                 let request = ComputeStateRequest {
-                    parent: "entities/ahu".into(),
+                    parent: "entities/dev".into(),
                     state_time: Some(prost_types::Timestamp {
                         seconds: 100_000,
                         nanos: 0,

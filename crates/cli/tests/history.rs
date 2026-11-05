@@ -40,20 +40,20 @@ async fn state_replay_and_subscribe_read_history_back() {
         tokio::task::spawn_blocking(move || nornctl(&e, &w))
     };
     run(vec!["streams", "create", "plant"]).await.unwrap();
-    run(vec!["entities", "create", "ahu"]).await.unwrap();
-    run(vec!["signals", "create", "ahu", "t", "plant", "double"])
+    run(vec!["entities", "create", "dev"]).await.unwrap();
+    run(vec!["signals", "create", "dev", "t", "plant", "double"])
         .await
         .unwrap();
     for (value, at) in [("20", "1000"), ("21", "1001"), ("22", "1002")] {
-        let words = vec!["append", "plant", "entities/ahu/signals/t", value];
+        let words = vec!["append", "plant", "entities/dev/signals/t", value];
         let mut words = words;
         words.extend(["--ack", "persisted", "--at", at]);
         run(words).await.unwrap();
     }
-    let state = run(vec!["state", "ahu", "--at", "1001"]).await.unwrap();
-    assert!(state.contains("entities/ahu/signals/t 21 GOOD"), "{state}");
+    let state = run(vec!["state", "dev", "--at", "1001"]).await.unwrap();
+    assert!(state.contains("entities/dev/signals/t 21 GOOD"), "{state}");
     let made = run(vec![
-        "replay", "create", "ahu", "--from", "1000", "--to", "1003", "--speed", "max", "--id", "r1",
+        "replay", "create", "dev", "--from", "1000", "--to", "1003", "--speed", "max", "--id", "r1",
     ]);
     let made = made.await.unwrap();
     assert!(made.starts_with("replaySessions/r1 PAUSED"), "{made}");
@@ -67,7 +67,7 @@ async fn state_replay_and_subscribe_read_history_back() {
         "{seen}"
     );
     assert!(
-        lines[3].contains("entities/ahu/signals/t 22 GOOD"),
+        lines[3].contains("entities/dev/signals/t 22 GOOD"),
         "{seen}"
     );
     assert!(lines[4].ends_with("ENDED"), "{seen}");

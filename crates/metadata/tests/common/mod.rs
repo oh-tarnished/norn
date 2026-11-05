@@ -42,9 +42,9 @@ pub fn t(n: i64) -> Timestamp {
 pub fn seed(r: &Registry) {
     r.create_stream("plant", StreamSpec::default(), t(1), Write::Commit)
         .unwrap();
-    r.create_entity("ahu-01", EntitySpec::default(), t(1), Write::Commit)
+    r.create_entity("dev-01", EntitySpec::default(), t(1), Write::Commit)
         .unwrap();
     let spec = SignalSpec::new(ValueKind::F64, "plant".into());
-    r.create_signal("ahu-01", "temp", spec, t(1), Write::Commit)
+    r.create_signal("dev-01", "temp", spec, t(1), Write::Commit)
         .unwrap();
 }

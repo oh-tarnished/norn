@@ -115,12 +115,12 @@ impl Field {
         String::from_utf8(out.stdout).unwrap()
     }
 
-    /// `streams/plant`, `entities/ahu`, and a double signal for each of `ids`.
+    /// `streams/plant`, `entities/dev`, and a double signal for each of `ids`.
     pub fn seed(&self, ids: &[&str]) {
         self.ok(&["streams", "create", "plant"]);
-        self.ok(&["entities", "create", "ahu"]);
+        self.ok(&["entities", "create", "dev"]);
         for id in ids {
-            self.ok(&["signals", "create", "ahu", id, "plant", "double"]);
+            self.ok(&["signals", "create", "dev", id, "plant", "double"]);
         }
     }
 
@@ -158,10 +158,10 @@ pub fn now_nanos() -> i64 {
     i64::try_from(since.as_nanos()).unwrap()
 }
 
-/// A good double sample of `entities/ahu/signals/{id}` at `nanos`.
+/// A good double sample of `entities/dev/signals/{id}` at `nanos`.
 pub fn sample(id: &str, nanos: i64, sequence: i64) -> Sample {
     Sample {
-        signal: format!("entities/ahu/signals/{id}"),
+        signal: format!("entities/dev/signals/{id}"),
         observe_time: Some(prost_types::Timestamp {
             seconds: nanos.div_euclid(1_000_000_000),
             nanos: i32::try_from(nanos.rem_euclid(1_000_000_000)).unwrap(),

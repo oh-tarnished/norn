@@ -16,13 +16,13 @@ use support::Running;
 /// A plant: two signals, metadata created by hand, and some samples.
 fn fill(daemon: &Running) {
     daemon.ok(&["streams", "create", "plant"]);
-    daemon.ok(&["entities", "create", "ahu-01"]);
-    let create = ["signals", "create", "ahu-01"];
+    daemon.ok(&["entities", "create", "dev-01"]);
+    let create = ["signals", "create", "dev-01"];
     daemon.ok(&[&create[..], &["temp", "plant", "double"]].concat());
     daemon.ok(&[&create[..], &["fan", "plant", "bool"]].concat());
     for (i, value) in ["NaN", "inf", "-0", "21.5"].iter().enumerate() {
         let at = format!("2026-11-02T08:00:0{i}Z");
-        let name = "entities/ahu-01/signals/temp";
+        let name = "entities/dev-01/signals/temp";
         daemon.ok(&[
             "append",
             "plant",
@@ -34,7 +34,7 @@ fn fill(daemon: &Running) {
             &at,
         ]);
     }
-    let name = "entities/ahu-01/signals/fan";
+    let name = "entities/dev-01/signals/fan";
     let at = "2026-11-02T08:00:00Z";
     daemon.ok(&[
         "append",
@@ -110,12 +110,12 @@ async fn a_file_contradicting_a_signals_type_is_refused_and_names_it() {
     fill(&daemon);
     let path = daemon.dir.0.join("hand.csv");
     let text = "time,signal,stream,type,value,severity,substatus,sequence\n\
-        2026-11-02T09:00:00Z,entities/ahu-01/signals/temp,streams/plant,int32,7,GOOD,,0\n";
+        2026-11-02T09:00:00Z,entities/dev-01/signals/temp,streams/plant,int32,7,GOOD,,0\n";
     std::fs::write(&path, text).unwrap();
     let output = daemon.nornctl(&["import", path.to_str().unwrap()]);
     assert!(!output.status.success());
     let error = String::from_utf8(output.stderr).unwrap();
-    assert!(error.contains("entities/ahu-01/signals/temp"), "{error}");
+    assert!(error.contains("entities/dev-01/signals/temp"), "{error}");
     assert!(error.contains("conflict"), "{error}");
     daemon.stop().await;
 }

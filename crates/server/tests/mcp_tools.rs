@@ -36,7 +36,7 @@ fn seen(rows: &[Value]) -> Vec<String> {
 
 async fn catalogue(c: &Client) {
     let rows = c.ok("entity_service-list_entities_v1", json!({})).await;
-    assert_eq!(rows["entities"][0]["name"], "entities/ahu");
+    assert_eq!(rows["entities"][0]["name"], "entities/dev");
     let args = json!({"parent": "entities/-"});
     let rows = c
         .all("signal_service-list_signals_v1", args, "signals", 1)
@@ -75,7 +75,7 @@ fn interval(from: i64, to: i64) -> Value {
 
 async fn reads(c: &Client) {
     let tool = "query_service-browse_samples_v1";
-    let args = json!({"parent": "entities/ahu", "filter": "id = \"temp\"", "interval": interval(1100, 1120)});
+    let args = json!({"parent": "entities/dev", "filter": "id = \"temp\"", "interval": interval(1100, 1120)});
     let rows = c.all(tool, args, "samples", 7).await;
     let want = of(TEMP, |r| (1100..1120).contains(&r.second));
     assert_eq!(seen(&rows), times(&want));
@@ -122,11 +122,11 @@ async fn state(c: &Client) {
 
 async fn computed(c: &Client) {
     let tool = "query_service-find_events_v1";
-    let args = json!({"parent": "entities/ahu", "filter": "id = \"temp\"",
+    let args = json!({"parent": "entities/dev", "filter": "id = \"temp\"",
         "kind": "EVENT_KIND_MATCH", "sample_filter": "value >= 24"});
     let got = c.all(tool, args, "events", 3).await;
     assert_eq!(got.len(), of(TEMP, |r| number(r) >= 24.0).len());
-    let args = json!({"parent": "entities/ahu", "filter": "id = \"on\"", "kind": "EVENT_KIND_VALUE_CHANGE"});
+    let args = json!({"parent": "entities/dev", "filter": "id = \"on\"", "kind": "EVENT_KIND_VALUE_CHANGE"});
     let rows = of(ON, |_| true);
     let want = rows.windows(2).filter(|w| w[0].value != w[1].value).count();
     assert_eq!(c.all(tool, args, "events", 1).await.len(), want);

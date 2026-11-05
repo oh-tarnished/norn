@@ -29,7 +29,7 @@ fn interval(from: i64, to: i64) -> Value {
 }
 
 async fn replay(c: &Client) {
-    let session = json!({"interval": interval(1000, 1010), "scope": "entities/ahu",
+    let session = json!({"interval": interval(1000, 1010), "scope": "entities/dev",
         "filter": "id = \"temp\"", "speed": 0.0});
     let args = json!({"replay_session": session});
     let made = c.ok("replay_service-create_replay_session_v1", args).await;

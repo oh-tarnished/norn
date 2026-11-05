@@ -29,7 +29,7 @@ use tonic::transport::Channel;
 
 fn at(seconds: i64) -> ComputeStateRequest {
     ComputeStateRequest {
-        parent: "entities/ahu".into(),
+        parent: "entities/dev".into(),
         state_time: Some(prost_types::Timestamp { seconds, nanos: 0 }),
         ..ComputeStateRequest::default()
     }
@@ -58,7 +58,7 @@ async fn a_persisted_sample_is_in_the_state_at_once_and_a_silent_signal_is_unkno
     assert_eq!(sequences(&got), [Some(5), Some(7), None]);
     assert_eq!(got.state_time.unwrap().seconds, 1_008);
     let names: Vec<_> = got.signal_states.iter().map(|s| &s.signal).collect();
-    assert_eq!(names[0], "entities/ahu/signals/a", "in signal name order");
+    assert_eq!(names[0], "entities/dev/signals/a", "in signal name order");
     let got = call(&d.channel, at(1_009)).await.unwrap();
     assert_eq!(sequences(&got), [Some(9), Some(7), None]);
     let _ = std::fs::remove_dir_all(d.stop_keeping().await);

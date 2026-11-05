@@ -1,9 +1,10 @@
 //! SPDX-FileCopyrightText: 2026 Srikanth K
 //! SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Stopping with clients still connected: an idle connection, and an
+//! Stopping with clients still connected: an idle connection, an
 //! `AppendSamples` call held open between batches the way a long-running
-//! collector holds it, must not keep the graceful drain waiting for its bound.
+//! collector holds it, and a held `grpc.health.v1.Health/Watch`, must not keep
+//! the graceful drain waiting for its bound.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod common;
@@ -17,6 +18,9 @@ use norn_protocol::telemetry::telemetry_service_client::TelemetryServiceClient;
 use norn_server::DaemonConfig;
 use tokio::sync::mpsc;
 use tonic::Code;
+use tonic_health::pb::HealthCheckRequest;
+use tonic_health::pb::health_check_response::ServingStatus;
+use tonic_health::pb::health_client::HealthClient;
 
 /// Ten seconds, the default: a stop that took it would be the bug.
 const DRAIN: Duration = Duration::from_secs(10);
@@ -73,5 +77,37 @@ async fn an_idle_append_call_ends_unavailable_at_shutdown_instead_of_holding_the
     let took = started.elapsed();
     assert!(took < PROMPT, "an idle append held the drain for {took:?}");
     drop(tx);
+    let _ = std::fs::remove_dir_all(&d.data);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_held_health_watch_ends_unavailable_at_shutdown_instead_of_holding_the_drain() {
+    let config = DaemonConfig::default().drain_timeout(DRAIN);
+    let d = start(config, temp("drain-watch")).await;
+    let mut client = HealthClient::new(d.channel.clone());
+    let request = HealthCheckRequest {
+        service: String::new(),
+    };
+    let mut watch = client.watch(request).await.unwrap().into_inner();
+    let first = watch.message().await.unwrap().unwrap();
+    assert_eq!(first.status, ServingStatus::Serving as i32, "{first:?}");
+    // The watch stays open, as a supervisor's or a load balancer's does.
+    let started = Instant::now();
+    d.cancel.cancel();
+    let mut statuses = Vec::new();
+    let status = loop {
+        let next = tokio::time::timeout(DRAIN, watch.message()).await;
+        match next.expect("the watch outlived the drain bound") {
+            Ok(Some(reply)) => statuses.push(reply.status),
+            Ok(None) => panic!("ended without a status after {statuses:?}"),
+            Err(status) => break status,
+        }
+    };
+    assert_eq!(status.code(), Code::Unavailable, "{status:?}");
+    let not_serving = ServingStatus::NotServing as i32;
+    assert_eq!(statuses.last(), Some(&not_serving), "{statuses:?}");
+    d.task.await.unwrap().unwrap();
+    let took = started.elapsed();
+    assert!(took < PROMPT, "a held watch held the drain for {took:?}");
     let _ = std::fs::remove_dir_all(&d.data);
 }

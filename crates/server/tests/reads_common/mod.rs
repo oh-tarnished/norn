@@ -19,9 +19,9 @@ use norn_protocol::telemetry::telemetry_service_client::TelemetryServiceClient;
 use norn_protocol::telemetry::{AcknowledgementLevel, AppendSamplesRequest};
 use tonic::transport::Channel;
 
-pub const TEMP: &str = "entities/ahu/signals/temp";
-pub const ON: &str = "entities/ahu/signals/on";
-pub const MODE: &str = "entities/ahu/signals/mode";
+pub const TEMP: &str = "entities/dev/signals/temp";
+pub const ON: &str = "entities/dev/signals/on";
+pub const MODE: &str = "entities/dev/signals/mode";
 pub const FLOW: &str = "entities/pump/signals/flow";
 
 /// One seeded sample.
@@ -149,7 +149,7 @@ pub async fn seed(c: &Channel) {
         .create_stream(stream)
         .await
         .unwrap();
-    for id in ["ahu", "pump"] {
+    for id in ["dev", "pump"] {
         let request = CreateEntityRequest {
             entity_id: id.to_owned(),
             entity: Some(Entity::default()),
@@ -160,9 +160,9 @@ pub async fn seed(c: &Channel) {
             .await
             .unwrap();
     }
-    signal(c, "ahu", "temp", ValueType::Double).await;
-    signal(c, "ahu", "on", ValueType::Bool).await;
-    signal(c, "ahu", "mode", ValueType::String).await;
+    signal(c, "dev", "temp", ValueType::Double).await;
+    signal(c, "dev", "on", ValueType::Bool).await;
+    signal(c, "dev", "mode", ValueType::String).await;
     signal(c, "pump", "flow", ValueType::Int64).await;
     let batch = AppendSamplesRequest {
         stream: "streams/plant".to_owned(),

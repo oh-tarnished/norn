@@ -8,6 +8,8 @@ use std::io;
 use std::os::unix::fs::DirBuilderExt;
 use std::path::{Path, PathBuf};
 
+pub use crate::rings::{Ring, SharedMemory};
+
 /// Whether every mapping iceoryx2 creates here is reachable only by its owner.
 pub const OWNER_ONLY_MAPPINGS: bool = true;
 

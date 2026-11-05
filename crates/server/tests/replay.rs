@@ -61,7 +61,7 @@ async fn a_replay_gives_back_exactly_what_was_recorded_in_order_and_again() {
     let stored = samples(
         &d.channel,
         QuerySamplesRequest {
-            parent: "entities/ahu".into(),
+            parent: "entities/dev".into(),
             interval: Some(Interval {
                 start_time: seconds(1_000),
                 end_time: seconds(1_100),

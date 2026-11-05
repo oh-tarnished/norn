@@ -13,7 +13,7 @@ use tonic::transport::Channel;
 
 pub fn all() -> QuerySamplesRequest {
     QuerySamplesRequest {
-        parent: "entities/ahu".into(),
+        parent: "entities/dev".into(),
         ..QuerySamplesRequest::default()
     }
 }

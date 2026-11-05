@@ -64,9 +64,9 @@ async fn repeating_a_batch_returns_the_stored_resources_rather_than_an_error() {
     seed(&d.channel, &[("t", ValueType::Double)]).await;
     let mut client = SignalServiceClient::new(d.channel.clone());
     let batch = || {
-        let mut r = vec![signal("ahu", "t", ValueType::Double)];
-        r.extend((0..5).map(|i| signal("ahu", &format!("s-{i}"), ValueType::Double)));
-        signals("entities/ahu", r)
+        let mut r = vec![signal("dev", "t", ValueType::Double)];
+        r.extend((0..5).map(|i| signal("dev", &format!("s-{i}"), ValueType::Double)));
+        signals("entities/dev", r)
     };
     let first = client
         .batch_create_signals(batch())
@@ -82,7 +82,7 @@ async fn repeating_a_batch_returns_the_stored_resources_rather_than_an_error() {
     assert_eq!(count(&mut client).await, 6);
     let mut entities = EntityServiceClient::new(d.channel.clone());
     let twice = BatchCreateEntitiesRequest {
-        requests: vec![entity("ahu"), entity("ahu-2")],
+        requests: vec![entity("dev"), entity("dev-2")],
         validate_only: false,
     };
     let made = entities.batch_create_entities(twice.clone()).await.unwrap();

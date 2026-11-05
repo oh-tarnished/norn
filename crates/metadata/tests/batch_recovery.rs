@@ -54,7 +54,7 @@ fn a_crash_anywhere_inside_a_batch_loses_all_of_it_and_nothing_before() {
     let log = dir.0.join("metadata.log");
     let before = std::fs::read(&log).unwrap().len();
     let r = open(&dir.0);
-    r.create_signals(batch("ahu-01", 20), t(2), Write::Commit)
+    r.create_signals(batch("dev-01", 20), t(2), Write::Commit)
         .unwrap();
     drop(r);
     let whole = std::fs::read(&log).unwrap();
@@ -64,13 +64,13 @@ fn a_crash_anywhere_inside_a_batch_loses_all_of_it_and_nothing_before() {
         let (r, report) =
             Registry::open(&dir.0, Limits::default(), MetadataLimits::default()).unwrap();
         assert_eq!(report.torn_bytes, (keep - before) as u64, "cut at {keep}");
-        assert!(r.signal("ahu-01", "temp").is_ok());
-        assert!(r.list_signals(Some("ahu-01"), None, 100, |_| true).len() == 1);
+        assert!(r.signal("dev-01", "temp").is_ok());
+        assert!(r.list_signals(Some("dev-01"), None, 100, |_| true).len() == 1);
     }
     std::fs::write(&log, &whole).unwrap();
     let r = reopen(&dir).unwrap();
     assert_eq!(
-        r.list_signals(Some("ahu-01"), None, 100, |_| true).len(),
+        r.list_signals(Some("dev-01"), None, 100, |_| true).len(),
         21
     );
 }
@@ -89,7 +89,7 @@ fn a_version_1_log_opens_is_upgraded_and_then_refused_by_a_version_1_reader() {
     bytes[12..16].copy_from_slice(&crc.to_le_bytes());
     std::fs::write(&log, &bytes).unwrap();
     let r = reopen(&dir).unwrap();
-    assert!(r.signal("ahu-01", "temp").is_ok());
+    assert!(r.signal("dev-01", "temp").is_ok());
     drop(r);
     let upgraded = std::fs::read(&log).unwrap();
     assert_eq!(&upgraded[8..12], &2u32.to_le_bytes());

@@ -65,16 +65,16 @@ async fn compact_verify_and_a_dry_run_then_a_real_retention_pass_work_from_the_c
     let data = dir.join("data");
     let (cancel, task) = serving(&endpoint, &data).await;
     ok(&endpoint, &["streams", "create", "plant"]);
-    ok(&endpoint, &["entities", "create", "ahu"]);
+    ok(&endpoint, &["entities", "create", "dev"]);
     ok(
         &endpoint,
-        &["signals", "create", "ahu", "t", "plant", "double"],
+        &["signals", "create", "dev", "t", "plant", "double"],
     );
     cancel.cancel();
     task.await.unwrap();
     for at in ["1000", "100000", "200000"] {
         let (cancel, task) = serving(&endpoint, &data).await;
-        let signal = "entities/ahu/signals/t";
+        let signal = "entities/dev/signals/t";
         ok(&endpoint, &["append", "plant", signal, "21.5", "--at", at]);
         cancel.cancel();
         task.await.unwrap();
