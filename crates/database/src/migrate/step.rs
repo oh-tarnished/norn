@@ -3,7 +3,7 @@
 
 //! One migration step: new files beside the old, an atomic switch, a check, cleanup.
 
-use std::fs::{self, File};
+use std::fs::{self, OpenOptions};
 use std::path::{Path, PathBuf};
 
 use norn_storage::sync_dir;
@@ -64,7 +64,9 @@ fn prepare(root: &Path, step: &Migration, record: &mut Record, stop: Stop<'_>) -
         halt(stop, &format!("prepare {file}"))?;
         let (from, to) = (root.join(&file), new_name(root, &file, record));
         if (step.rewrite)(&from, &to).map_err(|what| DatabaseError::corrupt(&from, what))? {
-            let out = File::open(&to).map_err(|e| DatabaseError::io("open", &to, e))?;
+            // Write access: Windows refuses to flush a file opened read-only.
+            let out = OpenOptions::new().write(true).open(&to);
+            let out = out.map_err(|e| DatabaseError::io("open", &to, e))?;
             out.sync_all()
                 .map_err(|e| DatabaseError::io("fsync", &to, e))?;
             changed.push(file);
