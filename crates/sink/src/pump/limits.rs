@@ -2,7 +2,7 @@
 //! SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! How large one unary message may be. A daemon that publishes the limit is
-//! taken at its word; one that does not, as every daemon up to 1.0.0-rc.1, is
+//! taken at its word; one that does not, as every daemon before protocol 1.8, is
 //! taken to hold the limit it is known to have ([`Options::unary_limit`], 256
 //! KiB by default). A guess too high is still safe, only slower: a batch the
 //! daemon refuses `RESOURCE_EXHAUSTED` is sent again in halves (`provision`).
@@ -12,11 +12,12 @@ use norn_protocol::admin::Limits;
 
 /// The daemon's published limit on one unary message, if it publishes one.
 ///
-/// **The one place to read it.** `NegotiateProtocol`'s `Limits` carries no such
-/// field on this base; when the field that says so lands, read it here, a
-/// value of zero or less meaning unpublished, and the rest of the sink follows.
-pub(super) fn published_message_limit(_limits: &Limits) -> Option<usize> {
-    None
+/// **The one place to read it.** `Limits.max_message_bytes`, added in protocol
+/// 1.8; a daemon before 1.8 leaves it zero, and zero or less means unpublished.
+pub(super) fn published_message_limit(limits: &Limits) -> Option<usize> {
+    usize::try_from(limits.max_message_bytes)
+        .ok()
+        .filter(|&bytes| bytes > 0)
 }
 
 /// The limit to cut to: the published one, else the known one.
@@ -42,6 +43,22 @@ mod tests {
         let limit = message_limit(published, &options);
         assert_eq!(limit, 256 << 10);
         assert_eq!(batch_bytes(limit), 192 << 10);
+    }
+
+    #[test]
+    fn a_daemon_publishing_its_limit_is_taken_at_its_word() {
+        let limits = Limits {
+            max_message_bytes: 64 << 10,
+            ..Limits::default()
+        };
+        assert_eq!(published_message_limit(&limits), Some(64 << 10));
+        for unpublished in [0, -1] {
+            let limits = Limits {
+                max_message_bytes: unpublished,
+                ..Limits::default()
+            };
+            assert_eq!(published_message_limit(&limits), None);
+        }
     }
 
     #[test]

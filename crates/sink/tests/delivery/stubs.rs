@@ -4,8 +4,8 @@
 //! The parts of Norn the fake does not need to be: what a sink calls succeeds
 //! and remembers nothing, and everything else is `UNIMPLEMENTED`; batch create
 //! among it, so the sink takes its one-at-a-time path, as against a daemon
-//! before protocol 1.6. Its negotiation publishes no message limit, as no daemon
-//! on this base does.
+//! before protocol 1.6. Its negotiation publishes no message limit, as a daemon
+//! before protocol 1.8 does not.
 
 use norn_protocol::admin::admin_service_server::AdminService;
 use norn_protocol::admin::{self, Limits, NegotiateProtocolRequest, NegotiateProtocolResponse};
@@ -96,6 +96,8 @@ refusing! {
         export_stream(stream::ExportStreamRequest) -> Operation;
         verify_stream(stream::VerifyStreamRequest) -> Operation;
         apply_stream_retention(stream::ApplyStreamRetentionRequest) -> Operation;
+        get_segment(stream::GetSegmentRequest) -> stream::Segment;
+        list_segments(stream::ListSegmentsRequest) -> stream::ListSegmentsResponse;
     }
     async fn create_stream(
         &self,
