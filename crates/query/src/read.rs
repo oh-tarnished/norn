@@ -3,7 +3,6 @@
 
 //! One read: a time slice of some signals, from buffers and chunks, exactly once.
 
-use std::io::ErrorKind;
 use std::ops::ControlFlow;
 use std::sync::Arc;
 
@@ -14,7 +13,7 @@ use norn_storage::{Chunk, StorageError};
 
 use crate::engine::Engine;
 use crate::error::{ChunkDamage, QueryError};
-use crate::files::{FileCache, FileError};
+use crate::files::{FileCache, FileError, replaced};
 use crate::filter::Filter;
 use crate::memory::{Charge, Refused};
 use crate::rows::{Row, Rows};
@@ -176,9 +175,7 @@ fn classify(e: StorageError, l: &ChunkLocator, tail: &dyn TailSource) -> Attempt
         Attempt::Stop(Stop::Failed(QueryError::Corrupt(Box::new(damage))))
     };
     match e {
-        StorageError::Io { source, .. } if source.kind() == ErrorKind::NotFound => {
-            Attempt::Raced(l.stream)
-        }
+        StorageError::Io { source, .. } if replaced(&source) => Attempt::Raced(l.stream),
         e @ (StorageError::Corrupt(_) | StorageError::Codec { .. }) => damage(e),
         other => Attempt::Stop(Stop::Failed(QueryError::Storage(other))),
     }
