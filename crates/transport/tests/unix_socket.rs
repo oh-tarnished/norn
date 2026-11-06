@@ -132,3 +132,14 @@ async fn a_named_pipe_is_unsupported_on_unix() {
 fn the_default_endpoint_is_a_unix_socket() {
     assert_eq!(Endpoint::platform_default().scheme(), "unix");
 }
+
+#[tokio::test]
+async fn a_symlinked_socket_directory_is_refused_and_nothing_is_made_beyond_it() {
+    let (target, link) = (owner_only_dir(), scratch());
+    std::os::unix::fs::symlink(&target, &link).unwrap();
+    let endpoint = Endpoint::Unix(link.join("n.sock"));
+    assert!(bind(&endpoint).await.is_err());
+    assert!(!target.join("n.sock").exists());
+    fs::remove_file(&link).unwrap();
+    fs::remove_dir_all(&target).unwrap();
+}

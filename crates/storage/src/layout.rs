@@ -74,6 +74,27 @@ pub fn list_segments(dir: &Path) -> Result<Vec<SegmentEntry>> {
     Ok(out)
 }
 
+/// [`list_segments`], leaving out any file whose header does not verify: for
+/// looking over a store before recovery has seen it.
+///
+/// # Errors
+/// [`StorageError::Io`] for a directory that cannot be listed.
+pub(crate) fn list_segments_lenient(dir: &Path) -> Result<Vec<SegmentEntry>> {
+    let entries = fs::read_dir(dir).map_err(|e| StorageError::io("list", dir, e))?;
+    let mut out = Vec::new();
+    for entry in entries {
+        let path = entry.map_err(|e| StorageError::io("list", dir, e))?.path();
+        if SegmentName::parse(&path).is_none() {
+            continue;
+        }
+        let header = Source::open(&path).and_then(|mut src| read_header(&mut src));
+        if let Ok(header) = header {
+            out.push(SegmentEntry { path, header });
+        }
+    }
+    Ok(out)
+}
+
 /// The segments a reader should use: [`list_segments`] minus those
 /// superseded by a committed compaction output.
 ///

@@ -43,6 +43,8 @@
 mod codec;
 mod crc;
 mod error;
+#[cfg(feature = "fuzzing")]
+pub mod fuzzing;
 mod log;
 mod op;
 mod record;
@@ -50,7 +52,7 @@ mod registry;
 mod resource;
 
 pub use error::{MetadataError, ResourceKind};
-pub use log::LogRecovery;
+pub use log::{LogInspection, LogRecovery, inspect_log};
 pub use record::{EntityRecord, Retention, SignalRecord, StreamRecord};
 pub use registry::{
     EntityPatch, EntitySpec, MAX_BATCH_CREATE, Registry, RegistryView, SignalPatch, SignalRoute,

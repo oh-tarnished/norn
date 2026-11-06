@@ -23,6 +23,9 @@ pub enum CorruptionKind {
         /// The CRC of the bytes read now.
         computed: u32,
     },
+    /// An encrypted chunk failed authentication under the right key: its bytes,
+    /// its frame header or its place in the file were changed.
+    Authentication,
     /// The file ends inside a frame: an incomplete (torn) write.
     TornTail,
     /// The chunk directory's CRC or framing does not match.

@@ -14,7 +14,9 @@
 //!   on sample timestamps), spawn a thread, decide acknowledgement levels
 //!   (it offers `flush` and `sync`; the write path maps them to SPEC §19) or
 //!   delete data on its own initiative (SPEC §43).
-//! - **May import** `norn-core` and `norn-codec` only. No third-party crate.
+//! - **May import** `norn-core` and `norn-codec`. Its only third-party crates
+//!   are the pure-Rust RustCrypto ones opt-in encryption needs ([`Keyring`]);
+//!   `xtask/src/crypto.rs` keeps them beneath this crate.
 //! - **Spans**: none yet; recovery findings are returned as typed values.
 //!
 //! # Concurrency
@@ -42,9 +44,12 @@ mod clean;
 mod compact;
 mod corruption;
 mod crc32c;
+mod crypt;
 mod error;
 pub mod format;
 mod fsio;
+#[cfg(feature = "fuzzing")]
+pub mod fuzzing;
 mod iter;
 mod layout;
 mod lock;
@@ -61,15 +66,20 @@ pub use compact::{
     CompactionObserver, CompactionOutcome, CompactionPhase, Unobserved, compact, compact_observed,
 };
 pub use crc32c::{crc32c, extend as crc32c_extend};
+pub use crypt::{
+    ENCRYPTION_FILE, EncryptionError, EncryptionInfo, KEY_LEN, KeyError, KeyId, Keyring, MAX_KEYS,
+    RekeyReport, SALT_LEN, TAG_LEN, check_database, check_segments, rekey_database,
+    secure_database_dir,
+};
 pub use error::{Bound, Corruption, CorruptionKind, Result, StorageError, VersionField};
 pub use format::frame::ChunkMeta;
-pub use format::{FORMAT_VERSION, SCHEMA_VERSION, SegmentHeader};
+pub use format::{ENCRYPTED_FORMAT_VERSION, FORMAT_VERSION, SCHEMA_VERSION, SegmentHeader};
 pub use fsio::atomic_write;
 pub use iter::SampleIter;
 pub use layout::{SegmentEntry, list_segments, live_segments, stream_dir};
 pub use lock::{LOCK_FILE, StreamLock};
 pub use options::StorageOptions;
-pub use platform::sync_dir;
+pub use platform::{create_dir_durable, sync_dir};
 pub use recovery::{
     Action, QUARANTINE_DIR, RecoveryEvent, RecoveryMode, RecoveryReport, SegmentRecovery,
     recover_segment, recover_stream, recover_stream_vouched,

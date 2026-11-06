@@ -54,6 +54,7 @@ pub async fn run(channel: Channel, words: &[String], out: &mut impl Write) -> Re
         ["import", rest @ ..] => import(channel, rest, out).await,
         ["compact", rest @ ..] => compact(channel, rest, out).await,
         ["verify", rest @ ..] => verify(channel, rest, out).await,
+        ["backup", rest @ ..] => crate::backup::backup(channel, rest, out).await,
         ["retention", rest @ ..] => retention(channel, rest, out).await,
         ["streams"] => list_streams(channel, out).await,
         ["streams", "create", id] => {

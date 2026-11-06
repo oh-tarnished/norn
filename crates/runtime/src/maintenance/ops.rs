@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use norn_core::{StreamId, Timestamp};
 use tokio_util::sync::CancellationToken;
 
+use super::backup::{BackupReport, BackupSpec};
 use super::compaction::CompactionTotals;
 use super::retention::RetentionReport;
 use super::verify::VerifyReport;
@@ -18,7 +19,7 @@ use super::verify::VerifyReport;
 pub const MAX_OPERATIONS: usize = 256;
 
 /// What an operation was asked to do.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Request {
     /// Compact, restricted to samples in `interval` if given.
@@ -33,6 +34,8 @@ pub enum Request {
         /// Remove nothing; say what would go.
         dry_run: bool,
     },
+    /// Copy the whole database. The operation's stream means nothing.
+    Backup(BackupSpec),
 }
 
 /// How an operation ended successfully.
@@ -45,6 +48,8 @@ pub enum Outcome {
     Verified(VerifyReport),
     /// What retention removed, or would have.
     Retained(RetentionReport),
+    /// What a backup holds.
+    BackedUp(BackupReport),
 }
 
 /// How an operation failed.

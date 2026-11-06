@@ -9,3 +9,6 @@ buffers.lock -merge
 *.proto  linguist-detectable=true
 *.fbs    linguist-detectable=true
 *.capnp  linguist-detectable=true
+
+# The golden stores pin the on-disk format byte for byte: never translate them.
+crates/runtime/tests/golden/** -text -diff -merge

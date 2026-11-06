@@ -10,6 +10,7 @@ use norn_core::{Sample, StreamId};
 use tokio::sync::oneshot;
 
 use super::buffer::Buffers;
+use super::cut::CutReply;
 use super::decision::{AckFailure, AckLevel};
 use super::stats::StreamStats;
 use super::tail::Tail;
@@ -22,6 +23,8 @@ pub(crate) struct Work {
     pub(crate) memory: Reservation,
     pub(crate) level: AckLevel,
     pub(crate) ack: Option<oneshot::Sender<Result<AckLevel, AckFailure>>>,
+    /// A backup's cut: when taken, everything before it goes to a generation.
+    pub(crate) cut: Option<CutReply>,
 }
 
 /// Counters read lock-free by admission.

@@ -85,12 +85,14 @@ release candidate is published.
 - [Replay and state](docs/guides/replay.md): state at an instant, replay, live subscriptions
 - [Import and export](docs/guides/import-export.md): CSV, Parquet, Arrow, MCAP, both ways
 - [AI agents](docs/guides/ai-agents.md): `norn --mcp`, a client configuration
+- [Writing a device adapter](docs/guides/device-adapter.md): `norn-sink`, step by step, with a complete example
 
 **Reference**
 
 - [Architecture](docs/reference/architecture.md): layers, dependency table, process model
 - [Protocol](docs/reference/protocol.md): the gRPC API, errors, versioning
 - [Storage](docs/reference/storage.md): file format, write path, recovery, index, codecs
+- [Compatibility](docs/reference/compatibility.md): on-disk format versions, the protocol, the support window
 - [IPC](docs/reference/ipc.md): transports, endpoints, security model
 - [Shared memory](docs/reference/shared-memory.md): the opt-in iceoryx2 data plane, settings, limits, trust boundary and crash handling
 - [Query](docs/reference/query.md): read path, StateAt, exact semantics, bounds
@@ -98,6 +100,10 @@ release candidate is published.
 - [Adapters](docs/reference/adapters.md): the contract, CSV, Parquet, Arrow, MCAP formats
 - [nornctl](docs/reference/cli.md): every command
 - [MCP](docs/reference/mcp.md): the daemon's 17 read-only tools and transports
+
+**Security**
+
+- [Security review, November 2026](docs/security/review-2026-11.md): threat model, findings, fixes, what was not examined
 
 **Project**
 
@@ -156,9 +162,12 @@ any domain.
 - **Shared-memory data plane**: Done, in 1.0.0-rc.1 (protocol 1.7). Opt-in, Unix sockets only, transparent socket fallback; see [Shared memory](#shared-memory)
 - **Stability**: Done, in 1.0.0-rc.1. Verify reads the open segment, sealing by open time, a shutdown that no open call delays, macOS durability documented
 - **Pattern detection, GGML-accelerated**: Planned. Opt-in, outside the engine; scope still to be decided
-- **Fuzzing, security review**: Planned. Stage 16
+- **Security review**: Done, a first source review ([review](docs/security/review-2026-11.md)); its open findings are listed there
+- **Fuzzing**: Planned. Stage 16
+- **Encryption at rest**: Done, opt-in: chunk data, journals included; names and time ranges are not encrypted ([storage](docs/reference/storage.md#encryption))
 - **Further device-protocol adapters**: Planned. As clients of the public API, outside this repository
-- **Metrics export, backup tooling, encryption at rest**: Not built
+- **Backup, restore, migration**: Built, unreleased. `nornctl backup`, `restore`, `migrate`; see [operations](docs/guides/operations.md#backup-and-restore)
+- **Metrics export**: Not built
 
 ## Architecture
 
@@ -303,7 +312,7 @@ flowchart LR
 
     subgraph devices["Device adapter, a separate program"]
         poll["Reads sensors and devices"]
-        sink["Norn sink<br/>bounded buffer, retries"]
+        sink["norn-sink<br/>bounded buffer, retries"]
         poll --> sink
     end
 
@@ -913,7 +922,7 @@ Tests that need Unix signals or Unix sockets run on Linux and macOS only;
 | 13    | Adapters      | device protocols, MCAP, Parquet, others                     | done        | CSV, Parquet, Arrow IPC and MCAP, export and import through `nornctl`; device-protocol adapters are separate programs over IPC                                             |
 | 14    | MCP           | MCP server and the rest of `nornctl`                        | done        | MCP inside `norn` (`norn --mcp`): 17 read-only tools, stdio, a socket, a pipe or loopback-only HTTP; `nornctl` adds export, import, compact, verify, retention, `inspect`, `stats`, `benchmark` |
 | 15    | Optimisation  | measured defaults, the full benchmark matrix                | planned     | write path, storage, index, query and IPC measured once                                                                                                                    |
-| 16    | Hardening     | fuzzing, crash, corruption, cross-platform, security review | in progress | crash and corruption tests exist (Unix only: they `kill -9`); CI on Linux, macOS, Windows; no fuzzing, no review                                                           |
+| 16    | Hardening     | fuzzing, crash, corruption, cross-platform, security review | in progress | crash and corruption tests exist (Unix only: they `kill -9`); CI on Linux, macOS, Windows; fuzz targets for every decoder, run nightly; one source review                 |
 
 ## Contributing
 
@@ -935,8 +944,10 @@ emoji or other pictograph.
 ## Security
 
 Report vulnerabilities privately, through GitHub's private vulnerability reporting:
-see [SECURITY.md](SECURITY.md). No security review has been carried out yet, there is
-no fuzzing, and data at rest is not encrypted.
+see [SECURITY.md](SECURITY.md). Every decoder of untrusted bytes is fuzzed nightly. One
+source review has been done ([docs/security/review-2026-11.md](docs/security/review-2026-11.md)),
+with open findings. Encryption at rest is opt-in and covers sample data, not names or
+time ranges ([storage](docs/reference/storage.md#encryption)).
 
 ## Licence
 

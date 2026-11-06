@@ -15,5 +15,10 @@ publish = false
 [dependencies]
 norn-core = { path = "../core" }
 
+# Exposes the log's replay to the fuzz crate (fuzz/), and to nothing else: no
+# shipped build enables it.
+[features]
+fuzzing = []
+
 [lints]
 workspace = true

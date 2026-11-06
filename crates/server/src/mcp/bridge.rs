@@ -155,7 +155,7 @@ macro_rules! bridge {
 
 bridge! {
     admin::AdminServiceMcpServer = "norn.admin.v1.AdminService" {
-        reads: get_server; none: negotiate_protocol
+        reads: get_server; none: negotiate_protocol, create_backup
     }
     entity::EntityServiceMcpServer = "norn.entity.v1.EntityService" {
         reads: get_entity, list_entities;

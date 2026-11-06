@@ -11,6 +11,7 @@ use std::sync::Arc;
 use norn_core::{Sample, SignalId, Timestamp, Value};
 use norn_storage::{Chunk, StorageError, StorageOptions};
 
+use super::cut::CutReply;
 use crate::budget::Reservation;
 
 /// What a sample costs in the batch queue: `size_of::<Sample>()`, a payload apart.
@@ -78,6 +79,8 @@ pub(crate) struct Generation {
     pub(crate) frozen: Arc<Frozen>,
     /// The journal segments holding exactly these samples.
     pub(crate) journal: Vec<PathBuf>,
+    /// Told what is live once this generation is stored and its segment sealed.
+    pub(crate) cut: Option<CutReply>,
 }
 
 /// The chunks being filled. Memory is what the reservation inside accounts for.
@@ -168,6 +171,7 @@ impl Buffers {
         Generation {
             frozen: Arc::new(frozen),
             journal,
+            cut: None,
         }
     }
 

@@ -98,16 +98,17 @@ impl Maintenance {
 
     fn execute(&self, op: &Operation, cancel: &CancellationToken) -> Result<Outcome, Failure> {
         let stream = op.stream;
-        match op.request {
+        match &op.request {
             Request::Compact { interval } => self
-                .compact_stream(stream, interval, Some(op), cancel, usize::MAX)
+                .compact_stream(stream, *interval, Some(op), cancel, usize::MAX)
                 .map(Outcome::Compacted),
             Request::Verify => self
                 .verify_stream(stream, op, cancel)
                 .map(Outcome::Verified),
-            Request::Retention { dry_run } => {
-                self.apply_retention(stream, dry_run).map(Outcome::Retained)
-            }
+            Request::Retention { dry_run } => self
+                .apply_retention(stream, *dry_run)
+                .map(Outcome::Retained),
+            Request::Backup(spec) => self.backup(spec, op, cancel).map(Outcome::BackedUp),
         }
     }
 

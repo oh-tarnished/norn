@@ -25,7 +25,7 @@ struct UnixSocketListener {
 }
 
 /// Binds a Unix socket at `path` with the SPEC §41 protections: owner-only
-/// directory, stale socket replaced, live socket or foreign file refused,
+/// directory of this user's, no symbolic link, stale socket replaced, live socket or foreign file refused,
 /// socket mode 0600, removal on drop if still ours.
 pub(crate) async fn bind_unix(path: &Path) -> Result<Box<dyn Listener>, TransportError> {
     if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
@@ -35,6 +35,9 @@ pub(crate) async fn bind_unix(path: &Path) -> Result<Box<dyn Listener>, Transpor
     let listener = UnixListener::bind(path)?;
     let guard = SocketGuard::new(path)?;
     socket_file::restrict_socket(path)?;
+    if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
+        socket_file::check_owner(dir, path)?;
+    }
     Ok(Box::new(UnixSocketListener {
         listener,
         _guard: guard,

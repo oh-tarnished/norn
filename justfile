@@ -39,6 +39,10 @@ bench-smoke:
 bench-smoke:
     cargo check --workspace --benches --locked
 
+# The benchmark matrix: --quick (minutes) or --full (hours); docs/performance.md.
+bench-matrix *args:
+    cargo bench --locked -p norn-server --bench matrix -- {{ args }}
+
 # Formatting and lints, as CI runs them.
 lint:
     cargo fmt --all --check
@@ -112,6 +116,24 @@ gen-check:
     buf build --path protobuf/norn/type/sample.proto --as-file-descriptor-set \
         --exclude-source-info -o "$generated/sample.binpb"
     cmp adapters/mcap/src/generated/norn_type_sample.binpb "$generated/sample.binpb"
+
+# Fuzz every target, or just TARGET, for SECONDS each. Needs nightly and
+# cargo-fuzz (cargo install cargo-fuzz --locked). The corpus is regenerated from
+# Norn's own writers each run; a crash lands in fuzz/artifacts/TARGET/. Replay one
+# with `cargo +nightly fuzz run TARGET fuzz/artifacts/TARGET/crash-...`.
+fuzz seconds='60' target='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cargo +nightly run --quiet --manifest-path fuzz/Cargo.toml -p norn-fuzz-seed -- fuzz/corpus
+    targets="{{ target }}"
+    if [ -z "$targets" ]; then
+        targets="$(cargo +nightly fuzz list)"
+    fi
+    for target in $targets; do
+        echo "fuzz $target for {{ seconds }} s"
+        cargo +nightly fuzz run "$target" -- -max_total_time={{ seconds }} \
+            -max_len=1048576 -len_control=100 -timeout=30 -rss_limit_mb=6144 -malloc_limit_mb=2048
+    done
 
 # Regenerates docs/images from a real daemon; takes a little over a minute.
 screenshots:

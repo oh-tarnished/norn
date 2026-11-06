@@ -55,6 +55,11 @@ pub const LAYERS: &[(&str, &[&str])] = &[
             "norn-state",
         ],
     ),
+    // A database as a whole: its version, backups, restore, migration.
+    (
+        "norn-database",
+        &["norn-core", "norn-storage", "norn-metadata"],
+    ),
     // The daemon assembles the data plane...
     (
         "norn-runtime",
@@ -63,6 +68,7 @@ pub const LAYERS: &[(&str, &[&str])] = &[
             "norn-codec",
             "norn-metadata",
             "norn-storage",
+            "norn-database",
             "norn-index",
             "norn-query",
             "norn-state",
@@ -79,13 +85,16 @@ pub const LAYERS: &[(&str, &[&str])] = &[
             "norn-ipc",
             "norn-shared-memory",
             "norn-metadata",
+            "norn-database",
             "norn-runtime",
         ],
     ),
     // Clients reach Norn only through the protocol (SPEC §31, §33, §47).
     // nornctl also drives the export and import formats, each a client library
     // of the public API like itself, and opts into the shared-memory data plane
-    // (`--shared-memory`), which is a client of norn-ipc's seam.
+    // (`--shared-memory`), which is a client of norn-ipc's seam. Its offline
+    // commands, `restore` and `migrate`, run with no daemon to be a client of, so
+    // they call norn-database, and that is all of the data plane it may name.
     (
         "norn-cli",
         &[
@@ -98,6 +107,7 @@ pub const LAYERS: &[(&str, &[&str])] = &[
             "norn-adapter-csv",
             "norn-adapter-parquet",
             "norn-adapter-mcap",
+            "norn-database",
         ],
     ),
     // Adapters are clients too (SPEC §29, §47): the contract speaks the protocol,
@@ -112,6 +122,19 @@ pub const LAYERS: &[(&str, &[&str])] = &[
     ("norn-adapter-parquet", &["norn-adapter", "norn-protocol"]),
     ("norn-adapter-mcap", &["norn-adapter", "norn-protocol"]),
     ("norn-adapter-testkit", &["norn-adapter", "norn-protocol"]),
+    // A live adapter's delivery into Norn, for device-protocol adapters in their
+    // own repositories (SPEC §30, §47). A client crate like the rest: nothing in
+    // this table may import it, least of all the engine or the daemon. Shared
+    // memory is behind its opt-in feature, as nornctl's is behind a flag.
+    (
+        "norn-sink",
+        &[
+            "norn-protocol",
+            "norn-transport",
+            "norn-ipc",
+            "norn-shared-memory",
+        ],
+    ),
     // Repository tooling imports no Norn crate.
     ("xtask", &[]),
 ];

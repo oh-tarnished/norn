@@ -45,7 +45,7 @@ parallel.
 | 4 | adapters | 13 | `adapters/{contract,mcap,parquet,csv}` (device protocols live outside this repository) |
 | 4 | MCP + CLI | 14, 33 | MCP in `crates/server`, `crates/cli` (`nornctl`) |
 | 5 | performance | 15, 35 | `benchmarks/`: 16,000 signals × 1 Hz, bursts, the 504-billion-sample/year extrapolation |
-| 5 | hardening | 16, 36 | fuzzing, crash and corruption tests, Windows validation, security review |
+| 5 | hardening | 16, 36 | fuzzing (`fuzz/`, `just fuzz`, nightly workflow: every decoder of untrusted bytes), crash and corruption tests, Windows validation, security review |
 
 ## External adapters (owner's request, 2026-11-02)
 
@@ -55,7 +55,8 @@ part of that program's configuration rather than a one-off flag: a sink
 implementation dials `norn_ipc::connect(endpoint)` and calls
 `TelemetryService.AppendSamples`. Under SPEC section 47 the adapter uses
 only Norn's public client crates. Backpressure is honoured through a bounded
-buffer; nothing is dropped silently.
+buffer; nothing is dropped silently. `norn-sink` is that sink, extracted so that a
+new protocol writes only its codec and a mapping (docs/guides/device-adapter.md).
 
 ## Pattern detection (owner's decision, 2026-11-02; after v0.1)
 

@@ -16,9 +16,10 @@ use norn_core::Timestamp;
 use super::SegmentName;
 use crate::chunk::Chunk;
 use crate::chunk::encode::encode_frame;
+use crate::crypt::SegmentCipher;
 use crate::error::{Bound, Result, StorageError};
+use crate::format::SegmentHeader;
 use crate::format::frame::ChunkMeta;
-use crate::format::{HEADER_LEN, SegmentHeader};
 use crate::options::StorageOptions;
 
 /// Writes one segment: header, then chunk frames in order, then the seal.
@@ -43,6 +44,7 @@ pub struct SegmentWriter {
     path: PathBuf,
     header: SegmentHeader,
     opts: StorageOptions,
+    cipher: Option<SegmentCipher>,
     len: u64,
     chunks: Vec<ChunkMeta>,
     range: Option<(Timestamp, Timestamp)>,
@@ -66,22 +68,28 @@ impl SegmentWriter {
     ///
     /// # Errors
     /// As [`SegmentWriter::create`].
-    pub fn create_at(path: PathBuf, header: SegmentHeader, opts: StorageOptions) -> Result<Self> {
+    pub fn create_at(
+        path: PathBuf,
+        mut header: SegmentHeader,
+        opts: StorageOptions,
+    ) -> Result<Self> {
         opts.validate()?;
+        let cipher = SegmentCipher::for_new(&mut header, &opts)?;
         let file = OpenOptions::new()
             .write(true)
             .create_new(true)
             .open(&path)
             .map_err(|e| StorageError::io("create", &path, e))?;
         let mut out = BufWriter::with_capacity(opts.write_buffer_bytes, file);
-        out.write_all(&header.encode())
+        out.write_all(&header.encode_all())
             .map_err(|e| StorageError::io("write", &path, e))?;
         Ok(Self {
             out,
             path,
             header,
             opts,
-            len: HEADER_LEN as u64,
+            cipher,
+            len: header.data_start(),
             chunks: Vec::new(),
             range: None,
             frame: Vec::new(),
@@ -122,7 +130,10 @@ impl SegmentWriter {
             });
         }
         self.frame.clear();
-        let meta = encode_frame(chunk, how, &self.opts, self.len, &mut self.frame)?;
+        let mut meta = encode_frame(chunk, how, &self.opts, self.len, &mut self.frame)?;
+        if let Some(cipher) = &self.cipher {
+            meta = cipher.seal_frame(&mut self.frame, 0, &meta, self.len)?;
+        }
         if let Err(e) = self.out.write_all(&self.frame) {
             self.poisoned = true;
             return Err(StorageError::io("write", &self.path, e));

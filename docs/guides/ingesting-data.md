@@ -8,7 +8,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 Ingest works today, through `nornctl append` for one sample and
 `TelemetryService.AppendSamples` for real clients, and `nornctl import` for CSV,
 Parquet, Arrow and MCAP files ([import and export](import-export.md)). Device
-adapters maintained elsewhere use the same API ([adapters](../reference/adapters.md)).
+adapters maintained elsewhere use the same API ([adapters](../reference/adapters.md)),
+most easily through `norn-sink` ([writing a device adapter](device-adapter.md)).
 
 Create the [stream, entity and signal](getting-started.md#create-a-stream-an-entity-and-a-signal)
 first. Output below is real.

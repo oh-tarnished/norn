@@ -125,3 +125,12 @@ impl FileCache {
         self.retired_bytes + open
     }
 }
+
+/// Whether a failed read means compaction replaced the file under it, so a fresh
+/// snapshot will find what it holds: gone on Unix, and on Windows still pending
+/// deletion, which it refuses as access denied. A real permission error retries
+/// too, but only `race_retries` times, then fails as raced.
+pub(crate) fn replaced(e: &std::io::Error) -> bool {
+    use std::io::ErrorKind::{NotFound, PermissionDenied};
+    e.kind() == NotFound || (cfg!(windows) && e.kind() == PermissionDenied)
+}

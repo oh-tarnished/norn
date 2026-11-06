@@ -3,6 +3,7 @@
 
 //! An operation as `google.longrunning.Operation`, with typed Any payloads.
 
+use norn_protocol::admin::{Backup, CreateBackupMetadata};
 use norn_protocol::common::ErrorReason;
 use norn_protocol::google::longrunning::{Operation, operation};
 use norn_protocol::stream::{
@@ -10,7 +11,9 @@ use norn_protocol::stream::{
     CompactStreamResponse, DamagedChunk, RemovedSegment, VerifyStreamMetadata,
     VerifyStreamResponse,
 };
-use norn_runtime::maintenance::{self, Failure, Outcome, Request, RetentionReport, VerifyReport};
+use norn_runtime::maintenance::{
+    self, BackupReport, BackupSpec, Failure, Outcome, Request, RetentionReport, VerifyReport,
+};
 use prost_types::Any;
 use tonic::{Code, Status};
 
@@ -41,6 +44,12 @@ fn metadata(op: &maintenance::Operation) -> Option<Any> {
             end_time,
             segments_done: wide(done),
             segments_total: wide(total),
+        }),
+        Request::Backup(_) => pack(&CreateBackupMetadata {
+            create_time,
+            end_time,
+            files_done: wide(done),
+            files_total: wide(total),
         }),
         _ => pack(&ApplyStreamRetentionMetadata {
             create_time,
@@ -86,7 +95,23 @@ fn retained(r: &RetentionReport) -> ApplyStreamRetentionResponse {
     }
 }
 
-fn response(outcome: &Outcome) -> Option<Any> {
+fn backed_up(r: &BackupReport, spec: &BackupSpec) -> Backup {
+    Backup {
+        path: spec.to.display().to_string(),
+        base_path: spec
+            .base
+            .as_ref()
+            .map_or_else(String::new, |b| b.display().to_string()),
+        cut_time: Some(time_to_wire(r.cut)),
+        stream_count: wide(r.streams),
+        file_count: wide(r.files),
+        byte_count: wide(r.bytes),
+        copied_file_count: wide(r.copied_files),
+        copied_byte_count: wide(r.copied_bytes),
+    }
+}
+
+fn response(outcome: &Outcome, request: &Request) -> Option<Any> {
     match outcome {
         Outcome::Compacted(t) => pack(&CompactStreamResponse {
             original_chunk_count: wide(t.original_chunks),
@@ -97,6 +122,10 @@ fn response(outcome: &Outcome) -> Option<Any> {
         }),
         Outcome::Verified(r) => pack(&verified(r)),
         Outcome::Retained(r) => pack(&retained(r)),
+        Outcome::BackedUp(r) => match request {
+            Request::Backup(spec) => pack(&backed_up(r, spec)),
+            _ => None,
+        },
         _ => None,
     }
 }
@@ -117,7 +146,7 @@ fn failure(f: &Failure) -> Status {
 pub(crate) fn to_wire(op: &maintenance::Operation) -> Operation {
     let ending = op.ending();
     let result = ending.as_ref().map(|(_, r)| match r {
-        Ok(outcome) => response(outcome).map_or_else(
+        Ok(outcome) => response(outcome, &op.request).map_or_else(
             || operation::Result::Error(to_rpc(&Status::internal("unencodable result"))),
             operation::Result::Response,
         ),

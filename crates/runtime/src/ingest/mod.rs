@@ -12,8 +12,11 @@ mod buffer;
 mod clean;
 mod commit;
 mod commit_fail;
+mod cut;
 mod decision;
 mod dedup;
+#[cfg(feature = "fuzzing")]
+pub mod fuzzing;
 mod indexing;
 mod journal;
 mod layout;
@@ -24,6 +27,7 @@ mod recover;
 mod report;
 mod scan;
 mod seal;
+mod setup;
 mod shared;
 mod start;
 mod stats;
@@ -32,6 +36,7 @@ mod tail;
 mod upkeep;
 
 pub use admit::THROTTLE_DELAY;
+pub use cut::PendingCut;
 pub use decision::{AckFailure, AckLevel, Admission, Batch, Completion, Decision, Outcome, Reason};
 pub use indexing::RecoverError;
 pub use journal::{JOURNAL_DIR, SyncGate};
@@ -149,16 +154,6 @@ impl Ingest {
             drained: tokio_util::sync::CancellationToken::new(),
             upkeep: upkeep::Upkeep::default(),
         }
-    }
-
-    /// Installs `gate` around every journal fsync. Before any batch only: it
-    /// has no effect once a stream has started.
-    #[must_use]
-    pub fn sync_gate(mut self, gate: Arc<dyn SyncGate>) -> Self {
-        if let Some(ctx) = Arc::get_mut(&mut self.ctx) {
-            ctx.gate = Some(gate);
-        }
-        self
     }
 
     /// The temporal index, once [`recover`](Ingest::recover) has opened it. It

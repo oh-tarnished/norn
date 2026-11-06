@@ -29,15 +29,24 @@ impl SegmentWriter {
                 max: self.opts.max_chunks_per_segment as u64,
             });
         }
-        if let Err(e) = self.out.write_all(&chunk.frame) {
-            self.poisoned = true;
-            return Err(StorageError::io("write", &self.path, e));
-        }
-        let meta = ChunkMeta {
+        // Encrypted here, not when encoded: the nonce is the frame's offset, which
+        // only the writer knows.
+        let mut meta = ChunkMeta {
             offset: self.len,
             ..chunk.meta
         };
-        self.len += chunk.frame.len() as u64;
+        let mut frame = &chunk.frame;
+        if let Some(cipher) = &self.cipher {
+            self.frame.clear();
+            self.frame.extend_from_slice(&chunk.frame);
+            meta = cipher.seal_frame(&mut self.frame, 0, &meta, self.len)?;
+            frame = &self.frame;
+        }
+        if let Err(e) = self.out.write_all(frame) {
+            self.poisoned = true;
+            return Err(StorageError::io("write", &self.path, e));
+        }
+        self.len += frame.len() as u64;
         self.chunks.push(meta);
         self.range = Some(match self.range {
             None => (meta.min_ts, meta.max_ts),

@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "norn-database"
+description = "A Norn database as a whole: its format version, migration, backups, restore and offline verification."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+# No third-party dependency (SPEC §39): checksums are norn-storage's CRC-32C,
+# and every record this crate writes is a few lines of text or bytes.
+[dependencies]
+norn-core = { path = "../core" }
+# Segment headers, recovery in report-only mode, atomic writes and CRC-32C.
+norn-storage = { path = "../storage" }
+# The metadata log, inspected without opening (and so without changing) it.
+norn-metadata = { path = "../metadata" }
+
+[lints]
+workspace = true

@@ -3,6 +3,7 @@
 
 //! The registry: the records in memory, the log on disk, and group commit.
 
+mod backup;
 mod batch;
 mod batch_signals;
 mod commit;
@@ -28,7 +29,7 @@ use std::sync::{Condvar, Mutex, PoisonError, RwLock};
 use norn_core::{Limits, MetadataLimits};
 
 use self::commit::Syncer;
-use self::state::State;
+pub(crate) use self::state::State;
 use crate::error::MetadataError;
 use crate::log::{Log, LogRecovery};
 
@@ -100,7 +101,12 @@ impl Registry {
             path: dir.to_path_buf(),
             source,
         };
+        // Every new name made durable, or a power cut loses the whole log.
+        let missing: Vec<_> = dir.ancestors().take_while(|d| !d.exists()).collect();
         fs::create_dir_all(dir).map_err(|e| err("create directory", e))?;
+        missing
+            .iter()
+            .try_for_each(|d| crate::log::sync_parent(d))?;
         let lock_path = dir.join("LOCK");
         let lock = OpenOptions::new()
             .read(true)

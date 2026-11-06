@@ -27,6 +27,7 @@
 //! (another tool's, with these columns) is read unchecked; with no catalog, its
 //! signals are discovered row by row.
 
+mod arrow_blocks;
 mod arrow_file;
 pub mod columns;
 mod digest;

@@ -26,6 +26,7 @@
 
 mod catalog;
 mod catalog_json;
+mod contain;
 mod discovery;
 mod error;
 mod export;
@@ -37,6 +38,7 @@ mod wire;
 pub mod time;
 
 pub use catalog::{Catalog, entity_of, entity_resource};
+pub use contain::contained;
 pub use discovery::Discovery;
 pub use error::AdapterError;
 pub use export::{ExportOptions, ExportReport, Selection, export};

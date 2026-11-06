@@ -11,7 +11,8 @@ use norn_core::{Sample, StreamId};
 use norn_index::TemporalIndex;
 use norn_storage::{
     CleanMarker, RecoveryMode, SegmentReader, StorageError, StorageOptions, StreamWriter,
-    live_segments, recover_stream, recover_stream_vouched, stream_dir, sync_dir,
+    create_dir_durable, live_segments, recover_stream, recover_stream_vouched, stream_dir,
+    sync_dir,
 };
 
 use super::buffer::Buffers;
@@ -135,7 +136,7 @@ impl Ingest {
 
 /// Reads every batch of a journal segment into `samples`. Returns false if any
 /// could not be read: recovery reported it, and the segment must then be kept.
-fn read_journal(
+pub(super) fn read_journal(
     path: &Path,
     opts: &StorageOptions,
     samples: &mut Vec<Sample>,
@@ -175,7 +176,7 @@ fn set_aside(path: &Path, dir: &Path) -> Result<(), StorageError> {
         path: to.clone(),
         source,
     };
-    std::fs::create_dir_all(&quarantine).map_err(|e| io("create directory", e))?;
+    create_dir_durable(&quarantine)?;
     std::fs::rename(path, &to).map_err(|e| io("rename", e))?;
     sync_dir(&quarantine)
 }

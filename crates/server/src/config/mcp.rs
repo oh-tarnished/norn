@@ -8,6 +8,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use norn_ipc::Endpoint;
 use serde::Deserialize;
 
 use super::ConfigError;
@@ -44,8 +45,12 @@ impl FromStr for McpTransport {
                 }
                 Ok(Self::Http(address))
             }
-            Some(("unix", path)) if !path.is_empty() => Ok(Self::Unix(path.into())),
-            Some(("pipe", name)) if !name.is_empty() => Ok(Self::Pipe(name.to_owned())),
+            Some(("unix" | "pipe", _)) => match text.parse::<Endpoint>() {
+                Ok(Endpoint::Unix(path)) => Ok(Self::Unix(path)),
+                Ok(Endpoint::Pipe(name)) => Ok(Self::Pipe(name)),
+                Ok(_) => Err(format!("{text}: not a local endpoint")),
+                Err(e) => Err(e.to_string()),
+            },
             _ => Err(format!(
                 "{text}: expected stdio, http:ADDRESS:PORT, unix:PATH or pipe:NAME"
             )),
@@ -65,6 +70,18 @@ pub struct McpConfig {
 }
 
 impl McpConfig {
+    /// The local endpoints among the transports served, each held to the same
+    /// checks as the daemon's own before anything is started.
+    #[must_use]
+    pub fn local_endpoints(&self) -> Vec<Endpoint> {
+        let local = |t: McpTransport| match t {
+            McpTransport::Unix(path) => Some(Endpoint::Unix(path)),
+            McpTransport::Pipe(name) => Some(Endpoint::Pipe(name)),
+            McpTransport::Stdio | McpTransport::Http(_) => None,
+        };
+        self.served().into_iter().filter_map(local).collect()
+    }
+
     /// The transports to serve: none when off.
     #[must_use]
     pub fn served(&self) -> Vec<McpTransport> {

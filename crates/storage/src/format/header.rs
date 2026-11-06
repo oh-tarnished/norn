@@ -3,24 +3,26 @@
 
 //! The segment header: identity and versions, checked before anything else.
 
-use std::path::Path;
-
 use norn_codec::CODEC_VERSION;
 use norn_core::StreamId;
 
-use super::{FORMAT_VERSION, HEADER_LEN, Le, SCHEMA_VERSION, SEGMENT_MAGIC};
+use super::{FORMAT_MAJOR, HEADER_LEN, SCHEMA_VERSION, SEGMENT_MAGIC, sealing};
 use crate::crc32c::crc32c;
-use crate::error::{CorruptionKind, Result, StorageError, VersionField};
+use crate::crypt::EncryptionInfo;
+
+/// Header flag 0x01, format 1.1: the encryption record follows the header.
+pub(super) const FLAG_ENCRYPTED: u8 = 0x01;
 
 /// The first [`HEADER_LEN`] bytes of a segment (SPEC §40).
 ///
 /// | Offset | Size | Field |
 /// | ---: | ---: | --- |
 /// | 0 | 8 | magic `NORNSEG\0` |
-/// | 8 | 2 | `format_version` |
+/// | 8 | 1 | format major version, 1 |
+/// | 9 | 1 | format minor version: 0, or 1 when encrypted |
 /// | 10 | 2 | `schema_version` |
 /// | 12 | 1 | `codec_version` |
-/// | 13 | 1 | flags, zero |
+/// | 13 | 1 | flags: zero in 1.0; in 1.1, 0x01 = encrypted |
 /// | 14 | 2 | `generation`: 0 when written by ingest, +1 per compaction |
 /// | 16 | 8 | stream id |
 /// | 24 | 8 | `first_seq` |
@@ -31,6 +33,12 @@ use crate::error::{CorruptionKind, Result, StorageError, VersionField};
 /// A segment with generation `g` covering `first_seq..=last_seq`
 /// supersedes every segment of a lower generation whose sequence lies in
 /// that range: that is how compaction switches atomically (docs/reference/storage.md).
+///
+/// Bytes 8..10 read as one little-endian `u16` are 1 for format 1.0, the only
+/// value 1.0.0-rc.1 accepts, and 257 for 1.1, which that build therefore refuses
+/// as `UnsupportedVersion` and never modifies. A plain segment is still written
+/// as 1.0, byte for byte as before; only an encrypted one is 1.1, with the
+/// [`sealing`] record after the header and its first chunk at byte 96.
 ///
 /// Concurrency: `Copy` plain data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,6 +53,9 @@ pub struct SegmentHeader {
     pub generation: u16,
     /// The codec layout version of its blocks.
     pub codec_version: u8,
+    /// How its chunk bodies are encrypted; `None` for a plain segment. Set by
+    /// the writer from its options, never by a caller.
+    pub encryption: Option<EncryptionInfo>,
 }
 
 impl SegmentHeader {
@@ -57,17 +68,53 @@ impl SegmentHeader {
             last_seq: seq,
             generation: 0,
             codec_version: CODEC_VERSION,
+            encryption: None,
         }
     }
 
-    /// The header's bytes, CRC included.
+    /// Where its first chunk frame starts: after the header, and after the
+    /// encryption record when there is one.
+    #[must_use]
+    pub fn data_start(&self) -> u64 {
+        let record = if self.encryption.is_some() {
+            sealing::SEALING_LEN
+        } else {
+            0
+        };
+        (HEADER_LEN + record) as u64
+    }
+
+    /// Whether `head`, a header not yet verified, says an encryption record
+    /// follows: only which bytes to read next, and [`decode`](Self::decode) decides.
+    pub(crate) fn has_record(head: &[u8]) -> bool {
+        let at = |i| head.get(i).copied().unwrap_or(0);
+        at(9) >= 1 && at(13) & FLAG_ENCRYPTED != 0
+    }
+
+    /// The header's bytes and, when encrypted, the encryption record's: the
+    /// first [`data_start`](SegmentHeader::data_start) bytes of the file.
+    #[must_use]
+    pub fn encode_all(&self) -> Vec<u8> {
+        let mut out = self.encode().to_vec();
+        if let Some(info) = &self.encryption {
+            out.extend_from_slice(&sealing::encode(info));
+        }
+        out
+    }
+
+    /// The header's own [`HEADER_LEN`] bytes, CRC included, without the
+    /// encryption record ([`encode_all`](SegmentHeader::encode_all) has both).
     #[must_use]
     pub fn encode(&self) -> [u8; HEADER_LEN] {
+        let (minor, flags) = match self.encryption {
+            Some(_) => (1, FLAG_ENCRYPTED),
+            None => (0, 0),
+        };
         let mut b = Vec::with_capacity(HEADER_LEN);
         b.extend_from_slice(&SEGMENT_MAGIC);
-        b.extend_from_slice(&FORMAT_VERSION.to_le_bytes());
+        b.extend([FORMAT_MAJOR, minor]);
         b.extend_from_slice(&SCHEMA_VERSION.to_le_bytes());
-        b.extend([self.codec_version, 0]);
+        b.extend([self.codec_version, flags]);
         b.extend_from_slice(&self.generation.to_le_bytes());
         b.extend_from_slice(&self.stream.get().to_le_bytes());
         b.extend_from_slice(&self.first_seq.to_le_bytes());
@@ -78,65 +125,5 @@ impl SegmentHeader {
         let mut out = [0u8; HEADER_LEN];
         out.copy_from_slice(&b);
         out
-    }
-
-    /// Parses and checks a header read from `path` (named in errors only).
-    /// Copies; borrows nothing past the call.
-    ///
-    /// # Errors
-    /// [`StorageError::Corrupt`] with [`CorruptionKind::TornTail`] for fewer
-    /// than [`HEADER_LEN`] bytes, `BadMagic` or `HeaderChecksum`; and
-    /// [`StorageError::UnsupportedVersion`] for any version newer than this
-    /// build's (checked only once the CRC passes, so a bit flip is reported
-    /// as corruption, not as a newer file).
-    pub fn decode(bytes: &[u8], path: &Path) -> Result<Self> {
-        let bad = |kind| StorageError::corrupt(path, 0, HEADER_LEN as u64, kind);
-        let rec = bytes
-            .get(..HEADER_LEN)
-            .ok_or(bad(CorruptionKind::TornTail))?;
-        let (body, crc) = rec.split_at(HEADER_LEN - 4);
-        let mut r = Le::new(rec);
-        if r.bytes::<8>() != Some(SEGMENT_MAGIC) {
-            return Err(bad(CorruptionKind::BadMagic));
-        }
-        if crc != crc32c(body).to_le_bytes() {
-            return Err(bad(CorruptionKind::HeaderChecksum));
-        }
-        let malformed = || bad(CorruptionKind::Malformed("segment header"));
-        let format = r.u16().ok_or_else(malformed)?;
-        let schema = r.u16().ok_or_else(malformed)?;
-        let codec = r.u8().ok_or_else(malformed)?;
-        let _flags = r.u8();
-        let generation = r.u16().ok_or_else(malformed)?;
-        let stream = r.u64().ok_or_else(malformed)?;
-        let first_seq = r.u64().ok_or_else(malformed)?;
-        let last_seq = r.u64().ok_or_else(malformed)?;
-        let checks = [
-            (VersionField::Format, format, FORMAT_VERSION),
-            (VersionField::Schema, schema, SCHEMA_VERSION),
-            (
-                VersionField::Codec,
-                u16::from(codec),
-                u16::from(CODEC_VERSION),
-            ),
-        ];
-        for (field, found, supported) in checks {
-            if found > supported || found == 0 {
-                let path = path.to_path_buf();
-                return Err(StorageError::UnsupportedVersion {
-                    path,
-                    field,
-                    found,
-                    supported,
-                });
-            }
-        }
-        Ok(Self {
-            stream: StreamId::new(stream),
-            first_seq,
-            last_seq,
-            generation,
-            codec_version: codec,
-        })
     }
 }

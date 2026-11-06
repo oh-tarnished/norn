@@ -205,7 +205,8 @@ repositories, as clients over IPC using only Norn's public crates, not under
 Device and object discovery, object metadata, property reads, subscriptions,
 polling, quality, units, timestamps. A device object maps to Entity + Signal +
 Metadata; no protocol structures in the core. (By the §29 decision, each
-protocol's adapter lives with its protocol library.)
+protocol's adapter lives with its protocol library, and writes its codec and a
+mapping on `norn-sink`: docs/guides/device-adapter.md.)
 
 ## 31. MCP
 Optional MCP, served by the daemon: AI agent → MCP → the daemon's gRPC services,
@@ -297,7 +298,10 @@ network needed for core functionality.
 
 ## 47. Integration rule
 External System → Adapter → Norn Protocol → Norn. Never into the internal
-storage API; storage stays replaceable.
+storage API; storage stays replaceable. `norn-sink`, the delivery half of a live
+adapter, is a client crate on this side of the protocol: it reaches Norn only
+through the public API, and neither the engine nor the daemon imports it
+(`xtask/src/arch.rs`).
 
 ## 48. Implementation order
 1 Foundation (repo, workspace, docs, core types, error model, config) ·

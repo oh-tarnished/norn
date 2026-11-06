@@ -48,11 +48,14 @@
 //! returns once every task has stopped.
 
 mod admin;
+mod backup;
 mod catalog;
 pub mod config;
 pub mod convert;
 mod daemon;
 mod events;
+#[cfg(feature = "fuzzing")]
+pub mod fuzzing;
 mod health;
 mod info;
 pub mod logging;
@@ -61,6 +64,7 @@ mod metered;
 mod opening;
 mod operations;
 mod query;
+mod rekey;
 mod replay;
 mod signal;
 mod state;
@@ -86,6 +90,7 @@ pub use mcp::read_only_tool_names;
 pub use metered::{Meter, MeterLayer};
 pub use operations::OperationsService;
 pub use query::Queries;
+pub use rekey::rekey;
 pub use replay::ReplaySessions;
 pub use signal::shutdown_requested;
 pub use state::States;

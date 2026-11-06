@@ -10,8 +10,8 @@ use std::path::Path;
 use super::quarantine::{copy_region, move_file, truncate};
 use super::scan::full_scan;
 use super::{Action, RecoveryEvent, RecoveryMode, SegmentRecovery};
+use crate::crypt::cipher_for;
 use crate::error::{Bound, Corruption, Result, StorageError};
-use crate::format::HEADER_LEN;
 use crate::format::directory;
 use crate::format::frame::ChunkMeta;
 use crate::fsio::Source;
@@ -40,7 +40,9 @@ use crate::segment::load::{load_directory, read_frame, read_header};
 /// # Errors
 /// [`StorageError::Io`]; [`StorageError::UnsupportedVersion`] for a file
 /// from a newer Norn, which is left untouched; [`StorageError::TooLarge`]
-/// for more frames than `max_chunks_per_segment`.
+/// for more frames than `max_chunks_per_segment`;
+/// [`StorageError::Encryption`] for a segment `opts` cannot open, also left
+/// untouched.
 pub fn recover_segment(
     path: &Path,
     opts: &StorageOptions,
@@ -61,13 +63,22 @@ pub fn recover_segment(
         }
         Err(e) => return Err(e),
     };
+    // A key this build lacks is a refusal, never damage: nothing below may run,
+    // unless a keyless report asked for the stored bytes alone.
+    let unkeyed = !repair && opts.stored_bytes_only && opts.keyring.is_none();
+    let cipher = if unkeyed {
+        None
+    } else {
+        cipher_for(&header, opts, path)?
+    };
+    let cipher = cipher.as_ref();
     let mut events = Vec::new();
     let len = src.len();
     match load_directory(&mut src, opts) {
         Ok(Some(chunks)) => {
             let mut buf = Vec::new();
             for meta in &chunks {
-                match read_frame(&mut src, meta, opts, &mut buf) {
+                match read_frame(&mut src, meta, opts, cipher, &mut buf) {
                     Ok(()) => {}
                     Err(StorageError::Corrupt(corruption)) => {
                         let action = if repair {
@@ -89,7 +100,7 @@ pub fn recover_segment(
         Ok(None) | Err(StorageError::Corrupt(_) | StorageError::TooLarge { .. }) => {}
         Err(e) => return Err(e),
     }
-    let scan = full_scan(&mut src, HEADER_LEN as u64, len, opts)?;
+    let scan = full_scan(&mut src, header.data_start(), len, opts, cipher)?;
     drop(src);
     if scan.chunks.len() > opts.max_chunks_per_segment {
         let (len, max) = (scan.chunks.len() as u64, opts.max_chunks_per_segment as u64);

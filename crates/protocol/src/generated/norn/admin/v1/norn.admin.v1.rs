@@ -411,5 +411,77 @@ impl ::prost::Name for NegotiateProtocolResponse {
 const NAME: &'static str = "NegotiateProtocolResponse";
 const PACKAGE: &'static str = "norn.admin.v1";
 fn full_name() -> ::prost::alloc::string::String { "norn.admin.v1.NegotiateProtocolResponse".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.admin.v1.NegotiateProtocolResponse".into() }}
+/// A backup of the whole database: a directory on the daemon's machine holding
+/// sealed segments, the catalogue at a commit point and a manifest of checksums.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Backup {
+    /// The directory to write, as an absolute path on the daemon's machine. It
+    /// must be empty or absent.
+    #[prost(string, tag="1")]
+    pub path: ::prost::alloc::string::String,
+    /// A finished backup this one builds on, as an absolute path: a sealed segment
+    /// that backup holds is not copied again, and this one lists it. Restoring
+    /// needs both. Unset takes a full backup.
+    #[prost(string, tag="2")]
+    pub base_path: ::prost::alloc::string::String,
+    /// Where each stream was cut: the backup holds every sample admitted to a
+    /// stream before its cut and none after.
+    #[prost(message, optional, tag="3")]
+    pub cut_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// Streams in the backup.
+    #[prost(int64, tag="4")]
+    pub stream_count: i64,
+    /// Files the manifest lists, the ones an incremental did not copy included.
+    #[prost(int64, tag="5")]
+    pub file_count: i64,
+    /// Bytes those files take.
+    #[prost(int64, tag="6")]
+    pub byte_count: i64,
+    /// Of those, files this backup copied.
+    #[prost(int64, tag="7")]
+    pub copied_file_count: i64,
+    /// Of those, bytes this backup copied.
+    #[prost(int64, tag="8")]
+    pub copied_byte_count: i64,
+}
+impl ::prost::Name for Backup {
+const NAME: &'static str = "Backup";
+const PACKAGE: &'static str = "norn.admin.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.admin.v1.Backup".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.admin.v1.Backup".into() }}
+/// The request for AdminService.CreateBackup.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateBackupRequest {
+    /// The ID to give the backup, recorded in its manifest and in the daemon's log:
+    /// 1 to 63 characters of `\[a-z0-9-\]`, starting with a letter.
+    #[prost(string, tag="1")]
+    pub backup_id: ::prost::alloc::string::String,
+    /// The backup to take.
+    #[prost(message, optional, tag="2")]
+    pub backup: ::core::option::Option<Backup>,
+}
+impl ::prost::Name for CreateBackupRequest {
+const NAME: &'static str = "CreateBackupRequest";
+const PACKAGE: &'static str = "norn.admin.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.admin.v1.CreateBackupRequest".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.admin.v1.CreateBackupRequest".into() }}
+/// Progress of a CreateBackup operation.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CreateBackupMetadata {
+    /// When the operation was accepted.
+    #[prost(message, optional, tag="1")]
+    pub create_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// When it finished. Unset while it runs.
+    #[prost(message, optional, tag="2")]
+    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+    /// Files handled so far.
+    #[prost(int64, tag="3")]
+    pub files_done: i64,
+    /// Files to handle. Zero until every stream has been cut.
+    #[prost(int64, tag="4")]
+    pub files_total: i64,
+}
+impl ::prost::Name for CreateBackupMetadata {
+const NAME: &'static str = "CreateBackupMetadata";
+const PACKAGE: &'static str = "norn.admin.v1";
+fn full_name() -> ::prost::alloc::string::String { "norn.admin.v1.CreateBackupMetadata".into() }fn type_url() -> ::prost::alloc::string::String { "/norn.admin.v1.CreateBackupMetadata".into() }}
 include!("norn.admin.v1.tonic.rs");
 // @@protoc_insertion_point(module)

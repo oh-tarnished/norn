@@ -14,8 +14,9 @@ use norn_server::{Daemon, DaemonConfig, SERVER_VERSION, logging, shutdown_reques
 use tokio_util::sync::CancellationToken;
 
 fn main() -> ExitCode {
-    let config = match parse_args(std::env::args_os().skip(1)) {
-        Ok(Invocation::Run(config)) => config,
+    let (config, rekeying) = match parse_args(std::env::args_os().skip(1)) {
+        Ok(Invocation::Run(config)) => (config, false),
+        Ok(Invocation::Rekey(config)) => (config, true),
         Ok(Invocation::Help) => {
             println!("{USAGE}");
             return ExitCode::SUCCESS;
@@ -42,7 +43,38 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    if rekeying {
+        return runtime.block_on(rekey(&config));
+    }
     runtime.block_on(serve(*config))
+}
+
+/// `norn rekey`. Exit status 1 for anything left under an older key: that key must
+/// stay in the key file, and a script must be able to tell.
+async fn rekey(config: &DaemonConfig) -> ExitCode {
+    let report = match norn_server::rekey(config).await {
+        Ok(report) => report,
+        Err(e) => {
+            eprintln!("norn: rekey: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    println!(
+        "rekeyed rewritten={} current={} left={}",
+        report.rewritten,
+        report.current,
+        report.left.len()
+    );
+    for (path, why) in &report.left {
+        eprintln!(
+            "norn: rekey: left under its older key: {}: {why}",
+            path.display()
+        );
+    }
+    match report.left.is_empty() {
+        true => ExitCode::SUCCESS,
+        false => ExitCode::FAILURE,
+    }
 }
 
 async fn serve(config: DaemonConfig) -> ExitCode {

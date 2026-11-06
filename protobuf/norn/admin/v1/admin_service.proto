@@ -7,8 +7,10 @@ package norn.admin.v1;
 
 import "google/api/annotations.proto";
 import "google/api/client.proto";
+import "google/longrunning/operations.proto";
 import "mcp/v1/annotations.proto";
 import "norn/admin/v1/admin_messages.proto";
+import "norn/admin/v1/backup.proto";
 import "norn/admin/v1/server.proto";
 
 option java_multiple_files = true;
@@ -52,5 +54,21 @@ service AdminService {
       body: "*"
     };
     option (google.api.method_signature) = "name,client_version";
+  }
+
+  // Starts a consistent backup of the whole database while the daemon runs. Each
+  // stream's open segment is sealed at its cut, and sealed segments are copied
+  // as opaque bytes, so encrypted ones need no key. Compaction and retention wait
+  // for it. Fails with FAILED_PRECONDITION when the directory is not empty.
+  rpc CreateBackup(CreateBackupRequest) returns (google.longrunning.Operation) {
+    option (google.api.http) = {
+      post: "/v1/backups"
+      body: "backup"
+    };
+    option (google.api.method_signature) = "backup,backup_id";
+    option (google.longrunning.operation_info) = {
+      response_type: "Backup"
+      metadata_type: "CreateBackupMetadata"
+    };
   }
 }

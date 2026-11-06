@@ -8,6 +8,7 @@
 //! disk it takes from ingest, and why two jobs can never touch one stream at once:
 //! no job can delete a file another is reading.
 
+mod backup;
 mod compaction;
 mod months;
 mod ops;
@@ -19,6 +20,7 @@ mod verify;
 mod verify_open;
 mod worker;
 
+pub use backup::{BackupReport, BackupSpec};
 pub use compaction::CompactionTotals;
 pub use norn_storage::CompactionPhase;
 pub use ops::{Failure, MAX_OPERATIONS, Operation, Outcome, Request};

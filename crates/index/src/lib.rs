@@ -48,6 +48,8 @@ mod build;
 mod cache;
 mod detail;
 mod error;
+#[cfg(feature = "fuzzing")]
+pub mod fuzzing;
 mod index;
 mod live;
 mod locator;

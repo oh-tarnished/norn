@@ -3,7 +3,6 @@
 
 //! Appending to a stream: a sequence of segments that roll by limits.
 
-use std::fs;
 use std::path::{Path, PathBuf};
 
 use norn_core::StreamId;
@@ -15,7 +14,7 @@ use crate::format::frame::ChunkMeta;
 use crate::layout::list_segments;
 use crate::lock::StreamLock;
 use crate::options::StorageOptions;
-use crate::platform::sync_dir;
+use crate::platform::create_dir_durable;
 use crate::segment::{SegmentSummary, SegmentWriter};
 
 /// Where an appended chunk went.
@@ -66,10 +65,7 @@ impl StreamWriter {
     /// recovery first); options that fail validation.
     pub fn open(dir: &Path, stream: StreamId, opts: StorageOptions) -> Result<Self> {
         opts.validate()?;
-        fs::create_dir_all(dir).map_err(|e| StorageError::io("create directory", dir, e))?;
-        if let Some(parent) = dir.parent() {
-            sync_dir(parent)?;
-        }
+        create_dir_durable(dir)?;
         let lock = StreamLock::acquire(dir)?;
         let next_seq = list_segments(dir)?
             .iter()

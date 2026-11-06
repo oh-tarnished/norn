@@ -1,0 +1,76 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Nightly fuzzing: every decoder `just fuzz` knows, for a bounded time each.
+#
+# Each target is its own job, so one crash does not stop the others being
+# fuzzed, and a crash's reproducer is uploaded as an artifact: download it and
+# run `cargo +nightly fuzz run TARGET crash-...` to replay it. No repository
+# secrets are used: only the run's own read-only token, as ci.yml passes it, so
+# that downloading protoc is not rate limited.
+name: Fuzz
+
+on:
+  schedule:
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Seconds per target
+        default: "600"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  targets:
+    name: List the fuzz targets
+    runs-on: ubuntu-latest
+    outputs:
+      names: ${{ steps.list.outputs.names }}
+    steps:
+      - uses: actions/checkout@v7
+      # An empty list fails the run rather than fuzzing nothing and passing.
+      - id: list
+        run: |
+          names=$(ls fuzz/fuzz_targets/*.rs | xargs -n1 basename | sed 's/\.rs$//' \
+            | jq -R . | jq -cs .)
+          test "$names" != "[]" || { echo "no fuzz targets found"; exit 1; }
+          echo "names=$names" >> "$GITHUB_OUTPUT"
+
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    needs: targets
+    runs-on: ubuntu-latest
+    # The target's time plus the build, with room to spare.
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.targets.outputs.names) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "36.2"
+          repo-token: ${{ github.token }}
+      - run: rustup toolchain install nightly --profile minimal
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz
+          key: fuzz-${{ matrix.target }}
+      - run: cargo +nightly install cargo-fuzz --version 0.13.2 --locked
+      - name: just fuzz
+        run: just fuzz ${{ inputs.seconds || '600' }} ${{ matrix.target }}
+      - name: Upload the crash
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-crash-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}/
+          if-no-files-found: ignore
+          retention-days: 30

@@ -17,7 +17,7 @@ use crate::convert::{ConvertError, quality_from_wire, time_from_wire, value_from
 use crate::status::{bad_field, error_info, to_rpc};
 
 /// A sample's fields, converted.
-fn sample_from_wire(
+pub(crate) fn sample_from_wire(
     s: common::Sample,
     signal: norn_core::SignalId,
 ) -> Result<Sample, ConvertError> {
@@ -46,7 +46,7 @@ fn sample_error(index: usize, code: Code, reason: ErrorReason, text: String) -> 
     }
 }
 
-fn level(number: i32) -> Option<AckLevel> {
+pub(crate) fn level(number: i32) -> Option<AckLevel> {
     Some(match AcknowledgementLevel::try_from(number).ok()? {
         AcknowledgementLevel::Received => AckLevel::Received,
         AcknowledgementLevel::Buffered => AckLevel::Buffered,

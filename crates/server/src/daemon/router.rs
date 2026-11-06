@@ -5,7 +5,6 @@
 
 use std::sync::Arc;
 
-use norn_metadata::Registry;
 use norn_protocol::admin::admin_service_server::AdminServiceServer;
 use norn_protocol::entity::entity_service_server::EntityServiceServer;
 use norn_protocol::google::longrunning::operations_server::OperationsServer;
@@ -15,7 +14,6 @@ use norn_protocol::signal::signal_service_server::SignalServiceServer;
 use norn_protocol::state::state_service_server::StateServiceServer;
 use norn_protocol::stream::stream_service_server::StreamServiceServer;
 use norn_protocol::telemetry::telemetry_service_server::TelemetryServiceServer;
-use norn_runtime::ingest::{Ingest, IngestRecovery};
 use norn_runtime::maintenance::Maintenance;
 use norn_runtime::sessions::Replays;
 use norn_runtime::{Reservation, Runtime, RuntimeError, Subsystem};
@@ -25,6 +23,7 @@ use tonic_health::server::HealthReporter;
 use tpp_grpc::HybridServer;
 
 use super::DaemonError;
+use super::open::Database;
 use crate::admin::Admin;
 use crate::catalog::Catalog;
 use crate::config::DaemonConfig;
@@ -49,52 +48,6 @@ pub(super) struct Built {
     /// The tasks calls spawn: shutdown closes it and waits, before ingestion
     /// closes, so no call outlives the database it holds.
     pub(super) calls: TaskTracker,
-}
-
-/// The recovered database.
-pub(super) struct Database {
-    pub(super) registry: Arc<Registry>,
-    pub(super) ingest: Arc<Ingest>,
-    pub(super) recovery: IngestRecovery,
-}
-
-/// Opens the registry and recovers every stream, on the blocking pool.
-pub(super) async fn open_database(
-    config: &DaemonConfig,
-    runtime: &Runtime,
-) -> Result<Database, DaemonError> {
-    let engine = *config.engine();
-    let clock = Arc::clone(runtime.clock());
-    let budget = runtime.budgets().get(Subsystem::Ingest).clone();
-    let root = config.database();
-    let database = tokio::task::spawn_blocking(move || {
-        let dir = root.join("metadata");
-        let (registry, log) = Registry::open(&dir, engine.limits(), engine.metadata())?;
-        tracing::info!(
-            records = log.records,
-            torn = log.torn_bytes,
-            "registry open"
-        );
-        let registry = Arc::new(registry);
-        let shared = Arc::clone(&registry);
-        let ingest = Ingest::new(root, &engine, shared, budget, clock);
-        let recovery = ingest.recover().map_err(DaemonError::Storage)?;
-        let ingest = Arc::new(ingest);
-        Ok::<_, DaemonError>(Database {
-            registry,
-            ingest,
-            recovery,
-        })
-    })
-    .await
-    .map_err(|_| DaemonError::RecoveryPanicked)??;
-    let recovery = &database.recovery;
-    if recovery.corruptions > 0 {
-        tracing::warn!(?recovery, "recovery found damaged data");
-    } else {
-        tracing::info!(?recovery, "recovery finished");
-    }
-    Ok(database)
 }
 
 /// Builds every service. Returns the flow-control reservation, held for life.

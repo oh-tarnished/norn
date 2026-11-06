@@ -37,6 +37,10 @@ not parse.
 | `signals [ENTITY]`                                    | list signals, of one entity or all               |
 | `compact STREAM`                                      | merge sealed segments, and wait                  |
 | `verify STREAM`                                       | read and check every chunk; exit 1 on damage, or (1.0.0-rc.1) when it examined nothing |
+| `backup --to DIR [--incremental-from BACKUP] [--id ID]` | copy the database while the daemon runs, and wait |
+| `restore --from DIR --data-dir D [--dry-run]`         | offline: write a backup into a new directory, or check one |
+| `migrate --data-dir D --to VERSION [--dry-run] [--keep-old]` | offline: move a database to a newer store version |
+| `rekey [--config PATH] [--data-dir PATH]`             | with the daemon stopped, rewrite stored segments under the current encryption key, by running `norn rekey`; exit 1 if any is left ([storage](storage.md#rotating-keys)) |
 | `retention get STREAM`                                | show the policy                                  |
 | `retention set STREAM forever\|Nd\|Nmo\|Nb`           | set the policy: time, months or bytes            |
 | `retention apply STREAM [--dry-run]`                  | run the policy now, or list what would go        |
@@ -350,9 +354,14 @@ call to start, not the run.
 
 ## Long-running commands
 
-`compact`, `verify` and `retention apply` start an operation and poll it. `--timeout`
-bounds each poll, not the operation. Output:
+`compact`, `verify`, `retention apply` and `backup` start an operation and poll it.
+`--timeout` bounds each poll, not the operation. Output:
 [operations](../guides/operations.md#compaction).
+
+`restore` and `migrate` are the two commands that talk to no daemon: they work on the files of
+a stopped one, holding its lock, and ignore `--endpoint` and `--timeout`
+([backup and restore](../guides/operations.md#backup-and-restore),
+[migrating](../guides/operations.md#migrating-to-a-new-store-version)).
 
 In 1.0.0-rc.1:
 

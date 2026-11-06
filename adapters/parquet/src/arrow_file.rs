@@ -13,15 +13,15 @@ use arrow_ipc::writer::FileWriter;
 use arrow_schema::ArrowError;
 use norn_adapter::{
     AdapterError, CATALOG_KEY, Catalog, DEFAULT_MAX_SIGNALS, Discovery, SampleSink, SampleSource,
-    SourceBatch,
+    SourceBatch, contained,
 };
 use norn_protocol::common::Sample;
 use norn_protocol::query::SampleOrder;
 
-use crate::DIGESTS_KEY;
 use crate::columns::{schema, to_batch};
 use crate::digest::{self, Digest, Part, encode};
 use crate::from_batch::from_batch;
+use crate::{DIGESTS_KEY, arrow_blocks};
 
 const FORMAT: &str = "arrow";
 /// Rows in a record batch; a reader holds one at a time.
@@ -120,10 +120,13 @@ impl<R: Read + Seek> ArrowSource<R> {
 
 impl<R: Read + Seek> SampleSource for ArrowSource<R> {
     fn catalog(&mut self) -> Result<Catalog, AdapterError> {
-        let Some(input) = self.input.take() else {
+        let Some(mut input) = self.input.take() else {
             return Ok(Catalog::default());
         };
-        let reader = FileReader::try_new(input, None).map_err(|e| AdapterError::Truncated {
+        let opened = arrow_blocks::check(&mut input).and_then(|()| {
+            contained(|| FileReader::try_new(input, None))?.map_err(|e| e.to_string())
+        });
+        let reader = opened.map_err(|e| AdapterError::Truncated {
             format: FORMAT,
             row: None,
             detail: format!("no readable footer: {e}"),
@@ -149,7 +152,9 @@ impl<R: Read + Seek> SampleSource for ArrowSource<R> {
             row: Some(row),
             detail,
         };
-        let Some(next) = self.reader.as_mut().and_then(Iterator::next) else {
+        let reader = self.reader.as_mut();
+        let next = contained(|| reader.and_then(Iterator::next)).map_err(corrupt)?;
+        let Some(next) = next else {
             return Ok(None);
         };
         let batch = next.map_err(|e| corrupt(e.to_string()))?;

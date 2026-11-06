@@ -7,6 +7,7 @@ use norn_codec::MAX_BLOCK_VALUES;
 use norn_codec::compress::Compression;
 use norn_core::Config;
 
+use crate::crypt::Keyring;
 use crate::error::{Bound, Result, StorageError};
 use crate::format::DIR_ENTRY_LEN;
 
@@ -52,6 +53,14 @@ pub struct StorageOptions {
     pub write_buffer_bytes: usize,
     /// How chunk columns are compressed on the write path.
     pub compression: Compression,
+    /// The keys of an encrypted store, `None` for a plain one. Every segment
+    /// written is encrypted when it is set, and every segment read must match
+    /// (docs/reference/storage.md "Encryption").
+    pub keyring: Option<&'static Keyring>,
+    /// Report-only recovery with no keyring checks an encrypted segment's stored
+    /// bytes, its frames and CRCs, instead of refusing it. Authentication needs the
+    /// key, so it is left to `verify` on a daemon that holds it. Never repairs.
+    pub stored_bytes_only: bool,
 }
 
 impl StorageOptions {
@@ -71,6 +80,8 @@ impl StorageOptions {
             max_chunk_bytes: u32::try_from(chunk_bytes).unwrap_or(u32::MAX),
             write_buffer_bytes: usize::try_from(buffer).unwrap_or(usize::MAX),
             compression: Compression::Default,
+            keyring: None,
+            stored_bytes_only: false,
         }
     }
 

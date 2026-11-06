@@ -9,6 +9,10 @@
 //! because a handler reads its next message only after finishing the last.
 
 mod cost;
+#[cfg(test)]
+mod cost_tests;
+#[cfg(feature = "fuzzing")]
+pub(crate) mod drive;
 mod reader;
 mod wire;
 

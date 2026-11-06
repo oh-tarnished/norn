@@ -19,6 +19,8 @@ path = "src/main.rs"
 [dependencies]
 norn-protocol = { path = "../protocol" }
 norn-ipc = { path = "../ipc" }
+# `restore` and `migrate`, which work on a stopped daemon's files.
+norn-database = { path = "../database" }
 # `--shared-memory`: attaching a ring the daemon grants (opt-in, unix only in
 # effect: a Windows daemon never offers one).
 norn-shared-memory = { path = "../shared-memory" }

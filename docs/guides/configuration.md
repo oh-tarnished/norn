@@ -66,6 +66,7 @@ max_segment_open_time_ms = 3600000  # 1.0.0-rc.1: wall-clock time a segment may 
 group_commit_interval_ms = 5   # the longest a DURABLE batch waits to share an fsync
 max_chunk_age_ms = 60000       # the longest a sample waits to be encoded into a chunk
 durable_acks = true            # false: no fsync, and DURABLE is refused, not weakened
+encryption = "off"             # "on" needs key_file or key_env (below)
 ```
 
 The `[memory]`, `[limits]`, `[metadata]`, `[storage]` and `[maintenance]` defaults are
@@ -94,6 +95,29 @@ per client; the other half pays for messages being decoded ([architecture.md](..
 `listen` takes `unix:<absolute path>`, `pipe:\\.\pipe\<name>` or
 `tcp:<loopback address>:<port>`; [ipc.md](../reference/ipc.md) gives the syntax and the
 security model. TCP has no OS identity check and is meant for tests.
+
+## Encryption at rest
+
+```toml
+[storage]
+encryption = "on"
+key_file = "/etc/norn/keys"   # or key_env = "NORN_KEYS"; exactly one
+```
+
+The key file holds one 256-bit key per line, as 64 hex digits; `#` starts a
+comment. The first line is the current key. It must be owner-only (`chmod 600`)
+or the daemon refuses to start. `key_env` names an environment variable with the
+same text; it is visible to anything that can read the process's environment, so
+prefer a file. A key written in the TOML itself is refused as an unknown key.
+Make a key with `openssl rand -hex 32`, or `head -c 32 /dev/urandom | xxd -p -c 64`.
+
+**Losing the key loses the data.** Back the key file up apart from the data.
+
+What is encrypted, and what is not, is exact in
+[storage.md](../reference/storage.md#encryption): sample data is, names and time
+ranges are not. A plain store cannot be switched on in place, nor an encrypted one
+off; the daemon refuses either rather than mixing them. Rotation is
+`nornctl rekey` ([storage.md](../reference/storage.md#rotating-keys)).
 
 ## Maintenance
 

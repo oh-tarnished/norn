@@ -11,7 +11,8 @@ does not do yet is listed under [Not implemented](#not-implemented).
 
 ## Hierarchy
 
-Database → Stream → Segment → Chunk → Block → Sample.
+Database → Stream → Segment → Chunk → Block → Sample. `<database>/FORMAT` records the
+store version ([compatibility](compatibility.md)).
 
 ```text
 <database>/streams/<stream id, 16 hex digits>/
@@ -47,10 +48,11 @@ All integers are little-endian. `tests/format.rs` pins these offsets.
 | Offset | Size | Field |
 | ---: | ---: | --- |
 | 0 | 8 | magic `NORNSEG\0` |
-| 8 | 2 | `format_version`, 1: this container layout |
+| 8 | 1 | format major version, 1 |
+| 9 | 1 | format minor version: 0 plain, 1 encrypted ([Encryption](#encryption)) |
 | 10 | 2 | `schema_version`, 1: the chunk's columns and value-kind tags |
 | 12 | 1 | `codec_version`: `norn_codec::CODEC_VERSION` when written |
-| 13 | 1 | flags, zero |
+| 13 | 1 | flags: zero; in format 1.1, `0x01` = encrypted |
 | 14 | 2 | `generation`: 0 from ingest, +1 per compaction |
 | 16 | 8 | stream id |
 | 24 | 8 | `first_seq` |
@@ -61,6 +63,8 @@ All integers are little-endian. `tests/format.rs` pins these offsets.
 A reader checks the magic, then the CRC, then the versions, so a bit flip is
 reported as corruption and only an intact newer file as
 `UnsupportedVersion`. A file from a newer Norn is refused and never modified.
+Bytes 8..10 read as one `u16` are 1 for format 1.0 and 257 for 1.1; a build
+refuses any major other than 1 and any minor above its own.
 
 ### Chunk frame (48-byte header, then the body)
 
@@ -104,6 +108,120 @@ sealing leaves no valid seal: the seal is all-or-nothing without a second file.
 A reader also requires the directory to end exactly where the trailer begins.
 Chunks are fsynced *before* the seal is written, so a power loss cannot leave
 a valid directory over chunks that never reached the disk.
+
+## Encryption
+
+Off unless `[storage] encryption = "on"` ([configuration](../guides/configuration.md#encryption-at-rest)).
+Pure Rust: RustCrypto's `chacha20poly1305`, `hkdf` and `sha2`, with `zeroize` and
+`getrandom`, beneath `norn-storage` only (`xtask/src/crypto.rs`, `deny.toml`).
+
+### What is and is not encrypted
+
+| Encrypted (authenticated and confidential) | Not encrypted |
+| --- | --- |
+| Every chunk body in every segment: timestamps, values, qualities, sequence numbers | Segment headers: stream id, sequence range, generation |
+| The write-ahead journal's batches, which are chunk bodies in journal segments | Chunk frame headers and directories: signal id, value kind, earliest and latest timestamp, sample count, body length |
+| | The metadata log: entity, signal and stream names, units, descriptions, metadata, retention policies |
+| | Index sidecars, clean markers, the `ENCRYPTION` marker |
+| | Quarantined bytes: copies of whatever they were, so ciphertext from an encrypted segment |
+| | Exports, logs, sockets, shared-memory rings and the daemon's memory |
+
+So an encrypted store hides what was measured, not which signals exist, when, or
+how much. It protects data on a disk or in a backup that is read without the key.
+It does not protect against anyone who can read the daemon's memory, its key file
+or its environment, nor against a same-user process.
+
+**Integrity.** Each chunk is authenticated. Changing any byte of its body, its
+frame header's signal, kind, time range, count or length, or moving it to another
+offset, segment, stream or generation, fails with `CorruptionKind::Authentication`,
+reported by reads, recovery and `verify` like any damage. Not detected: deleting
+whole chunks from a sealed directory, deleting or truncating whole segments, or
+putting back an older copy of a file. Those need a record of what should exist,
+which Norn does not keep.
+
+### Design
+
+- **Master keys**: 256-bit, from a key file (Unix mode `0600` or `0400`, else
+  refused) or an environment variable, never from the TOML. Each line holds one
+  key in hex; the first is current. A key is named by its id, the first 8 bytes
+  of `HKDF-SHA-256(ikm = key, info = "norn key id v1")`.
+- **Per-segment key**: `HKDF-SHA-256(salt, master, info = "norn segment key v1"
+  ‖ stream ‖ first_seq ‖ generation)`, with a fresh 24-byte salt from the OS
+  random source for every segment file, compaction outputs and rekeyed files
+  included.
+- **Nonce**: the frame's byte offset (`u64` LE, then 4 zero bytes). Within a file,
+  offsets strictly increase, a file is created exclusively and never rewritten in
+  place, and a writer whose write failed is poisoned, so no nonce repeats under a
+  key. Recovery appends only a directory, never a frame.
+- **Associated data**, 64 bytes: format version 257, stream, `first_seq`,
+  generation, the frame's offset, and frame header bytes 4..40.
+- **Body**: ciphertext then the 16-byte Poly1305 tag; `body_len` counts both, and
+  the body CRC covers them, so recovery can check a frame without the key.
+
+### On disk
+
+An encrypted segment is format 1.1: header flag `0x01`, then this record, so its
+first chunk is at byte 96.
+
+| Offset | Size | Field |
+| ---: | ---: | --- |
+| 48 | 4 | magic `NENC` |
+| 52 | 1 | cipher, 1: ChaCha20-Poly1305 |
+| 53 | 1 | key derivation, 1: HKDF-SHA-256 |
+| 54 | 2 | reserved, zero |
+| 56 | 8 | key id |
+| 64 | 24 | salt |
+| 88 | 4 | reserved, zero |
+| 92 | 4 | CRC-32C of bytes 48..92 |
+
+`<database>/ENCRYPTION` records that the database is encrypted, so an encrypted
+database with no segments yet is not taken for a plain one. It holds no key.
+
+**Compatibility.** A plain segment is still written as format 1.0, byte for byte as
+before, and a plain store works unchanged. 1.0.0-rc.1 refuses a 1.1 segment as
+`UnsupportedVersion` and never modifies it. This does not change the database's
+store version.
+
+### Refusals
+
+Checked at startup, before recovery repairs anything, so a refused start changes
+nothing:
+
+| Found | Configuration | Result |
+| --- | --- | --- |
+| Encrypted segments or the marker | encryption off | refused: "is encrypted, but [storage] encryption is off" |
+| Plain segments | encryption on | refused: "is not encrypted": an existing store cannot be converted in place |
+| A segment under a key the file lacks | on | refused: "wrong key, or an old key removed before `nornctl rekey` finished" |
+| A key file others can read | on | refused: "chmod 600" |
+
+To encrypt an existing store, export it and import it into a new, encrypted one.
+
+### Rotating keys
+
+1. Put the new key on the first line of the key file, keeping the old one below.
+2. Restart. New segments, compaction outputs and journals use the new key; old
+   segments still read with the old one.
+3. Stop the daemon and run `nornctl rekey` (or `norn rekey`) with the same
+   `--config`. It recovers the store, then rewrites every segment under an older
+   key beside itself and renames it over the original. Offsets and lengths do not
+   change, so the index and clean markers stay valid. A crash leaves the original
+   and a `.nseg.tmp`, which recovery removes. A damaged or unsealed segment is left
+   under its key and listed, and `rekey` exits 1.
+4. Once it reports `left=0`, remove the old key.
+
+### Cost
+
+`cargo bench -p norn-storage --bench encryption`, Apple Silicon, release, one
+thread, warm file cache, 400 chunks of 8,640 `f64` samples:
+
+| | write Msamples/s | read Msamples/s | bytes |
+| --- | ---: | ---: | ---: |
+| plain | 10.3 | 65.6 | 23,634,205 |
+| encrypted | 9.4 | 43.8 | 23,640,653 |
+
+About 9 % on writing, which encoding dominates, and a third on reading cached
+chunks; 16 bytes a chunk and 48 a segment. One run on one machine, not a
+benchmark matrix.
 
 ## Checksums
 

@@ -101,5 +101,6 @@ pub fn check(graph: &Graph, allow: &[(&str, &str)]) -> Findings {
     }
     crate::runtime_rs::check_contained(graph, &mut findings);
     crate::iceoryx2::check_contained(graph, &mut findings);
+    crate::crypto::check_contained(graph, &mut findings);
     findings
 }

@@ -11,10 +11,11 @@ use super::{ConfigError, DaemonConfig};
 
 /// The `norn --help` text.
 pub const USAGE: &str = "\
-usage: norn [OPTIONS]
+usage: norn [rekey] [OPTIONS]
 
 Runs the Norn daemon in the foreground until SIGINT or SIGTERM (Ctrl-C on
-Windows), then drains in-flight calls and exits.
+Windows), then drains in-flight calls and exits. `norn rekey` instead rewrites every
+stored segment under the current encryption key, with the daemon stopped, and exits.
 
 options:
   --config PATH        read settings from a TOML file (docs/guides/configuration.md)
@@ -38,6 +39,8 @@ Flags override the file; the file overrides the built-in defaults.";
 pub enum Invocation {
     /// Run the daemon with this configuration.
     Run(Box<DaemonConfig>),
+    /// Rewrite the database under the current key with this configuration.
+    Rekey(Box<DaemonConfig>),
     /// Print [`USAGE`] and exit successfully.
     Help,
     /// Print the version and exit successfully.
@@ -61,7 +64,12 @@ where
     let mut level = None;
     let mut format = None;
     let mut mcp = Vec::new();
-    let mut args = args.into_iter();
+    let mut rekey = false;
+    let mut args = args.into_iter().peekable();
+    if args.peek().is_some_and(|first| first == "rekey") {
+        rekey = true;
+        args.next();
+    }
     while let Some(arg) = args.next() {
         let arg = text(arg)?;
         let mut value = |flag: &str| {
@@ -105,6 +113,9 @@ where
     }
     if let Some(format) = format {
         config.log.format = format.parse()?;
+    }
+    if rekey {
+        return Ok(Invocation::Rekey(Box::new(config)));
     }
     Ok(Invocation::Run(Box::new(config)))
 }

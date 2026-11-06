@@ -16,6 +16,8 @@ norn-core = { path = "../core" }
 # The write path: the registry resolves streams; storage holds the data.
 norn-metadata = { path = "../metadata" }
 norn-storage = { path = "../storage" }
+# Backups: the directory layout, its manifest and the checksums over it.
+norn-database = { path = "../database" }
 # The temporal index, told of every chunk the write path stores.
 norn-index = { path = "../index" }
 # Reads: the engine, and the seams the write path and the budgets implement.
@@ -33,6 +35,11 @@ tokio = { workspace = true, features = ["sync", "rt", "time", "macros"] }
 tokio-util = { workspace = true }
 # Task failures and lifecycle transitions are logged, never printed.
 tracing = { workspace = true }
+
+# Exposes the journal's readers to the fuzz crate (fuzz/), and to nothing
+# else: no shipped build enables it.
+[features]
+fuzzing = []
 
 [dev-dependencies]
 # The query crate's test rig, shared by path, needs what it needs.

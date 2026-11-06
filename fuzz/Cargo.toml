@@ -1,0 +1,223 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Fuzz targets for every decoder that sees untrusted bytes (stage 16). A
+# workspace of its own, excluded from Norn's: libFuzzer is C++ and needs
+# nightly, and keeping it here keeps it out of every shipped graph, which the
+# deps gate holds free of C. Run with `just fuzz`; fuzz/seed writes the corpus.
+
+[package]
+name = "norn-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+
+[package.metadata]
+cargo-fuzz = true
+
+[workspace]
+members = [".", "seed"]
+resolver = "3"
+
+[dependencies]
+libfuzzer-sys = "0.4"
+norn-core = { path = "../crates/core" }
+norn-codec = { path = "../crates/codec" }
+norn-storage = { path = "../crates/storage", features = ["fuzzing"] }
+# `fuzzing` exposes each crate's file and request decoders, and nothing else.
+norn-index = { path = "../crates/index", features = ["fuzzing"] }
+norn-metadata = { path = "../crates/metadata", features = ["fuzzing"] }
+norn-runtime = { path = "../crates/runtime", features = ["fuzzing"] }
+norn-server = { path = "../crates/server", features = ["fuzzing"] }
+norn-protocol = { path = "../crates/protocol" }
+norn-query = { path = "../crates/query" }
+norn-adapter = { path = "../adapters/contract" }
+norn-adapter-csv = { path = "../adapters/csv" }
+norn-adapter-parquet = { path = "../adapters/parquet" }
+norn-adapter-mcap = { path = "../adapters/mcap" }
+prost = "0.14"
+bytes = "1"
+tokio = { version = "1.54", default-features = false, features = ["rt", "time"] }
+
+[[bin]]
+name = "codec_timestamp"
+path = "fuzz_targets/codec_timestamp.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "codec_integer"
+path = "fuzz_targets/codec_integer.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "codec_boolean"
+path = "fuzz_targets/codec_boolean.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "codec_enum"
+path = "fuzz_targets/codec_enum.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "codec_gorilla"
+path = "fuzz_targets/codec_gorilla.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "codec_alp"
+path = "fuzz_targets/codec_alp.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "codec_bytes"
+path = "fuzz_targets/codec_bytes.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "codec_zstd"
+path = "fuzz_targets/codec_zstd.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "storage_segment"
+path = "fuzz_targets/storage_segment.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "storage_clean"
+path = "fuzz_targets/storage_clean.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "storage_chunk"
+path = "fuzz_targets/storage_chunk.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "index_summary"
+path = "fuzz_targets/index_summary.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "index_signals"
+path = "fuzz_targets/index_signals.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "index_detail"
+path = "fuzz_targets/index_detail.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "index_tail"
+path = "fuzz_targets/index_tail.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "journal_record"
+path = "fuzz_targets/journal_record.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "journal_segment"
+path = "fuzz_targets/journal_segment.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "metadata_log"
+path = "fuzz_targets/metadata_log.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "server_request"
+path = "fuzz_targets/server_request.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "server_append"
+path = "fuzz_targets/server_append.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "shm_frame"
+path = "fuzz_targets/shm_frame.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "query_text"
+path = "fuzz_targets/query_text.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "adapter_csv"
+path = "fuzz_targets/adapter_csv.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "adapter_parquet"
+path = "fuzz_targets/adapter_parquet.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "adapter_arrow"
+path = "fuzz_targets/adapter_arrow.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "adapter_mcap"
+path = "fuzz_targets/adapter_mcap.rs"
+test = false
+doc = false
+bench = false

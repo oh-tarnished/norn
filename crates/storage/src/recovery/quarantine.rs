@@ -10,12 +10,12 @@ use std::path::{Path, PathBuf};
 use super::QUARANTINE_DIR;
 use crate::error::{Result, StorageError};
 use crate::fsio::{parent, tmp_path};
-use crate::platform::sync_dir;
+use crate::platform::{create_dir_durable, sync_dir};
 
 /// The quarantine directory beside `segment`, created if missing.
 fn dir_for(segment: &Path) -> Result<PathBuf> {
     let dir = parent(segment).join(QUARANTINE_DIR);
-    fs::create_dir_all(&dir).map_err(|e| StorageError::io("create directory", &dir, e))?;
+    create_dir_durable(&dir)?;
     Ok(dir)
 }
 

@@ -20,6 +20,7 @@
 //! Concurrency: single-threaded, run once per invocation.
 
 pub mod arch;
+pub mod crypto;
 pub mod deps;
 pub mod docs;
 pub mod iceoryx2;

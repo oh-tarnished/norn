@@ -7,8 +7,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 Working today: starting, stopping, recovery after a crash, reporting damage,
 compaction, retention and verification. Export and import work: see
-[import and export](import-export.md). **Not available to an operator yet:**
-metrics and backup tooling. See the [roadmap](../../README.md#roadmap).
+[import and export](import-export.md), and so do backup, restore and migration
+(below). **Not available to an operator yet:** metrics. See the
+[roadmap](../../README.md#roadmap).
 
 Output below is real, from macOS. CI tests Linux and Windows too ([platforms](#platforms)).
 
@@ -55,6 +56,7 @@ Default: `$XDG_DATA_HOME/norn`, `~/.local/share/norn`, or `%LOCALAPPDATA%\norn`.
 After appending and storing one chunk (paths listed with `find`):
 
 ```text
+norn/FORMAT
 norn/index/0000000000000001/summary.nidx
 norn/metadata/LOCK
 norn/metadata/metadata.log
@@ -64,6 +66,7 @@ norn/streams/0000000000000001/journal/LOCK
 norn/streams/0000000000000001/LOCK
 ```
 
+`FORMAT` is the [store version](../reference/compatibility.md).
 `metadata/` is the registry of streams, entities and signals. `streams/<id>/` holds
 sealed segments, and `journal/` the samples not yet stored as chunks. `index/`
 can be rebuilt from the segments, and `CLEAN` can be deleted at any time: the next
@@ -237,6 +240,108 @@ WARN retention removed segments stream=1 segments=1
 
 `status` counts since the daemon started and lists the last 16 removals. The log is
 the lasting record: keep it.
+
+## Backup and restore
+
+`nornctl backup` copies the database while the daemon runs and ingests:
+
+```console
+$ nornctl backup --to /backups/monday --id monday
+/backups/monday cut=2026-11-02T03:00:00Z streams=1 files=4 bytes=1820 copied_files=4 copied_bytes=1820
+```
+
+It is a long-running operation on the daemon (`AdminService.CreateBackup`), which reads
+and writes the paths, so both are on the daemon's machine. The directory must be new or
+empty.
+
+**What it holds.** Each stream is cut at one point in its order of admission. A backup
+holds every sample admitted to that stream before its cut and none admitted after, so
+every batch acknowledged `DURABLE` before you ran the command is in it, with no gap. The
+cut travels the write path like a batch: what came before it is stored and fsynced, the
+open segment is sealed, and the sealed segments at that moment are what is copied. No
+journal is needed. Streams are cut within moments of each other but not atomically
+together, and a batch belongs to one stream, so nothing spans them. The catalogue is
+written just after the cuts, so it names everything they hold.
+
+Then the directory holds:
+
+```text
+/backups/monday/MANIFEST                       written last; no manifest, no backup
+/backups/monday/metadata/metadata.log          the catalogue
+/backups/monday/streams/<id>/<segment>.nseg    sealed segments, byte for byte
+```
+
+`MANIFEST` is text: each file's length and CRC-32C, with a CRC-32C of its own. Segments
+are copied as opaque bytes and no chunk is decoded, so an encrypted segment needs no key to
+back up or to restore. The index and clean markers are left out: a restored daemon rebuilds
+them at its first start, which reads every chunk.
+
+**What it costs.** Compaction and retention wait for it, since it runs on the same worker,
+one job at a time; ingest and queries do not. Each backup of a busy stream seals one more
+small segment for compaction to merge. A backup that fails or is cancelled leaves its files
+and no manifest; Norn removes nothing under a path a client named, so delete the directory
+and try again. Damage already in a segment is copied as it is, because a backup reads no chunk:
+run `nornctl verify` first if you want to know, and `restore` reports it either way.
+
+**Incremental backups.** With `--incremental-from`, a sealed segment the earlier backup holds is
+not copied again; the new manifest lists it as being in its parent. A segment counts as the
+same if its name, length and the CRC-32C of its last 64 KiB agree: that is where a segment
+keeps its chunk directory, with each chunk's CRC in it.
+
+```console
+$ nornctl backup --to /backups/tuesday --incremental-from /backups/monday
+/backups/tuesday cut=2026-11-03T03:00:00Z streams=1 files=5 bytes=2290 copied_files=2 copied_bytes=1520
+```
+
+Restoring needs the whole chain. A parent beside the new backup is recorded as `../monday`, so
+siblings can move together; any other is recorded by its absolute path. Compaction replaces
+segments, so the first incremental after one copies more.
+
+**Restoring.** With the target daemon stopped, into a new or empty directory:
+
+```console
+$ nornctl restore --from /backups/tuesday --dry-run
+backup intact files=5 bytes=2290 chain=2
+$ nornctl restore --from /backups/tuesday --data-dir /var/lib/norn-restored
+restored /var/lib/norn-restored files=5 bytes=2290 already_done=0 records=9 verified_segments=3 damaged_regions=0
+```
+
+`--dry-run` reads every file against its checksum and writes nothing. A restore checks each
+file as it copies, refuses a damaged one, then reads every chunk of the result. `RESTORING`
+exists from before the first file until after the last, and the daemon refuses the directory
+while it does; after a crash, run the same command again, and it copies only what is
+missing. If it ends with `damaged_regions` above zero it exits 1 and the database is usable:
+each checksum passed, so that damage was there when it was backed up, and the daemon will
+report it as [above](#damage).
+
+## Migrating to a new store version
+
+A database records its store version in `FORMAT`. A release that needs a newer one refuses
+to start with what to run ([compatibility](../reference/compatibility.md) has the policy):
+
+```console
+$ nornctl migrate --data-dir /var/lib/norn --to 2 --dry-run
+would migrate /var/lib/norn store_version=1->2 steps=1 files=12 resumed=false verified_segments=0 damaged_regions=0
+$ nornctl migrate --data-dir /var/lib/norn --to 2
+migrated /var/lib/norn store_version=1->2 steps=1 files=12 resumed=false verified_segments=12 damaged_regions=0
+```
+
+The `1->2` here shows the form: today store version 1 is the only one, so the only migration
+is `--to 1`, which records the version in a database 1.0.0-rc.1 wrote and reads it through.
+A daemon does that itself, so you do not need to.
+
+- **Offline.** It holds the daemon's lock, and refuses while a daemon runs.
+- **Crash-safe and resumable.** New files are written beside the old (`<name>.v2-new`) and
+  fsynced. Then `MIGRATION` is replaced, which is the commit point. Files are renamed into
+  place, keeping each old one as `<name>.v1-old`, `FORMAT` moves, the result is read through,
+  and only then are the old files removed. After `kill -9`, run the same command again. The
+  daemon refuses the directory while `MIGRATION` exists.
+- **`--keep-old`** keeps the `.v1-old` files. They are the way back, and yours to delete: stop
+  the daemon, rename them over the new files, and restore `FORMAT` from a backup.
+- If the result has more damage than the start, it stops with the old files kept and
+  `MIGRATION` in place. Nothing is lost; ask before going further.
+
+A backup first is still the cheapest insurance there is.
 
 ## Logs
 

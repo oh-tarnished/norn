@@ -103,6 +103,9 @@ pub enum StorageError {
     /// A [`crate::CompactionObserver`] stopped a compaction before its commit.
     /// Nothing was changed.
     CompactionCancelled,
+    /// Encrypted data could not be opened or written: a wrong key, or a store
+    /// and a configuration that disagree. Nothing was changed.
+    Encryption(crate::crypt::EncryptionError),
     /// Another writer or repairing recovery holds the stream (SPEC §20): one
     /// writer per stream. It may be this process or another; the lock file
     /// names the holder's process ID, for a human.
@@ -142,6 +145,7 @@ impl fmt::Display for StorageError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io { op, path, source } => write!(f, "{op} {}: {source}", path.display()),
+            Self::Encryption(e) => e.fmt(f),
             Self::Corrupt(c) => write!(
                 f,
                 "{}: {:?} at bytes {}..+{}",
