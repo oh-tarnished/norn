@@ -105,6 +105,37 @@ jobs:
           repo-token: ${{ github.token }}
       - run: just crash
 
+  # A baseline holds one machine's numbers, so it only means something from the
+  # machine class that compares with it: docs/performance.md says how to make it.
+  bench-matrix:
+    name: Benchmark matrix (quick)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.99.1
+      - uses: extractions/setup-just@v4
+      - uses: Swatinem/rust-cache@v2
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "36.2"
+          repo-token: ${{ github.token }}
+      - name: Run the quick profile, against the baseline when one is committed
+        run: |
+          baseline=benchmarks/baseline/quick.json
+          if [ -f "$baseline" ]; then
+            just bench-matrix --quick --out target/bench-matrix --baseline "$baseline"
+          else
+            echo "::warning title=No benchmark baseline::$baseline is not committed, so this run checks for no regression. Its report is the artifact."
+            just bench-matrix --quick --out target/bench-matrix
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bench-matrix-quick
+          path: target/bench-matrix/
+          if-no-files-found: warn
+
   deny:
     name: Licences and advisories
     runs-on: ubuntu-latest

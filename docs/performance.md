@@ -5,11 +5,11 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Performance
 
-> The full benchmark matrix is not implemented yet; the performance piece fills
-> it in. Below are the requirements from [spec.md](project/spec.md) as the design
-> target, then what has been measured so far, piece by piece. Storage and codec
-> numbers are in [storage.md](reference/storage.md), and IPC latency in
-> [ipc.md](reference/ipc.md#measured-latency).
+> The benchmark matrix below is implemented, but its full run has not been made, so
+> its tables read "to be measured". Below are the requirements from
+> [spec.md](project/spec.md), then the matrix, then what was measured earlier, piece
+> by piece. Storage and codec numbers are in [storage.md](reference/storage.md), and
+> IPC latency in [ipc.md](reference/ipc.md#measured-latency).
 
 ## Requirements
 
@@ -28,6 +28,173 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 `norn_core::Config::default()` budgets and limits are picked, not measured.
 They are documented on `MemoryBudgets` and `Limits` and are to be revisited
 from these benchmarks.
+
+## Benchmark matrix
+
+The matrix runs SPEC's workload (§15, §17, §35) against the real `norn`, over real
+gRPC on a Unix socket and over shared memory, and reports it with the machine it ran
+on. **Its full run has not been made.** Every table in this section reads "to be
+measured" until the owner's run fills it in. The sections after it are earlier
+one-off measurements, each with its own conditions; none of them is a matrix result.
+
+### Reproducing it
+
+Use a release build on an otherwise idle machine, with `--data-root` on the disk to
+be measured:
+
+```sh
+just bench-matrix --full --data-root /path/on/the/disk --out benchmarks/results
+```
+
+The JSON and Markdown reports are `matrix-full.{json,md}` under `--out`, by default
+`target/bench-matrix/`. They are rewritten after every row, so a run that fails
+keeps what it measured. A relative path is taken from the workspace root. The other
+flags are in `crates/server/benches/matrix/args.rs`:
+
+- `--repeat N` changes the repeats.
+- `--only ingest,planes,history` runs some of the groups.
+- `--history-signals N` changes the history's signal count.
+
+The profiles are in `crates/server/benches/matrix/profile.rs`:
+
+| Profile | Command | Repeats | Ingest row | History |
+| --- | --- | ---: | --- | --- |
+| Full, for the owner | `just bench-matrix --full` | 3 | 300 s sustained, 30 s burst, 120 s scale, 30 s planes | 1,000 signals, 1 week at 1 Hz |
+| Quick, for CI | `just bench-matrix --quick` | 3 | 2 s each | 4 signals, 1 week at 1 Hz |
+| Smoke, to prove every path | `just bench-smoke` | 1 | 1 s each, 20 signals | 2 signals, 2 hours at 1 Hz |
+
+Only the full profile's numbers belong in the tables below. The others keep SPEC's
+shape at a scale that says little about capacity.
+
+### Method
+
+- **Isolation.** Every row runs on a fresh daemon, in a new directory under
+  `--data-root`, with its own socket in a new directory under `/tmp`. Each is removed
+  when the row ends. The harness never connects to another daemon.
+- **Configuration.** One configuration for every row, recorded in the report:
+  defaults, with `max_signals` raised to fit the largest row, background maintenance
+  off so compaction runs only when timed, and shared memory enabled.
+- **Ingest.** One `AppendCall`, one stream, `f64` values, open loop, the client on
+  the same machine as the daemon. Batches leave on a schedule. A `THROTTLE` delays
+  the next one by its `retry_delay`. A refused batch is counted, not sent again, and
+  does not pause the schedule, so it lowers the achieved rate.
+- **Ack latency.** It runs from handing a batch over to the first response at or
+  above the requested level. Each level implies those below it, and a response
+  carries the level the batch has reached, so a `RECEIVED` row measures that reply.
+- **History.** Load at `PERSISTED`, stop cleanly and time the restart, compact and
+  time it, read back on compacted data, load a little more, `kill -9`, and time the
+  restart to its first answer. A recovery that reports corruption fails the run.
+- **Disk.** Bytes per sample are file sizes under the stream directory, so headers,
+  checksums, indexes and trailers count. The metadata log does not.
+- **Repeats.** Rows interleave: every row runs once per round. Each cell is the
+  median and nearest-rank p95 over the repeats. With three repeats the p95 is the
+  largest value.
+- **Recorded with every run.** OS, kernel, architecture, CPU, RAM, disk model,
+  filesystem, data root, `rustc`, commit, whether the tree was dirty, daemon
+  configuration, and every row's scale.
+
+Not covered by the matrix:
+
+- several clients or streams at once
+- CPU use (memory is peak RSS, sampled by `ps` every 100 ms)
+- rates above 1 Hz per signal, other than through the burst rows
+- Windows
+
+### Ingest
+
+| Row | Signals | Offered/s | Levels | Result |
+| --- | ---: | ---: | --- | --- |
+| Sustained | 16,000 | 16,000 | RECEIVED, BUFFERED, PERSISTED, DURABLE | to be measured |
+| Burst 10× | 16,000 | 160,000 | BUFFERED, DURABLE | to be measured |
+| Burst 100× | 16,000 | 1,600,000 | BUFFERED, DURABLE | to be measured |
+| Scale | 1,000 / 10,000 / 100,000 | same as signals | BUFFERED | to be measured |
+
+Each result is achieved rate, ack p50 and p99, throttled and refused batches, and
+peak RSS.
+
+### Socket against shared memory
+
+| Offered/s | Batch | Socket | Shared memory |
+| ---: | ---: | --- | --- |
+| 1,000 | 100 | to be measured | to be measured |
+| 10,000 | 1,000 | to be measured | to be measured |
+| 100,000 | 2,000 | to be measured | to be measured |
+
+These rows use 16,000 signals at `BUFFERED`. `ring_granted` records whether the ring
+was actually granted; a row that was refused one ran on the socket.
+
+### Reads, compaction and recovery
+
+| Measure | 1 hour | 1 day | 1 week |
+| --- | --- | --- | --- |
+| Latest, every signal | to be measured | to be measured | to be measured |
+| Range, one signal | to be measured | to be measured | to be measured |
+| Aggregate, one signal, 60 s windows | to be measured | to be measured | to be measured |
+
+| Measure | Result |
+| --- | --- |
+| StateAt, one signal | to be measured |
+| StateAt, every signal | to be measured |
+| Replay at maximum speed | to be measured |
+| Compaction time | to be measured |
+| Clean restart | to be measured |
+| Restart after `kill -9` | to be measured |
+| Disk bytes per sample, ingest layout | to be measured |
+| Disk bytes per sample, compacted | to be measured |
+
+### The year, extrapolated
+
+The report computes these from the run's medians. 16,000 signals at 1 Hz for 365 days
+is 504,576,000,000 samples.
+
+| Figure | Computed as | Result |
+| --- | --- | --- |
+| Disk a year, compacted | bytes per sample × samples | to be measured |
+| Disk a year, ingest layout | bytes per sample × samples | to be measured |
+| Highest achieved rate, as a multiple of 16,000/s | highest ingest row ÷ 16,000 | to be measured |
+| Time to ingest a year's backlog | samples ÷ highest achieved rate | to be measured |
+| Compaction time for a day, and for a year | samples ÷ compaction rate | to be measured |
+
+The assumptions are printed with the figures in every report:
+
+- Bytes per sample and compaction speed are taken as linear in samples, from a far
+  smaller data set than a year. Index and metadata overhead grows with segments and
+  signals, and counts only as far as the data set had it.
+- The values are the harness's: a sawtooth with noise, as `f64`. Real populations
+  compress better or worse, per [storage.md](reference/storage.md).
+- One stream, no retention, no replicas, and no filesystem overhead beyond file sizes.
+- The highest achieved rate is a lower bound unless that row was saturated.
+- The client shares the machine's CPUs with the daemon.
+
+### Regression check in CI
+
+The `bench-matrix` job in `.github/workflows/ci.yml` runs `--quick` on Linux. It
+compares with `benchmarks/baseline/quick.json` when that file exists, and fails if a
+gated median is worse than the baseline by more than 3×. Rates, median latencies,
+times and disk bytes are gated. p99s, memory and counts are reported only, because on
+a shared runner they are mostly noise. The check also fails if it compares nothing,
+if the baseline's schema or profile differs, or if a gated metric stops producing
+values. A different OS, architecture or CPU is printed as a note, not a failure.
+
+**No baseline is committed yet, so the job checks for nothing and says so with a
+workflow warning.** A baseline is one machine's numbers. It means something only when
+it comes from the machine class that compares with it, and only Linux runners run
+this job. To make one, run the job, take `matrix-quick.json` from its
+`bench-matrix-quick` artifact, and commit it as `benchmarks/baseline/quick.json`. The
+file carries the machine and commit it was measured on. To check locally against a
+report from the same machine:
+
+```sh
+just bench-matrix --quick --baseline path/to/matrix-quick.json
+```
+
+`--threshold FACTOR` changes the 3×.
+
+## Earlier one-off measurements
+
+Everything from here to the end of this page was measured piece by piece, before the
+matrix, under the conditions each section states. None of it comes from the harness
+above.
 
 ## Write path
 

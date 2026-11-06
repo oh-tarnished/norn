@@ -39,6 +39,10 @@ bench-smoke:
 bench-smoke:
     cargo check --workspace --benches --locked
 
+# The benchmark matrix: --quick (minutes) or --full (hours); docs/performance.md.
+bench-matrix *args:
+    cargo bench --locked -p norn-server --bench matrix -- {{ args }}
+
 # Formatting and lints, as CI runs them.
 lint:
     cargo fmt --all --check

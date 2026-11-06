@@ -103,3 +103,8 @@ harness = false
 [[bench]]
 name = "shared_memory"
 harness = false
+
+# The stage-15 matrix: `just bench-matrix --quick|--full`; docs/performance.md.
+[[bench]]
+name = "matrix"
+harness = false
