@@ -60,6 +60,20 @@ commands:
   compact STREAM              merge a stream's sealed segments, and wait
   verify STREAM               read and check every stored chunk, and wait; exits
                               1 if any is damaged
+  backup --to DIR [--incremental-from BACKUP] [--id ID]
+                              copy the database while the daemon runs, and wait;
+                              DIR is empty or new; each stream is cut, so it holds
+                              what was admitted before that and nothing after; with
+                              --incremental-from, sealed segments BACKUP holds are
+                              not copied again, and restoring needs both
+  restore --from DIR --data-dir D [--dry-run]
+                              offline: write backup DIR into D, new or empty, then
+                              check it; run it again after a crash to finish;
+                              --dry-run reads every file and writes nothing
+  migrate --data-dir D --to VERSION [--dry-run] [--keep-old]
+                              offline: move D to a newer store version, checking
+                              the result; run it again after a crash to finish;
+                              --keep-old keeps each replaced file beside the new
   retention get STREAM        a stream's policy
   retention set STREAM forever|Nd|Nmo|Nb
                               keep everything, or D of time, N calendar months,
@@ -113,6 +127,9 @@ pub enum Command {
     Version,
     /// A resource command: its words, for [`crate::resources::run`].
     Resource(Vec<String>),
+    /// A command that works on a stopped daemon's files, with no daemon to connect
+    /// to: its words, for [`crate::offline::run`].
+    Offline(Vec<String>),
 }
 
 /// Parses the arguments after the program name.
@@ -154,13 +171,16 @@ pub fn parse<I: IntoIterator<Item = OsString>>(args: I) -> Result<Args, String> 
             "version" if command.is_none() => command = Some(Command::Version),
             "streams" | "entities" | "signals" | "append" | "query" | "state" | "replay"
             | "subscribe" | "export" | "import" | "compact" | "verify" | "retention"
-            | "inspect" | "stats" | "benchmark"
+            | "inspect" | "stats" | "benchmark" | "backup"
                 if command.is_none() =>
             {
                 command = Some(Command::Resource(vec![arg]));
             }
-            _ if matches!(command, Some(Command::Resource(_))) => {
-                if let Some(Command::Resource(words)) = &mut command {
+            "restore" | "migrate" if command.is_none() => {
+                command = Some(Command::Offline(vec![arg]));
+            }
+            _ if matches!(command, Some(Command::Resource(_) | Command::Offline(_))) => {
+                if let Some(Command::Resource(words) | Command::Offline(words)) = &mut command {
                     words.push(arg);
                 }
             }

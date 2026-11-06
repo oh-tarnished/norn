@@ -5,6 +5,7 @@
 
 use std::fmt;
 
+use norn_database::DatabaseError;
 use norn_ipc::IpcError;
 use norn_metadata::MetadataError;
 use norn_runtime::RuntimeError;
@@ -24,6 +25,8 @@ pub enum DaemonError {
     Runtime(RuntimeError),
     /// The registry could not be opened.
     Metadata(MetadataError),
+    /// The database is of a store version this build must not open.
+    Database(DatabaseError),
     /// Recovery could not assess a stream.
     Storage(RecoverError),
     /// The recovery task panicked.
@@ -40,6 +43,7 @@ impl fmt::Display for DaemonError {
             Self::Reflection(e) => write!(f, "cannot build gRPC reflection: {e}"),
             Self::Runtime(e) => write!(f, "{e}"),
             Self::Metadata(e) => write!(f, "{e}"),
+            Self::Database(e) => write!(f, "{e}"),
             Self::Storage(e) => write!(f, "{e}"),
             Self::RecoveryPanicked => f.write_str("recovery panicked"),
             Self::IndexMissing => f.write_str("recovery left no temporal index"),
@@ -55,6 +59,7 @@ impl std::error::Error for DaemonError {
             Self::Reflection(e) => Some(e),
             Self::Runtime(e) => Some(e),
             Self::Metadata(e) => Some(e),
+            Self::Database(e) => Some(e),
             Self::Storage(e) => Some(e),
             Self::RecoveryPanicked | Self::IndexMissing => None,
         }

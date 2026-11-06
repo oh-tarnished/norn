@@ -1719,6 +1719,7 @@ dependencies = [
  "norn-adapter-mcap",
  "norn-adapter-parquet",
  "norn-adapter-testkit",
+ "norn-database",
  "norn-ipc",
  "norn-protocol",
  "norn-runtime",
@@ -1746,6 +1747,15 @@ name = "norn-core"
 version = "1.0.0-rc.1"
 dependencies = [
  "proptest",
+]
+
+[[package]]
+name = "norn-database"
+version = "1.0.0-rc.1"
+dependencies = [
+ "norn-core",
+ "norn-metadata",
+ "norn-storage",
 ]
 
 [[package]]
@@ -1823,6 +1833,7 @@ version = "1.0.0-rc.1"
 dependencies = [
  "norn-codec",
  "norn-core",
+ "norn-database",
  "norn-index",
  "norn-metadata",
  "norn-query",
@@ -1846,6 +1857,7 @@ dependencies = [
  "http-body",
  "iceoryx2",
  "norn-core",
+ "norn-database",
  "norn-ipc",
  "norn-metadata",
  "norn-protocol",

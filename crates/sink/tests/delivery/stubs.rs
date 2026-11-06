@@ -35,7 +35,10 @@ macro_rules! refusing {
 }
 
 refusing! {
-    AdminService { get_server(admin::GetServerRequest) -> admin::Server; }
+    AdminService {
+        get_server(admin::GetServerRequest) -> admin::Server;
+        create_backup(admin::CreateBackupRequest) -> Operation;
+    }
     async fn negotiate_protocol(
         &self,
         _: Request<NegotiateProtocolRequest>,

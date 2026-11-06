@@ -92,6 +92,7 @@ release candidate is published.
 - [Architecture](docs/reference/architecture.md): layers, dependency table, process model
 - [Protocol](docs/reference/protocol.md): the gRPC API, errors, versioning
 - [Storage](docs/reference/storage.md): file format, write path, recovery, index, codecs
+- [Compatibility](docs/reference/compatibility.md): on-disk format versions, the protocol, the support window
 - [IPC](docs/reference/ipc.md): transports, endpoints, security model
 - [Shared memory](docs/reference/shared-memory.md): the opt-in iceoryx2 data plane, settings, limits, trust boundary and crash handling
 - [Query](docs/reference/query.md): read path, StateAt, exact semantics, bounds
@@ -159,7 +160,8 @@ any domain.
 - **Pattern detection, GGML-accelerated**: Planned. Opt-in, outside the engine; scope still to be decided
 - **Fuzzing, security review**: Planned. Stage 16
 - **Further device-protocol adapters**: Planned. As clients of the public API, outside this repository
-- **Metrics export, backup tooling, encryption at rest**: Not built
+- **Backup, restore, migration**: Built, unreleased. `nornctl backup`, `restore`, `migrate`; see [operations](docs/guides/operations.md#backup-and-restore)
+- **Metrics export, encryption at rest**: Not built
 
 ## Architecture
 

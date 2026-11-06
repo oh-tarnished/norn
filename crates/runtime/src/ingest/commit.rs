@@ -14,6 +14,7 @@ use tokio::sync::oneshot;
 
 use super::Context;
 use super::buffer::{COLUMN_BYTES, Generation, payload};
+use super::cut::CutReply;
 use super::decision::{AckFailure, AckLevel};
 
 use super::journal::Journal;
@@ -93,7 +94,7 @@ impl Committer {
             };
             let aged = age >= i64::try_from(self.ctx.max_chunk_age.as_nanos()).unwrap_or(i64::MAX);
             if !empty && (aged || bytes >= self.ctx.cap / 2) {
-                self.seal()?;
+                self.seal_with(None)?;
             }
         }
     }
@@ -137,7 +138,7 @@ impl Committer {
         if let Some(ack) = work.ack {
             self.unflushed.push_back((work.level, ack));
         }
-        Ok(())
+        work.cut.map_or(Ok(()), |reply| self.seal_with(Some(reply)))
     }
 
     /// `PERSISTED`: the bytes are in the OS.
@@ -174,13 +175,14 @@ impl Committer {
         Ok(())
     }
 
-    fn seal(&mut self) -> Result<(), String> {
+    fn seal_with(&mut self, cut: Option<CutReply>) -> Result<(), String> {
         self.flush()?;
         if self.group_since.is_some() {
             self.sync()?;
         }
         let journal = self.journal.roll().map_err(|e| e.to_string())?;
-        let generation = self.shared.tail.seal(journal);
+        let mut generation = self.shared.tail.seal(journal);
+        generation.cut = cut;
         let store = self.store.as_ref().ok_or("store thread gone")?;
         store
             .send(generation)
@@ -188,7 +190,7 @@ impl Committer {
     }
 
     fn finish(&mut self) -> Result<(), String> {
-        self.seal()?;
+        self.seal_with(None)?;
         self.store = None;
         Ok(())
     }

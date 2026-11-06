@@ -48,6 +48,7 @@
 //! returns once every task has stopped.
 
 mod admin;
+mod backup;
 mod catalog;
 pub mod config;
 pub mod convert;

@@ -3,6 +3,7 @@
 
 //! The registry: the records in memory, the log on disk, and group commit.
 
+mod backup;
 mod batch;
 mod batch_signals;
 mod commit;

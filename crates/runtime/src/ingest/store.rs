@@ -14,6 +14,7 @@ use norn_storage::{Chunk, EncodedChunk, StorageError, StorageOptions, StreamWrit
 
 use super::Context;
 use super::buffer::Generation;
+use super::cut::answer;
 use super::indexing::Publisher;
 use super::seal::OpenSegment;
 use super::shared::Shared;
@@ -129,8 +130,9 @@ pub(crate) fn run(
     };
     loop {
         match rx.recv_timeout(INDEX_RETRY) {
-            Ok(generation) => {
+            Ok(mut generation) => {
                 let id = generation.frozen.id;
+                let cut = generation.cut.take();
                 match store(
                     &mut writer,
                     generation,
@@ -145,6 +147,13 @@ pub(crate) fn run(
                         retire(&mut unretired);
                     }
                     Err(e) => return fail(&e),
+                }
+                if let Some(reply) = cut {
+                    shared.seal_requested.store(true, Ordering::Release);
+                    if let Err(e) = open.seal_if_asked(&mut writer, shared, &mut publisher) {
+                        return fail(&e);
+                    }
+                    answer(&reply, dir);
                 }
             }
             Err(RecvTimeoutError::Timeout) => {

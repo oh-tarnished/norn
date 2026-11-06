@@ -8,7 +8,7 @@
 
 use std::process::ExitCode;
 
-use norn_cli::{Command, USAGE, connect, parse, resources, status, version};
+use norn_cli::{Command, USAGE, connect, offline, parse, resources, status, version};
 
 fn main() -> ExitCode {
     let args = match parse(std::env::args_os().skip(1)) {
@@ -21,6 +21,16 @@ fn main() -> ExitCode {
     if args.command == Command::Help {
         println!("{USAGE}");
         return ExitCode::SUCCESS;
+    }
+    if let Command::Offline(words) = &args.command {
+        let mut out = std::io::stdout().lock();
+        return match offline::run(words, &mut out) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(e) => {
+                eprintln!("nornctl: {e}");
+                ExitCode::FAILURE
+            }
+        };
     }
     let runtime = match tokio::runtime::Builder::new_current_thread()
         .enable_all()

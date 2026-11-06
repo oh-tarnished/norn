@@ -130,6 +130,7 @@ impl Ingest {
             memory,
             level,
             ack,
+            cut: None,
         };
         // Cannot be full: `queued` is checked under this lock, and only this lock
         // sends. It fails only if the commit thread has gone.

@@ -11,8 +11,11 @@
 //! - **Must not**: reach the daemon any way but the public gRPC API over
 //!   norn-ipc (SPEC §33, §47). It never imports the runtime, storage or the
 //!   server, except the server as a dev-dependency for integration tests.
+//!   The exception that is not a client at all: [`offline`], `restore` and
+//!   `migrate`, whose whole point is that no daemon runs, go through
+//!   `norn-database`, and that alone.
 //! - **May import**: `norn-core`, `norn-protocol`, `norn-transport`,
-//!   `norn-ipc`, and the adapters over them (`norn-adapter`, `norn-adapter-csv`,
+//!   `norn-ipc`, `norn-database`, and the adapters over them (`norn-adapter`, `norn-adapter-csv`,
 //!   `norn-adapter-parquet`, `norn-adapter-mcap`), which are clients too;
 //!   `norn-shared-memory`, only to attach a granted ring when `append` or
 //!   `import` is given `--shared-memory`; third-party: `tonic`, `tonic-health`,
@@ -26,10 +29,12 @@
 
 mod append;
 mod args;
+mod backup;
 mod benchmark;
 mod commands;
 mod error;
 mod inspect;
+pub mod offline;
 mod plane;
 mod query;
 mod replay;

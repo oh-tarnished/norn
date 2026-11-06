@@ -36,13 +36,14 @@ workspace crate without a row fails the gate. Dev-dependencies are exempt.
 | `norn-ipc` | core, protocol, transport | exists |
 | `norn-shared-memory` | core, transport, ipc | exists (uses ipc): the opt-in iceoryx2 data plane, [shared memory](shared-memory.md) |
 | `norn-storage` | core, codec | exists |
+| `norn-database` | core, storage, metadata | exists: the store version, backups, restore, migration |
 | `norn-index` | core, storage | exists |
 | `norn-query` | core, codec, storage, index | exists |
 | `norn-state` | core, storage, index, query | exists (uses core, query) |
 | `norn-replay` | core, storage, index, query, state | exists (uses core, query, state) |
-| `norn-runtime` | core, codec, metadata, storage, index, query, state, replay | exists (uses core, codec, metadata, storage, index, query, state, replay) |
-| `norn-server` | core, protocol, transport, ipc, shared-memory, metadata, runtime | exists (uses core, protocol, ipc, shared-memory, metadata, runtime); serves MCP |
-| `norn-cli` | core, protocol, transport, ipc, shared-memory, adapter, adapter-csv, adapter-parquet, adapter-mcap | exists (uses protocol, ipc, shared-memory for `--shared-memory`, the adapters) |
+| `norn-runtime` | core, codec, metadata, storage, database, index, query, state, replay | exists (uses core, codec, metadata, storage, database, index, query, state, replay) |
+| `norn-server` | core, protocol, transport, ipc, shared-memory, metadata, database, runtime | exists (uses core, protocol, ipc, shared-memory, metadata, database, runtime); serves MCP |
+| `norn-cli` | core, protocol, transport, ipc, shared-memory, adapter, adapter-csv, adapter-parquet, adapter-mcap, database | exists (uses protocol, ipc, shared-memory for `--shared-memory`, the adapters, and database only for the offline `restore` and `migrate`, which have no daemon to be a client of) |
 | `norn-adapter` | core, protocol, transport, ipc | exists (uses protocol) |
 | `norn-adapter-csv`, `-parquet`, `-mcap` | adapter, protocol | exists |
 | `norn-adapter-testkit` | adapter, protocol | exists, dev-only |

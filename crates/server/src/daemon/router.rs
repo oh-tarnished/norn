@@ -68,8 +68,10 @@ pub(super) async fn open_database(
     let budget = runtime.budgets().get(Subsystem::Ingest).clone();
     let root = config.database();
     let database = tokio::task::spawn_blocking(move || {
+        norn_database::check_openable(&root).map_err(DaemonError::Database)?;
         let dir = root.join("metadata");
         let (registry, log) = Registry::open(&dir, engine.limits(), engine.metadata())?;
+        norn_database::stamp(&root).map_err(DaemonError::Database)?;
         tracing::info!(
             records = log.records,
             torn = log.torn_bytes,

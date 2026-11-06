@@ -21,7 +21,28 @@ Protocol 1.8.
 ## Unreleased (1.0.0-rc.1)
 
 Release title: `norn v1.0.0-rc.1`. All workspace crates, including `norn-protocol`,
-are versioned `1.0.0-rc.1`; wire negotiation remains at protocol 1.7. Not yet released.
+are versioned `1.0.0-rc.1`; wire negotiation is at protocol 1.8. Not yet released.
+
+### Backup, restore, migration, compatibility
+
+- [Compatibility](../reference/compatibility.md): the on-disk versions of the segment, chunk,
+  journal, metadata log and index snapshot, which a daemon reads and writes, the protocol's
+  major and minor rules, and the support window.
+- Golden stores of today's format, checked in under `crates/runtime/tests/golden/v1`, and a
+  test that opens them. A change that stops them reading fails CI.
+- `<database>/FORMAT` records the store version. The daemon refuses a newer one, one mid-restore
+  or mid-migration, or one it must migrate first, saying what to run. A store with no `FORMAT` is
+  version 1, read in place, and gets one.
+- Protocol 1.8: `AdminService.CreateBackup`, a long-running operation. `nornctl backup --to DIR`
+  takes a consistent copy while the daemon ingests, and `--incremental-from` copies only new
+  sealed segments. `nornctl restore --from DIR --data-dir D` writes one back, offline, checking
+  every file. Encrypted segments are opaque bytes to both. See
+  [operations](../guides/operations.md#backup-and-restore).
+- `nornctl migrate --data-dir D --to VERSION`, with `--dry-run` and `--keep-old`: offline,
+  crash-safe, resumable, and checked afterwards. Today its only step is the identity on store
+  version 1. See [operations](../guides/operations.md#migrating-to-a-new-store-version).
+- New crate `norn-database`. The one layer rule this touches: `nornctl` may import it, for the two
+  commands that have no daemon to be a client of.
 
 ### Shared memory
 

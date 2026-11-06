@@ -1,0 +1,70 @@
+// SPDX-FileCopyrightText: 2026 Srikanth K
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+syntax = "proto3";
+
+package norn.admin.v1;
+
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "BackupProto";
+option java_package = "local.norn.admin.v1";
+
+// A backup of the whole database: a directory on the daemon's machine holding
+// sealed segments, the catalogue at a commit point and a manifest of checksums.
+message Backup {
+  // The directory to write, as an absolute path on the daemon's machine. It
+  // must be empty or absent.
+  string path = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // A finished backup this one builds on, as an absolute path: a sealed segment
+  // that backup holds is not copied again, and this one lists it. Restoring
+  // needs both. Unset takes a full backup.
+  string base_path = 2 [(google.api.field_behavior) = OPTIONAL];
+
+  // Where each stream was cut: the backup holds every sample admitted to a
+  // stream before its cut and none after.
+  google.protobuf.Timestamp cut_time = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Streams in the backup.
+  int64 stream_count = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Files the manifest lists, the ones an incremental did not copy included.
+  int64 file_count = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Bytes those files take.
+  int64 byte_count = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Of those, files this backup copied.
+  int64 copied_file_count = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Of those, bytes this backup copied.
+  int64 copied_byte_count = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// The request for AdminService.CreateBackup.
+message CreateBackupRequest {
+  // The ID to give the backup, recorded in its manifest and in the daemon's log:
+  // 1 to 63 characters of `[a-z0-9-]`, starting with a letter.
+  string backup_id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // The backup to take.
+  Backup backup = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+// Progress of a CreateBackup operation.
+message CreateBackupMetadata {
+  // When the operation was accepted.
+  google.protobuf.Timestamp create_time = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // When it finished. Unset while it runs.
+  google.protobuf.Timestamp end_time = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Files handled so far.
+  int64 files_done = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // Files to handle. Zero until every stream has been cut.
+  int64 files_total = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+}

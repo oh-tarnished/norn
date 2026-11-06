@@ -87,7 +87,7 @@ AIP-141 forbids unsigned wire types, and SPEC §10 requires unsigned values, so:
 | `norn.query.v1` | `QueryService`: `QuerySamples`, and the bounded unary reads `BrowseSamples`, `FindEvents`, `ComputeStats`, `ComparePeriods` |
 | `norn.replay.v1` | `ReplaySession` (`replaySessions/{replay_session}`), `ReplayService` |
 | `norn.state.v1` | `StateService.ComputeState` |
-| `norn.admin.v1` | `Server` (singleton `server`), `AdminService`: `GetServer`, `NegotiateProtocol` |
+| `norn.admin.v1` | `Server` (singleton `server`), `AdminService`: `GetServer`, `NegotiateProtocol`, `CreateBackup` (long-running) |
 
 Resource types use the service name `norn.local` (`norn.local/Entity`). Norn is
 reached over local IPC, so the name identifies the API, not a host; `.local`
@@ -499,6 +499,8 @@ is an MCP tool. A damaged chunk is counted in `damaged_chunk_count`, not an erro
 
 ## Versioning and capability negotiation (SPEC §40)
 
+[Compatibility](compatibility.md) has the policy these rules belong to.
+
 A protocol version is `major.minor`. `major` is the `vN` of every `norn.*`
 package, all versioned in lockstep; it changes only with a new package
 version, which is the only place wire-incompatible changes may happen. `minor`
@@ -540,7 +542,11 @@ errors are unchanged.
 1.8 adds `Limits.max_message_bytes` and `Limits.max_batch_create_requests` (see
 "Message limits"), and `StreamService.GetSegment` and `ListSegments` (see "Inspecting
 storage"). The limits themselves are not new: a 1.7 daemon enforces the same values
-without publishing them.
+without publishing them. 1.8 also adds `AdminService.CreateBackup`, a long-running
+operation (`CreateBackupRequest`, the response `Backup`, the metadata
+`CreateBackupMetadata`), which a 1.7 daemon answers `UNIMPLEMENTED`. It writes paths on
+the daemon's machine, for a client the socket already admits as the daemon's own user,
+and is not an MCP tool.
 
 A client calls `AdminService.NegotiateProtocol` once per connection, before
 anything else, with its version and the capabilities it cannot work without:

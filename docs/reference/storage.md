@@ -11,7 +11,8 @@ does not do yet is listed under [Not implemented](#not-implemented).
 
 ## Hierarchy
 
-Database → Stream → Segment → Chunk → Block → Sample.
+Database → Stream → Segment → Chunk → Block → Sample. `<database>/FORMAT` records the
+store version ([compatibility](compatibility.md)).
 
 ```text
 <database>/streams/<stream id, 16 hex digits>/

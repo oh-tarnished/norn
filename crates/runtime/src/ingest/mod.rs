@@ -12,6 +12,7 @@ mod buffer;
 mod clean;
 mod commit;
 mod commit_fail;
+mod cut;
 mod decision;
 mod dedup;
 #[cfg(feature = "fuzzing")]
@@ -34,6 +35,7 @@ mod tail;
 mod upkeep;
 
 pub use admit::THROTTLE_DELAY;
+pub use cut::PendingCut;
 pub use decision::{AckFailure, AckLevel, Admission, Batch, Completion, Decision, Outcome, Reason};
 pub use indexing::RecoverError;
 pub use journal::{JOURNAL_DIR, SyncGate};

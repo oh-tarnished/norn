@@ -18,9 +18,13 @@
 //! signals at once: a rewrite per create would be quadratic in bytes and fsyncs.
 
 pub(crate) mod replay;
+mod snapshot;
+
+pub(crate) use snapshot::write_log;
+pub use snapshot::{LogInspection, inspect_log};
 
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufWriter, Read, Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 
 use crate::crc::crc32c;
@@ -153,21 +157,7 @@ impl Log {
     /// directory. A crash leaves the old log or the new one, never a mix.
     pub(crate) fn rewrite(&mut self, ops: &[Op]) -> Result<(), MetadataError> {
         let tmp = self.path.with_extension("log.tmp");
-        let f = File::create(&tmp).map_err(io("create", &tmp))?;
-        let mut out = BufWriter::new(f);
-        out.write_all(&replay::header())
-            .map_err(io("write", &tmp))?;
-        let mut buf = Vec::new();
-        for op in ops {
-            buf.clear();
-            frame(op, &mut buf);
-            out.write_all(&buf).map_err(io("write", &tmp))?;
-        }
-        let f = out
-            .into_inner()
-            .map_err(|e| io("write", &tmp)(e.into_error()))?;
-        f.sync_all().map_err(io("fsync", &tmp))?;
-        drop(f);
+        drop(write_log(&tmp, ops)?);
         fs::rename(&tmp, &self.path).map_err(io("rename", &self.path))?;
         sync_parent(&self.path)?;
         let mut file = OpenOptions::new()

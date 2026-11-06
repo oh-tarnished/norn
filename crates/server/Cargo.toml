@@ -21,6 +21,8 @@ norn-protocol = { path = "../protocol" }
 norn-ipc = { path = "../ipc" }
 norn-runtime = { path = "../runtime" }
 norn-metadata = { path = "../metadata" }
+# Refusing a database of another store version, and stamping a new one.
+norn-database = { path = "../database" }
 # The iceoryx2 data plane, offered only when `[shared_memory] enabled = true`.
 norn-shared-memory = { path = "../shared-memory" }
 # Serving: generated service servers, the router, and Status.

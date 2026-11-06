@@ -80,6 +80,12 @@ impl AdminService for Registry {
     ) -> Result<Response<admin::Server>, Status> {
         no()
     }
+    async fn create_backup(
+        &self,
+        _: Request<admin::CreateBackupRequest>,
+    ) -> Result<Response<norn_protocol::google::longrunning::Operation>, Status> {
+        no()
+    }
 }
 
 #[async_trait]

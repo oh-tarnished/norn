@@ -7,10 +7,11 @@ use std::sync::Arc;
 
 use norn_protocol::admin::admin_service_server::AdminService;
 use norn_protocol::admin::{
-    Capability, GetServerRequest, MaintenanceReport, NegotiateProtocolRequest,
+    Capability, CreateBackupRequest, GetServerRequest, MaintenanceReport, NegotiateProtocolRequest,
     NegotiateProtocolResponse, RetentionRemoval, Server, SharedMemoryPlane,
 };
 use norn_protocol::common::ErrorReason;
+use norn_protocol::google::longrunning::Operation;
 use norn_protocol::{PROTOCOL_VERSION, ProtocolVersion, SHARED_MEMORY_MINOR};
 use norn_runtime::maintenance::{Maintenance, MaintenanceReport as Report};
 use tonic::{Code, Request, Response, Status};
@@ -106,6 +107,16 @@ impl AdminService for Admin {
             .as_ref()
             .map(|m| report_to_wire(m.report()));
         Ok(Response::new(server))
+    }
+
+    async fn create_backup(
+        &self,
+        req: Request<CreateBackupRequest>,
+    ) -> Result<Response<Operation>, Status> {
+        let maintenance = self.maintenance.as_ref().ok_or_else(|| {
+            Status::unavailable("this daemon was started without its maintenance worker")
+        })?;
+        crate::backup::start(maintenance, req.into_inner()).map(Response::new)
     }
 
     async fn negotiate_protocol(
