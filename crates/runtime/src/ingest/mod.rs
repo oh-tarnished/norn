@@ -155,6 +155,17 @@ impl Ingest {
         }
     }
 
+    /// Encrypts and reads everything under `keys`, or nothing when `None`. Before
+    /// recovery and any batch: no effect once a stream has started.
+    #[must_use]
+    pub fn keyring(mut self, keys: Option<&'static norn_storage::Keyring>) -> Self {
+        if let Some(ctx) = Arc::get_mut(&mut self.ctx) {
+            ctx.opts.keyring = keys;
+            ctx.index_options.storage.keyring = keys;
+        }
+        self
+    }
+
     /// Installs `gate` around every journal fsync. Before any batch only: it
     /// has no effect once a stream has started.
     #[must_use]

@@ -37,6 +37,7 @@ mod inspect;
 pub mod offline;
 mod plane;
 mod query;
+mod rekey;
 mod replay;
 pub mod resources;
 mod retention;
@@ -57,6 +58,7 @@ use tonic::transport::Channel;
 pub use args::{Args, Command, DEFAULT_TIMEOUT, USAGE, parse};
 pub use commands::{USER_AGENT, status, version};
 pub use error::CliError;
+pub use rekey::rekey;
 
 /// The HTTP/2 authority sent to the daemon. Unused for routing (the
 /// endpoint decides where bytes go); `.invalid` never resolves (RFC 2606).

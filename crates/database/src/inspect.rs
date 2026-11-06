@@ -34,11 +34,13 @@ fn reading_options() -> StorageOptions {
     let mut opts = StorageOptions::from_config(&Config::default());
     opts.max_chunk_bytes = 64 << 20;
     opts.max_chunks_per_segment = usize::MAX;
+    opts.stored_bytes_only = true;
     opts
 }
 
 /// Reads the metadata log and every segment of the database at `root`, checking each
-/// chunk's CRCs. Changes nothing. Needs no key: a chunk's CRCs cover what is stored.
+/// chunk's CRCs. Changes nothing. Needs no key: a chunk's CRCs cover what is stored,
+/// ciphertext included, so an encrypted chunk is checked but not authenticated.
 ///
 /// # Errors
 /// [`DatabaseError::Metadata`] for a log that does not replay;

@@ -13,13 +13,23 @@ acknowledgement before any fix is discussed in public.
 
 ## What exists today
 
-- **Local IPC only.** A Unix socket inside an owner-only (0700) directory, or a
-  named pipe whose code has not yet been run on Windows. The daemon refuses a more
-  open directory. Loopback TCP exists for tests and has no OS identity check.
+- **Local IPC only.** A Unix socket inside an owner-only (0700) directory of the
+  daemon's user, or a named pipe whose code has not yet been run on Windows. The
+  daemon refuses a more open directory, or a symbolic link, for its own socket and
+  for every MCP socket. Loopback TCP exists for tests and has no OS identity check.
   [docs/reference/ipc.md](docs/reference/ipc.md#security-model-spec-41) has the model.
 - **Bounded resources.** Connections, in-flight batches, batch size, metadata and
   resource counts have explicit limits, and decode memory is charged to a budget, so
   a client gets a refusal rather than exhausting the daemon.
+- **An owner-only database directory.** Created `0700`, or tightened to it at start
+  (Unix), since files inside are created under the umask.
+- **Listeners every local user can reach are named.** `listen = "tcp:..."` and MCP
+  over HTTP have no identity check or authentication; the daemon logs a warning at
+  every start when either is on. MCP over HTTP refuses a browser `Origin` that is
+  not loopback or a configured host.
+- **Opt-in encryption at rest.** ChaCha20-Poly1305 per chunk, pure Rust; it covers
+  sample data and journals, not names, time ranges or the metadata log
+  ([docs/reference/storage.md](docs/reference/storage.md#encryption)).
 - **Checksummed storage.** Damage is detected and reported, never silently
   discarded ([docs/reference/storage.md](docs/reference/storage.md#recovery)).
 - **Decoders never panic** on malformed input, and allocate only what their input
@@ -73,8 +83,14 @@ One bound is not strict: a request's decoding reservation is capped at half of
 `ipc_bytes`, so with the default 32 MiB a 256 KiB batch create of empty elements can
 briefly hold more than it reserved, up to about 50 MiB.
 
+## Review
+
+A first source review is [docs/security/review-2026-11.md](docs/security/review-2026-11.md).
+It lists what was examined, what was not, the medium findings fixed, and those still
+open: chiefly that TCP and HTTP listeners, once turned on, are open to every local
+user (warned of, not closed), and that there is no disk budget.
+
 ## Not done yet
 
-No security review has been carried out (stage 16). Limits
-on queries, replay sessions and subscriptions wait for those subsystems. Data at
-rest is not encrypted.
+There is no external audit, and Windows has not been run. Limits on queries, replay
+sessions and subscriptions wait for those subsystems.

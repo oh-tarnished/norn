@@ -70,6 +70,8 @@ pub use norn_query as query;
 pub use norn_replay as replay;
 /// State reconstruction, for the same reason.
 pub use norn_state as state;
+/// The stored files, for the same reason: their keys and their directory's mode.
+pub use norn_storage as storage;
 
 pub use budget::{Budget, BudgetError, Budgets, Reservation, Subsystem};
 pub use clock::{Clock, FakeClock, Sleep, SystemClock};

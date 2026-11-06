@@ -26,9 +26,12 @@ pub enum DaemonError {
     /// The registry could not be opened.
     Metadata(MetadataError),
     /// The database is of a store version this build must not open.
-    Database(DatabaseError),
+    StoreVersion(DatabaseError),
     /// Recovery could not assess a stream.
     Storage(RecoverError),
+    /// The database directory could not be restricted, or this configuration
+    /// cannot open what is in it. Nothing in the database was changed.
+    Database(norn_runtime::storage::StorageError),
     /// The recovery task panicked.
     RecoveryPanicked,
     /// Recovery finished without opening the temporal index: a bug.
@@ -43,8 +46,9 @@ impl fmt::Display for DaemonError {
             Self::Reflection(e) => write!(f, "cannot build gRPC reflection: {e}"),
             Self::Runtime(e) => write!(f, "{e}"),
             Self::Metadata(e) => write!(f, "{e}"),
-            Self::Database(e) => write!(f, "{e}"),
+            Self::StoreVersion(e) => write!(f, "{e}"),
             Self::Storage(e) => write!(f, "{e}"),
+            Self::Database(e) => write!(f, "{e}"),
             Self::RecoveryPanicked => f.write_str("recovery panicked"),
             Self::IndexMissing => f.write_str("recovery left no temporal index"),
         }
@@ -59,8 +63,9 @@ impl std::error::Error for DaemonError {
             Self::Reflection(e) => Some(e),
             Self::Runtime(e) => Some(e),
             Self::Metadata(e) => Some(e),
-            Self::Database(e) => Some(e),
+            Self::StoreVersion(e) => Some(e),
             Self::Storage(e) => Some(e),
+            Self::Database(e) => Some(e),
             Self::RecoveryPanicked | Self::IndexMissing => None,
         }
     }

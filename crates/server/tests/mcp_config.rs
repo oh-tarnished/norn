@@ -76,3 +76,20 @@ fn the_mcp_flag_enables_it_and_repeats() {
         ]
     );
 }
+
+#[test]
+fn a_relative_socket_or_a_remote_pipe_is_refused() {
+    for odd in ["unix:relative.sock", r"pipe:\\server\pipe\m"] {
+        let text = format!("[mcp]\nenabled = true\ntransports = ['{odd}']\n");
+        assert!(DaemonConfig::from_toml(&text).is_err(), "{odd}");
+    }
+}
+
+#[test]
+fn what_any_local_user_could_reach_is_named() {
+    assert!(DaemonConfig::default().exposures().is_empty());
+    let tcp = "listen = \"tcp:127.0.0.1:7171\"\n";
+    assert!(DaemonConfig::from_toml(tcp).unwrap().exposures()[0].contains("any local user"));
+    let http = "[mcp]\nenabled = true\ntransports = [\"http:127.0.0.1:8090\"]\n";
+    assert!(DaemonConfig::from_toml(http).unwrap().exposures()[0].contains("no authentication"));
+}

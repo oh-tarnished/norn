@@ -32,6 +32,9 @@ fn main() -> ExitCode {
             }
         };
     }
+    if let Command::Rekey(words) = &args.command {
+        return norn_cli::rekey(words);
+    }
     let runtime = match tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()

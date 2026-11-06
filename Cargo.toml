@@ -40,6 +40,22 @@ serde_json = "1"
 # xxhash (storage checksums chunks itself), so no transitive crate.
 structured-zstd = { version = "=0.2.6", default-features = false, features = ["std"] }
 
+# --- Encryption at rest (norn-storage only); docs/reference/storage.md "Encryption".
+# RustCrypto, pure Rust: no ring, no aws-lc, no C (SPEC §1). xtask/src/crypto.rs
+# keeps them beneath norn-storage, and deny.toml lets only norn-storage name them.
+# ChaCha20-Poly1305 (RFC 8439) is constant-time in software, so it needs no AES
+# instructions to be safe or fast on ARMv7. Default features off: no `getrandom`
+# feature of `aead` (randomness comes from `getrandom` below), no heapless.
+chacha20poly1305 = { version = "0.11", default-features = false, features = ["zeroize"] }
+# HKDF-SHA-256 (RFC 5869): a per-segment key from the master key and the segment's salt.
+hkdf = { version = "0.13", default-features = false }
+# SHA-256 for HKDF; already in tpp-agents' graph.
+sha2 = { version = "0.11", default-features = false }
+# Wipes key material when a key is dropped.
+zeroize = { version = "1.8", default-features = false, features = ["alloc"] }
+# The OS random source for each segment's 24-byte salt. Already in the graph.
+getrandom = { version = "0.4", default-features = false }
+
 # --- The wire protocol (norn-protocol); docs/reference/protocol.md justifies each.
 # Message encoding: the canonical protobuf runtime for Rust.
 prost = { version = "0.14", default-features = false, features = ["std", "derive"] }

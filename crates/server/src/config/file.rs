@@ -116,11 +116,16 @@ impl DaemonConfig {
         }
         config.log = log;
         config.mcp = file.mcp.unwrap_or_default().config()?;
+        let mut storage = file.storage;
+        config.keys = match storage.as_mut() {
+            Some(storage) => storage.key_source()?,
+            None => None,
+        };
         config.engine = engine(
             file.memory,
             file.limits,
             file.metadata,
-            file.storage,
+            storage,
             file.maintenance,
         )?;
         config.shared_memory(file.shared_memory.unwrap_or_default().settings())

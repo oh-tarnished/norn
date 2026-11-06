@@ -10,7 +10,7 @@ use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use norn_core::Config;
 use norn_core::{Sample, SignalId, StreamId, Timestamp};
 use norn_query::{Engine, QueryLimits, QueryMemory, TailSource};
-use norn_storage::{SegmentName, StorageOptions};
+use norn_storage::SegmentName;
 
 use super::Ingest;
 use super::buffer::{Buffers, Frozen, Generation, newest, scan_chunk};
@@ -121,7 +121,7 @@ impl Ingest {
         let tail: Arc<dyn TailSource> = Arc::clone(self) as Arc<dyn TailSource>;
         let memory: Arc<dyn QueryMemory> = Arc::new(memory);
         let limits = QueryLimits::from_config(config);
-        let storage = StorageOptions::from_config(config);
+        let storage = self.storage_options();
         Some(Arc::new(Engine::new(index, tail, memory, limits, storage)))
     }
 
@@ -145,7 +145,7 @@ impl Ingest {
         limits.page_bytes = limits.page_bytes.min((share / 4).max(1 << 16));
         limits.open_files = limits.open_files.min(4);
         let memory: Arc<dyn QueryMemory> = Arc::new(memory);
-        let storage = StorageOptions::from_config(config);
+        let storage = self.storage_options();
         Some(Arc::new(Engine::new(index, tail, memory, limits, storage)))
     }
 }

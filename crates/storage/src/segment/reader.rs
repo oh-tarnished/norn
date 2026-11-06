@@ -12,9 +12,10 @@ use super::{SegmentSummary, scan_headers};
 use crate::chunk::Chunk;
 use crate::chunk::decode::decode_body;
 use crate::chunk::layout::{ChunkLayout, layout_body};
+use crate::crypt::{SegmentCipher, cipher_for};
 use crate::error::Result;
 use crate::format::frame::ChunkMeta;
-use crate::format::{FRAME_HEADER_LEN, HEADER_LEN, SegmentHeader};
+use crate::format::{FRAME_HEADER_LEN, SegmentHeader};
 use crate::fsio::Source;
 use crate::iter::SampleIter;
 use crate::options::StorageOptions;
@@ -35,6 +36,7 @@ use crate::options::StorageOptions;
 pub struct SegmentReader {
     src: Source,
     header: SegmentHeader,
+    cipher: Option<SegmentCipher>,
     chunks: Vec<ChunkMeta>,
     sealed: bool,
     tail: Option<(u64, u64)>,
@@ -53,11 +55,12 @@ impl SegmentReader {
     pub fn open(path: &Path, opts: StorageOptions) -> Result<Self> {
         let mut src = Source::open(path)?;
         let header = read_header(&mut src)?;
+        let cipher = cipher_for(&header, &opts, path)?;
         let (chunks, sealed, tail) = match load_directory(&mut src, &opts)? {
             Some(chunks) => (chunks, true, None),
             None => {
                 let end = src.len();
-                let (chunks, stop) = scan_headers(&mut src, HEADER_LEN as u64, end, &opts)?;
+                let (chunks, stop) = scan_headers(&mut src, header.data_start(), end, &opts)?;
                 let tail = (stop < src.len()).then(|| (stop, src.len() - stop));
                 (chunks, false, tail)
             }
@@ -66,6 +69,7 @@ impl SegmentReader {
         Ok(Self {
             src,
             header,
+            cipher,
             chunks,
             sealed,
             tail,
@@ -99,10 +103,12 @@ impl SegmentReader {
     ///
     /// # Errors
     /// [`crate::StorageError::Corrupt`] for a frame header that disagrees with
-    /// `meta` or a body CRC mismatch; [`crate::StorageError::Codec`];
+    /// `meta`, a body CRC mismatch, or a failed authentication;
+    /// [`crate::StorageError::Codec`];
     /// [`crate::StorageError::TooLarge`]; [`crate::StorageError::Io`].
     pub fn read_chunk(&mut self, meta: &ChunkMeta) -> Result<Chunk> {
-        read_frame(&mut self.src, meta, &self.opts, &mut self.buf)?;
+        let cipher = self.cipher.as_ref();
+        read_frame(&mut self.src, meta, &self.opts, cipher, &mut self.buf)?;
         let body = self.buf.get(FRAME_HEADER_LEN..).unwrap_or_default();
         decode_body(meta, body, self.src.path())
     }
@@ -115,7 +121,8 @@ impl SegmentReader {
     /// # Errors
     /// As [`SegmentReader::read_chunk`].
     pub fn read_layout(&mut self, meta: &ChunkMeta) -> Result<ChunkLayout> {
-        read_frame(&mut self.src, meta, &self.opts, &mut self.buf)?;
+        let cipher = self.cipher.as_ref();
+        read_frame(&mut self.src, meta, &self.opts, cipher, &mut self.buf)?;
         let body = self.buf.get(FRAME_HEADER_LEN..).unwrap_or_default();
         layout_body(meta, body, self.src.path())
     }

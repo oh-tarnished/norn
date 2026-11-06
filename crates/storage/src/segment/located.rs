@@ -8,6 +8,7 @@ use std::path::Path;
 use super::load::{read_frame, read_header};
 use crate::chunk::Chunk;
 use crate::chunk::decode::decode_body;
+use crate::crypt::{SegmentCipher, cipher_for};
 use crate::error::Result;
 use crate::format::frame::ChunkMeta;
 use crate::format::{FRAME_HEADER_LEN, SegmentHeader};
@@ -34,6 +35,7 @@ use crate::options::StorageOptions;
 pub struct ChunkFile {
     src: Source,
     header: SegmentHeader,
+    cipher: Option<SegmentCipher>,
     opts: StorageOptions,
     buf: Vec<u8>,
 }
@@ -48,9 +50,11 @@ impl ChunkFile {
     pub fn open(path: &Path, opts: StorageOptions) -> Result<Self> {
         let mut src = Source::open(path)?;
         let header = read_header(&mut src)?;
+        let cipher = cipher_for(&header, &opts, path)?;
         Ok(Self {
             src,
             header,
+            cipher,
             opts,
             buf: Vec::new(),
         })
@@ -62,7 +66,8 @@ impl ChunkFile {
     /// # Errors
     /// As [`crate::SegmentReader::read_chunk`].
     pub fn read_chunk(&mut self, meta: &ChunkMeta) -> Result<Chunk> {
-        read_frame(&mut self.src, meta, &self.opts, &mut self.buf)?;
+        let cipher = self.cipher.as_ref();
+        read_frame(&mut self.src, meta, &self.opts, cipher, &mut self.buf)?;
         let body = self.buf.get(FRAME_HEADER_LEN..).unwrap_or_default();
         decode_body(meta, body, self.src.path())
     }

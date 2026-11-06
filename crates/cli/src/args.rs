@@ -57,6 +57,10 @@ commands:
                               read a file into the daemon, creating what it
                               declares; safe to repeat; F defaults from PATH;
                               --timing prints the rate, as --shared-memory does
+  rekey [--config PATH] [--data-dir PATH]
+                              stop the daemon first: rewrite stored segments under
+                              the current encryption key, by running the norn
+                              beside this nornctl
   compact STREAM              merge a stream's sealed segments, and wait
   verify STREAM               read and check every stored chunk, and wait; exits
                               1 if any is damaged
@@ -121,6 +125,8 @@ pub struct Args {
 pub enum Command {
     /// Print [`USAGE`].
     Help,
+    /// Run `norn rekey` with these arguments; needs no daemon.
+    Rekey(Vec<String>),
     /// Health and the `Server` resource.
     Status,
     /// Protocol negotiation.
@@ -166,6 +172,12 @@ pub fn parse<I: IntoIterator<Item = OsString>>(args: I) -> Result<Args, String> 
                     .ok()
                     .filter(|d| !d.is_zero())
                     .ok_or_else(|| "--timeout: must be positive".to_owned())?;
+            }
+            "rekey" if command.is_none() => command = Some(Command::Rekey(Vec::new())),
+            _ if matches!(command, Some(Command::Rekey(_))) => {
+                if let Some(Command::Rekey(words)) = &mut command {
+                    words.push(arg);
+                }
             }
             "status" if command.is_none() => command = Some(Command::Status),
             "version" if command.is_none() => command = Some(Command::Version),

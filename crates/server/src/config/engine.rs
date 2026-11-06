@@ -54,6 +54,22 @@ pub(super) struct Storage {
     group_commit_interval_ms: Option<u64>,
     max_chunk_age_ms: Option<u64>,
     durable_acks: Option<bool>,
+    encryption: Option<String>,
+    key_file: Option<String>,
+    key_env: Option<String>,
+}
+
+impl Storage {
+    /// The encryption settings, taken out: the engine's `Config` has none.
+    pub(super) fn key_source(
+        &mut self,
+    ) -> Result<Option<super::encryption::KeySource>, ConfigError> {
+        super::encryption::source(
+            self.encryption.take().as_deref(),
+            self.key_file.take().map(Into::into),
+            self.key_env.take(),
+        )
+    }
 }
 
 #[derive(Debug, Default, Deserialize)]

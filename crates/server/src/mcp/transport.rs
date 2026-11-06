@@ -6,7 +6,9 @@
 //!
 //! The runtime binds a Unix socket owner-only, replaces a stale one and refuses a
 //! live one, and removes it on stop. Its `Host` guard answers loopback's names and
-//! [`McpConfig::hosts`]; any other is refused (403), against DNS rebinding.
+//! [`McpConfig::hosts`]; any other is refused (403), against DNS rebinding. Its
+//! `Origin` guard does the same for a browser's request, so a web page cannot call
+//! a tool; a client that sends no `Origin`, which no browser is, passes.
 
 use std::sync::Arc;
 
@@ -20,6 +22,15 @@ use super::endpoint::Endpoint;
 use crate::config::{McpConfig, McpTransport};
 
 const LOOPBACK: &[&str] = &["localhost", "127.0.0.1", "::1", "[::1]"];
+const LOOPBACK_ORIGINS: &[&str] = &["http://localhost:*", "http://127.0.0.1:*", "http://[::1]:*"];
+
+/// The browser origins served: loopback's, and each of `hosts` over HTTPS.
+fn origins(hosts: &[String]) -> Vec<String> {
+    let loopback = LOOPBACK_ORIGINS.iter().map(|o| (*o).to_owned());
+    loopback
+        .chain(hosts.iter().map(|h| format!("https://{h}")))
+        .collect()
+}
 
 /// One agent service per transport `config` serves. Stdio's cancels `ended` when the
 /// client closes stdin.
@@ -40,7 +51,8 @@ pub(crate) fn services(
                 .transports([Transport::StreamableHttp])
                 .addr(addr)
                 .base_path(DEFAULT_BASE_PATH)
-                .allowed_hosts(hosts.clone()),
+                .allowed_hosts(hosts.clone())
+                .allowed_origins(origins(&config.hosts)),
         )
     };
     let serve = |transport: McpTransport| -> Arc<dyn agents::Service> {

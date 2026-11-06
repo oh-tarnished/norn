@@ -119,9 +119,14 @@ pub(crate) fn encode_frame(
     section(&block, how, out).map_err(wrap)?;
     let body = out.get(body_start..).unwrap_or_default();
     let body_len = u32::try_from(body.len()).unwrap_or(u32::MAX);
-    if body_len > opts.max_chunk_bytes {
+    // Encrypting adds a tag, and the bound is on what reaches the file.
+    let tag = opts.keyring.map_or(0, |_| crate::crypt::TAG_LEN as u32);
+    if body_len.saturating_add(tag) > opts.max_chunk_bytes {
         out.truncate(start);
-        let (len, max) = (u64::from(body_len), u64::from(opts.max_chunk_bytes));
+        let (len, max) = (
+            u64::from(body_len) + u64::from(tag),
+            u64::from(opts.max_chunk_bytes),
+        );
         return Err(StorageError::TooLarge {
             bound: Bound::ChunkBytes,
             len,

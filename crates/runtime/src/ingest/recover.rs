@@ -11,7 +11,8 @@ use norn_core::{Sample, StreamId};
 use norn_index::TemporalIndex;
 use norn_storage::{
     CleanMarker, RecoveryMode, SegmentReader, StorageError, StorageOptions, StreamWriter,
-    live_segments, recover_stream, recover_stream_vouched, stream_dir, sync_dir,
+    create_dir_durable, live_segments, recover_stream, recover_stream_vouched, stream_dir,
+    sync_dir,
 };
 
 use super::buffer::Buffers;
@@ -175,7 +176,7 @@ fn set_aside(path: &Path, dir: &Path) -> Result<(), StorageError> {
         path: to.clone(),
         source,
     };
-    std::fs::create_dir_all(&quarantine).map_err(|e| io("create directory", e))?;
+    create_dir_durable(&quarantine)?;
     std::fs::rename(path, &to).map_err(|e| io("rename", e))?;
     sync_dir(&quarantine)
 }

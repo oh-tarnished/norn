@@ -5,7 +5,8 @@
 //!
 //! A segment file is, in order (docs/reference/storage.md "Segment file" has the table):
 //!
-//! 1. a [`SegmentHeader`] of [`HEADER_LEN`] bytes;
+//! 1. a [`SegmentHeader`] of [`HEADER_LEN`] bytes, then, if encrypted, a
+//!    [`sealing`] record of [`sealing::SEALING_LEN`] bytes;
 //! 2. any number of chunk frames, each a [`FRAME_HEADER_LEN`]-byte header
 //!    (see [`frame`]) and a body of four sealed column blocks;
 //! 3. once sealed, a chunk directory and a [`TRAILER_LEN`]-byte trailer
@@ -19,15 +20,26 @@
 pub mod directory;
 pub mod frame;
 mod header;
+mod header_decode;
 mod le;
+pub mod sealing;
 
 pub use header::SegmentHeader;
 pub(crate) use le::Le;
 
 /// First eight bytes of every segment file.
 pub const SEGMENT_MAGIC: [u8; 8] = *b"NORNSEG\0";
-/// Version of the container layout described in this module.
+/// The container layout of a plain segment, format 1.0, as the `u16` at
+/// bytes 8..10: major 1 in byte 8, minor 0 in byte 9. Unchanged since 0.1.0.
 pub const FORMAT_VERSION: u16 = 1;
+/// The format major version this build reads and writes.
+pub const FORMAT_MAJOR: u8 = 1;
+/// The newest format minor version this build reads. Minor 1 adds header
+/// flag 0x01, encrypted, and the [`sealing`] record; it is written only for
+/// encrypted segments, so a plain segment stays 1.0.
+pub const FORMAT_MINOR: u8 = 1;
+/// An encrypted segment's bytes 8..10 as a `u16`: format 1.1, which is 257.
+pub const ENCRYPTED_FORMAT_VERSION: u16 = 0x0101;
 /// Version of the chunk column schema (timestamps, values, quality,
 /// sequence, in that order; value kinds by their `norn_core` tag).
 pub const SCHEMA_VERSION: u16 = 1;

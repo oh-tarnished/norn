@@ -3,6 +3,7 @@
 
 //! The recovery scan: verify every frame, and resynchronise past damage.
 
+use crate::crypt::SegmentCipher;
 use crate::error::{CorruptionKind, Result, StorageError};
 use crate::format::frame::{self, ChunkMeta};
 use crate::format::{DIR_MAGIC, FRAME_HEADER_LEN, FRAME_MAGIC};
@@ -48,13 +49,14 @@ pub(super) fn full_scan(
     start: u64,
     end: u64,
     opts: &StorageOptions,
+    cipher: Option<&SegmentCipher>,
 ) -> Result<Scan> {
     let mut scan = Scan::default();
     let mut at = start;
     let mut buf = Vec::new();
     while at < end {
         if let Some(meta) = header_at(src, at, end, opts)? {
-            match read_frame(src, &meta, opts, &mut buf) {
+            match read_frame(src, &meta, opts, cipher, &mut buf) {
                 Ok(()) => scan.chunks.push(meta),
                 Err(StorageError::Corrupt(c)) => {
                     scan.damage.push(Damage {

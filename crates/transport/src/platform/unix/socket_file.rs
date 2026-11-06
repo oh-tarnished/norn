@@ -22,14 +22,19 @@ const PROBE_TIMEOUT: Duration = Duration::from_secs(1);
 /// Ensures `dir` exists, is a directory and is owner-only.
 ///
 /// A missing directory is created (with any missing parents) as 0700. An
-/// existing one is refused if group or others hold any permission bit.
-/// That is sufficient without checking the owner: a 0700 directory we can
-/// create a socket in is necessarily ours (or we are root).
+/// existing one is refused if it is a symbolic link, which another user can
+/// plant in `/tmp`, or if group or others hold any permission bit. Its owner is
+/// checked once the socket exists ([`check_owner`]): root can create a socket in
+/// a 0700 directory another user owns.
 pub(super) fn prepare_directory(dir: &Path) -> Result<(), TransportError> {
     if !dir.exists() {
         DirBuilder::new().recursive(true).mode(0o700).create(dir)?;
     }
-    let meta = fs::metadata(dir)?;
+    let meta = fs::symlink_metadata(dir)?;
+    if meta.file_type().is_symlink() {
+        let msg = format!("{} is a symbolic link, not a directory", dir.display());
+        return Err(io::Error::new(io::ErrorKind::NotADirectory, msg).into());
+    }
     if !meta.is_dir() {
         let msg = format!("{} is not a directory", dir.display());
         return Err(io::Error::new(io::ErrorKind::NotADirectory, msg).into());
@@ -72,6 +77,24 @@ pub(super) async fn clear_stale(path: &Path) -> Result<(), TransportError> {
 /// rely on the umask it happened to be created under.
 pub(super) fn restrict_socket(path: &Path) -> io::Result<()> {
     fs::set_permissions(path, Permissions::from_mode(0o600))
+}
+
+/// Refuses a socket directory owned by anyone but the user the socket was just
+/// created as. Compared with the socket's owner because std has no `geteuid`, and
+/// this crate no `unsafe` on Unix.
+pub(super) fn check_owner(dir: &Path, socket: &Path) -> io::Result<()> {
+    let (owner, us) = (
+        fs::metadata(dir)?.uid(),
+        fs::symlink_metadata(socket)?.uid(),
+    );
+    if owner == us {
+        return Ok(());
+    }
+    let msg = format!(
+        "{} belongs to user {owner}, not to {us}: another user could reach the socket",
+        dir.display()
+    );
+    Err(io::Error::new(io::ErrorKind::PermissionDenied, msg))
 }
 
 /// Removes the socket file on drop, but only while it is still the file

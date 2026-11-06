@@ -7,8 +7,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 Working today: starting, stopping, recovery after a crash, reporting damage,
 compaction, retention and verification. Export and import work: see
-[import and export](import-export.md). **Not available to an operator yet:**
-metrics and backup tooling. See the [roadmap](../../README.md#roadmap).
+[import and export](import-export.md), and so do backup, restore and migration
+(below). **Not available to an operator yet:** metrics. See the
+[roadmap](../../README.md#roadmap).
 
 Output below is real, from macOS. CI tests Linux and Windows too ([platforms](#platforms)).
 

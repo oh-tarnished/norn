@@ -40,6 +40,7 @@ not parse.
 | `backup --to DIR [--incremental-from BACKUP] [--id ID]` | copy the database while the daemon runs, and wait |
 | `restore --from DIR --data-dir D [--dry-run]`         | offline: write a backup into a new directory, or check one |
 | `migrate --data-dir D --to VERSION [--dry-run] [--keep-old]` | offline: move a database to a newer store version |
+| `rekey [--config PATH] [--data-dir PATH]`             | with the daemon stopped, rewrite stored segments under the current encryption key, by running `norn rekey`; exit 1 if any is left ([storage](storage.md#rotating-keys)) |
 | `retention get STREAM`                                | show the policy                                  |
 | `retention set STREAM forever\|Nd\|Nmo\|Nb`           | set the policy: time, months or bytes            |
 | `retention apply STREAM [--dry-run]`                  | run the policy now, or list what would go        |

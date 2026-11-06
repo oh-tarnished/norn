@@ -175,7 +175,7 @@ impl Log {
 /// Makes a new or renamed file's name durable. Windows cannot open a directory
 /// with `std` and NTFS journals metadata, so failing to open it is not an error,
 /// as in norn-storage.
-fn sync_parent(path: &Path) -> Result<(), MetadataError> {
+pub(crate) fn sync_parent(path: &Path) -> Result<(), MetadataError> {
     let Some(dir) = path.parent() else {
         return Ok(());
     };

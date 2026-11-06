@@ -8,6 +8,7 @@
 //! flags. See docs/guides/configuration.md for the file format.
 
 mod args;
+mod encryption;
 mod engine;
 mod error;
 mod file;
@@ -23,6 +24,7 @@ use norn_ipc::Endpoint;
 use norn_shared_memory::Settings;
 
 pub use args::{Invocation, USAGE, parse_args};
+pub use encryption::KeySource;
 pub use error::ConfigError;
 pub use file::MAX_FILE_BYTES;
 pub use log::{LogConfig, LogFormat, LogLevel};
@@ -49,6 +51,7 @@ pub struct DaemonConfig {
     pub(crate) log: LogConfig,
     pub(crate) mcp: McpConfig,
     pub(crate) shared_memory: Settings,
+    pub(crate) keys: Option<KeySource>,
 }
 
 impl DaemonConfig {
@@ -80,6 +83,19 @@ impl DaemonConfig {
     pub fn drain_timeout(mut self, timeout: Duration) -> Self {
         self.drain_timeout = Some(timeout);
         self
+    }
+
+    /// Encrypts stored chunks with keys from `source`, or nothing when `None`.
+    #[must_use]
+    pub fn key_source_set(mut self, source: Option<KeySource>) -> Self {
+        self.keys = source;
+        self
+    }
+
+    /// Where the encryption keys come from; `None` when encryption is off.
+    #[must_use]
+    pub fn key_source(&self) -> Option<&KeySource> {
+        self.keys.as_ref()
     }
 
     /// Replaces the logging settings.
@@ -134,6 +150,28 @@ impl DaemonConfig {
     #[must_use]
     pub fn drain(&self) -> Duration {
         self.drain_timeout.unwrap_or(DEFAULT_DRAIN_TIMEOUT)
+    }
+
+    /// What this configuration serves with no check of who connects, each as a
+    /// sentence for the log: any local user can reach loopback TCP.
+    #[must_use]
+    pub fn exposures(&self) -> Vec<String> {
+        let mut found = Vec::new();
+        if let Endpoint::Tcp(address) = self.endpoint() {
+            found.push(format!(
+                "gRPC on tcp:{address}: any local user can read and write this database; \
+                 use a Unix socket or a named pipe"
+            ));
+        }
+        for transport in self.mcp.served() {
+            if let McpTransport::Http(address) = transport {
+                found.push(format!(
+                    "MCP on http:{address} has no authentication: any local user can read \
+                     this database"
+                ));
+            }
+        }
+        found
     }
 
     /// The logging settings.

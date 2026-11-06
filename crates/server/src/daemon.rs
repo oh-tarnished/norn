@@ -3,7 +3,9 @@
 
 //! The daemon: a runtime whose tasks serve gRPC over local IPC.
 
+mod claim;
 mod error;
+pub(crate) mod open;
 mod reflection;
 mod router;
 mod serve;
@@ -15,7 +17,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
 
-use norn_ipc::{Endpoint, Server, ServerConfig};
+use norn_ipc::Endpoint;
 use norn_runtime::ingest::{Ingest, IngestRecovery};
 use norn_runtime::maintenance::{CompactionPhase, Maintenance};
 use norn_runtime::sessions::Replays;
@@ -25,7 +27,9 @@ use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use tonic_health::server::HealthReporter;
 
-use self::router::{build_router, open_database};
+use self::claim::claim_endpoints;
+use self::open::open_database;
+use self::router::build_router;
 use crate::config::DaemonConfig;
 use crate::health::reflect;
 
@@ -89,10 +93,7 @@ impl Daemon {
         let drain = config.drain();
         let runtime =
             Runtime::new(*config.engine())?.shutdown_timeout(drain.saturating_add(SHUTDOWN_SLACK));
-        // Claims and releases: a live daemon, a squatter or an insecure directory
-        // fails here with its own error, before a database is touched.
-        drop(Server::bind(&config.endpoint(), ServerConfig::default()).await?);
-
+        claim_endpoints(&config).await?;
         let database = open_database(&config, &runtime).await?;
         let (ingest, recovery) = (Arc::clone(&database.ingest), database.recovery.clone());
         let (opening, open) = watch::channel(false);

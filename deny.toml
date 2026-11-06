@@ -64,6 +64,12 @@ ignore = true
 multiple-versions = "warn"
 wildcards = "deny"
 allow-wildcard-paths = true
+# Encryption's cipher and key derivation: named by norn-storage alone
+# (xtask/src/crypto.rs holds the same line, with sha2, zeroize and getrandom).
+deny = [
+    { crate = "chacha20poly1305", wrappers = ["norn-storage"] },
+    { crate = "hkdf", wrappers = ["norn-storage"] },
+]
 
 [sources]
 unknown-registry = "deny"
