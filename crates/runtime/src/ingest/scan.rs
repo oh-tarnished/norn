@@ -9,7 +9,7 @@ use std::path::Path;
 
 use norn_core::{Sample, SignalId};
 use norn_metadata::Registry;
-use norn_storage::{SegmentReader, StorageError, StorageOptions, live_segments};
+use norn_storage::{SegmentEntry, SegmentReader, StorageError, StorageOptions, live_segments};
 
 use super::dedup::Dedup;
 
@@ -23,8 +23,9 @@ pub(crate) fn key(s: &Sample) -> Key {
 
 /// Finds what the stored segments say about `fresh`, the journal's samples: any
 /// key found is removed, since that sample needs no second write. Along the way
-/// it feeds `dedup` the newest chunks of each signal and marks every signal seen
-/// as holding data.
+/// it feeds `dedup` each signal's latest chunk, for its high-water mark, then the
+/// chunks written last ([`seed_recent`]), and marks every signal seen as holding
+/// data.
 ///
 /// Reads every directory once, then only the chunks that can matter. A chunk
 /// that fails to read was reported by recovery already; it is skipped, so a
@@ -76,5 +77,47 @@ pub(crate) fn reconcile(
             }
         }
     }
+    seed_recent(&segments, opts, dedup);
     Ok(())
+}
+
+/// Feeds `dedup` the chunks written last in `segments`, oldest first, until they
+/// hold as many samples as its window: what the window held before the restart.
+/// Write order, not time, decides: late data written after a signal's latest
+/// chunk is a resend's likeliest original. `segments` are in write order, as
+/// [`live_segments`] lists them, and so are a segment's chunks. A segment or chunk
+/// that fails to read was reported by recovery already, and is skipped.
+///
+/// Cost: the directories of the last few segments, and at most a window of samples.
+pub(crate) fn seed_recent(segments: &[SegmentEntry], opts: &StorageOptions, dedup: &mut Dedup) {
+    let room = dedup.capacity();
+    let mut picked = Vec::new();
+    let mut held = 0usize;
+    for segment in segments.iter().rev() {
+        if held >= room {
+            break;
+        }
+        let Ok(reader) = SegmentReader::open(&segment.path, *opts) else {
+            continue;
+        };
+        let mut chunks = Vec::new();
+        for meta in reader.chunks().iter().rev() {
+            if held >= room {
+                break;
+            }
+            held += meta.count as usize;
+            chunks.push(*meta);
+        }
+        chunks.reverse();
+        picked.push((reader, chunks));
+    }
+    for (mut reader, chunks) in picked.into_iter().rev() {
+        for meta in chunks {
+            if let Ok(chunk) = reader.read_chunk(&meta) {
+                for sample in chunk.samples() {
+                    dedup.admit(&sample);
+                }
+            }
+        }
+    }
 }

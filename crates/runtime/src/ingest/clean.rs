@@ -10,7 +10,9 @@ use std::sync::{Arc, PoisonError};
 
 use norn_core::{SignalId, StreamId, Timestamp};
 use norn_index::{SignalSpan, Snapshot};
-use norn_storage::{ChunkFile, CleanMarker, CleanSegment, SegmentName, StorageError, stream_dir};
+use norn_storage::{
+    ChunkFile, CleanMarker, CleanSegment, SegmentName, StorageError, live_segments, stream_dir,
+};
 
 use super::Ingest;
 use super::dedup::Dedup;
@@ -47,9 +49,10 @@ impl Ingest {
         Ok(true)
     }
 
-    /// Rebuilds what admission needs for the streams of `clean`, from the index:
-    /// each signal's high-water mark and recent samples, from one chunk a signal.
-    /// Costs a page and a chunk per signal, whatever the history. A chunk that
+    /// Rebuilds what admission needs for the streams of `clean`: each signal's
+    /// high-water mark from its latest chunk, through the index, then the window
+    /// from the chunks written last ([`super::scan::seed_recent`]). Costs a page
+    /// and a chunk per signal, and at most a window of samples, whatever the history. A chunk that
     /// fails to read is left for a query or `VerifyStream` to report.
     pub(super) fn seed_clean(&self, clean: Vec<(StreamId, StreamStats)>) {
         let Some(index) = self.ctx.index.get() else {
@@ -94,6 +97,9 @@ impl Ingest {
                     dedup.admit(&sample);
                 }
             }
+        }
+        if let Ok(segments) = live_segments(&stream_dir(&self.ctx.root, id)) {
+            super::scan::seed_recent(&segments, &self.ctx.opts, dedup);
         }
     }
 
