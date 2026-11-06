@@ -21,13 +21,15 @@ format and MCAP, each export and import, driven by
 | CSV | [`adapters/csv`](../../adapters/csv) (`norn-adapter-csv`) | export and import |
 | Parquet, Arrow IPC | [`adapters/parquet`](../../adapters/parquet) (`norn-adapter-parquet`) | export and import |
 | MCAP | [`adapters/mcap`](../../adapters/mcap) (`norn-adapter-mcap`) | export and import |
-| Device protocols | outside this repository | clients of the public API over IPC |
+| Device protocols | outside this repository, on [`crates/sink`](../../crates/sink) (`norn-sink`) | clients of the public API over IPC |
 | Modbus, OPC-UA, MQTT, custom Protobuf | none | planned |
 
 **Device-protocol adapters live outside this repository** (owner's decision,
 2026-11-02, [plan.md](../project/plan.md#external-adapters-owners-request-2026-11-02)).
 Such an adapter dials `norn_ipc::connect` and calls `TelemetryService.AppendSamples`,
-using only Norn's public client crates. A device object still maps to an entity, a
+using only Norn's public client crates. `norn-sink` does that and everything around
+it, so an adapter writes only its codec and a mapping
+([writing a device adapter](../guides/device-adapter.md)). A device object still maps to an entity, a
 signal and annotations such as `protocol=...`, `device_instance=1001`,
 `object_type=...`; status flags map onto `Quality`.
 

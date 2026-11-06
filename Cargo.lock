@@ -1885,6 +1885,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "norn-sink"
+version = "1.0.0-rc.1"
+dependencies = [
+ "norn-ipc",
+ "norn-protocol",
+ "norn-runtime",
+ "norn-server",
+ "norn-shared-memory",
+ "norn-transport",
+ "prost",
+ "prost-types",
+ "tokio",
+ "tokio-util",
+ "tonic",
+]
+
+[[package]]
 name = "norn-state"
 version = "1.0.0-rc.1"
 dependencies = [

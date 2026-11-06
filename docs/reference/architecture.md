@@ -46,9 +46,10 @@ workspace crate without a row fails the gate. Dev-dependencies are exempt.
 | `norn-adapter` | core, protocol, transport, ipc | exists (uses protocol) |
 | `norn-adapter-csv`, `-parquet`, `-mcap` | adapter, protocol | exists |
 | `norn-adapter-testkit` | adapter, protocol | exists, dev-only |
+| `norn-sink` | protocol, transport, ipc, shared-memory | exists (uses protocol, transport, ipc; shared-memory behind its opt-in feature): a live adapter's delivery into Norn, [writing a device adapter](../guides/device-adapter.md) |
 | `xtask` | nothing | exists |
 
-Clients (CLI, adapters) reach Norn only through the protocol, and so does MCP: it runs
+Clients (CLI, adapters, `norn-sink`) reach Norn only through the protocol, and so does MCP: it runs
 inside the daemon but calls the gRPC services through the in-process loopback, never
 the runtime, never the
 storage API (SPEC §47), which is why their rows stop at `ipc`. The adapters are

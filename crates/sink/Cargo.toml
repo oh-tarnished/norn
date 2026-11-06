@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[package]
+name = "norn-sink"
+description = "A live adapter's path into Norn: provisioning, a bounded buffer, backpressure, acknowledgement and resend, over the public API."
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[features]
+# The opt-in shared-memory data plane (protocol 1.7): batches through an
+# iceoryx2 ring the daemon grants, gRPC when it grants none. Off by default;
+# iceoryx2's audited QNX-only build helpers come with it (xtask/src/iceoryx2.rs).
+shared-memory = ["dep:norn-shared-memory"]
+
+# Each third-party crate is declared, with its reason, in the root Cargo.toml.
+# A client only: no Norn crate behind the protocol (SPEC §47).
+[dependencies]
+norn-protocol = { path = "../protocol" }
+# connect_with, Endpoint and AppendCall.
+norn-ipc = { path = "../ipc" }
+# ParseEndpointError, carried by EndpointError.
+norn-transport = { path = "../transport" }
+norn-shared-memory = { path = "../shared-memory", optional = true }
+tonic = { workspace = true, features = ["codegen", "transport"] }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
+prost = { workspace = true }
+prost-types = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
+# norn_ipc::Server::serve stops on a CancellationToken.
+tokio-util = { workspace = true }
+# A fake daemon over a real socket.
+tonic = { workspace = true, features = ["codegen", "router", "transport"] }
+# A real daemon in-process, on a temporary socket and data directory.
+norn-server = { path = "../server" }
+norn-runtime = { path = "../runtime" }
+
+
+[lints]
+workspace = true

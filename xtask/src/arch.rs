@@ -112,6 +112,19 @@ pub const LAYERS: &[(&str, &[&str])] = &[
     ("norn-adapter-parquet", &["norn-adapter", "norn-protocol"]),
     ("norn-adapter-mcap", &["norn-adapter", "norn-protocol"]),
     ("norn-adapter-testkit", &["norn-adapter", "norn-protocol"]),
+    // A live adapter's delivery into Norn, for device-protocol adapters in their
+    // own repositories (SPEC §30, §47). A client crate like the rest: nothing in
+    // this table may import it, least of all the engine or the daemon. Shared
+    // memory is behind its opt-in feature, as nornctl's is behind a flag.
+    (
+        "norn-sink",
+        &[
+            "norn-protocol",
+            "norn-transport",
+            "norn-ipc",
+            "norn-shared-memory",
+        ],
+    ),
     // Repository tooling imports no Norn crate.
     ("xtask", &[]),
 ];

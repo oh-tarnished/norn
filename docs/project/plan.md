@@ -55,7 +55,8 @@ part of that program's configuration rather than a one-off flag: a sink
 implementation dials `norn_ipc::connect(endpoint)` and calls
 `TelemetryService.AppendSamples`. Under SPEC section 47 the adapter uses
 only Norn's public client crates. Backpressure is honoured through a bounded
-buffer; nothing is dropped silently.
+buffer; nothing is dropped silently. `norn-sink` is that sink, extracted so that a
+new protocol writes only its codec and a mapping (docs/guides/device-adapter.md).
 
 ## Pattern detection (owner's decision, 2026-11-02; after v0.1)
 

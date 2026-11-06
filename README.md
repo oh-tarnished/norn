@@ -85,6 +85,7 @@ release candidate is published.
 - [Replay and state](docs/guides/replay.md): state at an instant, replay, live subscriptions
 - [Import and export](docs/guides/import-export.md): CSV, Parquet, Arrow, MCAP, both ways
 - [AI agents](docs/guides/ai-agents.md): `norn --mcp`, a client configuration
+- [Writing a device adapter](docs/guides/device-adapter.md): `norn-sink`, step by step, with a complete example
 
 **Reference**
 
@@ -303,7 +304,7 @@ flowchart LR
 
     subgraph devices["Device adapter, a separate program"]
         poll["Reads sensors and devices"]
-        sink["Norn sink<br/>bounded buffer, retries"]
+        sink["norn-sink<br/>bounded buffer, retries"]
         poll --> sink
     end
 
