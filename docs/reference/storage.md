@@ -111,6 +111,14 @@ a valid directory over chunks that never reached the disk.
 
 ## Encryption
 
+**Experimental in 1.0.** Encryption at rest is opt-in, has had no independent review
+(the [security review](../security/review-2026-11.md) was written by its author), and
+its on-disk form, the format 1.1 segment and the `ENCRYPTION` marker described below,
+may change within 1.x. It is outside the
+[compatibility promise](compatibility.md#what-1x-promises): a later 1.x release may
+require an encrypted store to be exported and imported again. Keep an unencrypted
+export, or the key file and a backup, before relying on it.
+
 Off unless `[storage] encryption = "on"` ([configuration](../guides/configuration.md#encryption-at-rest)).
 Pure Rust: RustCrypto's `chacha20poly1305`, `hkdf` and `sha2`, with `zeroize` and
 `getrandom`, beneath `norn-storage` only (`xtask/src/crypto.rs`, `deny.toml`).
@@ -176,6 +184,17 @@ first chunk is at byte 96.
 
 `<database>/ENCRYPTION` records that the database is encrypted, so an encrypted
 database with no segments yet is not taken for a plain one. It holds no key.
+
+**Known gap: backups do not carry the marker.** `nornctl backup` copies sealed
+segments and the metadata log, and `nornctl restore` writes those and `FORMAT`, never
+`ENCRYPTION`. A restored store whose segments are encrypted is still refused without
+its key, since every segment header says so, and the first start with the key writes
+the marker again. But a backup of an encrypted store that holds no segment yet (a
+catalogue and no stored sample, for example) restores with nothing that says it was
+encrypted: started without a key, it opens as
+a plain store, and the samples written from then on are stored unencrypted. Start a
+restored encrypted store with its key, and check that `<database>/ENCRYPTION` exists
+afterwards.
 
 **Compatibility.** A plain segment is still written as format 1.0, byte for byte as
 before, and a plain store works unchanged. 1.0.0-rc.1 refuses a 1.1 segment as

@@ -3,21 +3,29 @@ SPDX-FileCopyrightText: 2026 Srikanth K
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-### norn v1.0.0-rc.1
+### norn v1.0.0-rc.2
 
-The first release candidate for norn 1.0. Every platform archive contains the
+The second release candidate for norn 1.0. Every platform archive contains the
 `norn` daemon, the `nornctl` client, the built-in MCP server and documentation.
-All workspace crates, including `norn-protocol`, use version `1.0.0-rc.1`.
-Wire negotiation uses protocol 1.7 and remains compatible with v0.1.0 clients.
+All workspace crates, including `norn-protocol`, use version `1.0.0-rc.2`.
+Wire negotiation uses protocol 1.8; client and daemon agree the lower minor, so
+v1.0.0-rc.1 (1.7) and v0.1.0 (1.6) clients and daemons still connect.
 
-This release adds an opt-in shared-memory data plane over iceoryx2 for local
-Unix-socket clients, with transparent gRPC fallback and the same acknowledgements,
-validation and backpressure. It also adds sealing by open time, verification of
-open-segment chunks, and prompt shutdown while append calls remain open.
-Shared memory is off by default; enable it only when all processes of the daemon's
-user are trusted. A maximum-speed replay of a recent window may stop after
-`RUNNING`; this known issue remains under investigation.
-See the [v1.0.0-rc.1 changelog](https://github.com/shokki-engineering/norn/blob/v1.0.0-rc.1/docs/project/changelog.md).
+This release adds `nornctl backup`, `restore` and `migrate` with a versioned store
+and a [compatibility policy](https://github.com/shokki-engineering/norn/blob/v1.0.0-rc.2/docs/reference/compatibility.md)
+stating what 1.x promises; published message limits and `nornctl inspect`, `stats`
+and `benchmark`; `norn-sink`, a kit for device adapters; 26 fuzz targets run nightly,
+with five fixes; the benchmark matrix; the first security review's fixes; and opt-in
+encryption at rest. Encryption at rest is **experimental** in 1.0: it has had no
+independent review, and its on-disk form may change within 1.x.
+
+Known issues. `listen = "tcp:..."` and MCP over HTTP, when turned on, are open to
+every local user, and the daemon only warns at start; use the Unix socket, a named
+pipe or MCP over stdio instead. A maximum-speed replay of a recent window may stop
+after `RUNNING`; this remains under investigation. A backup of an encrypted store
+that holds no segment yet does not record that it was encrypted, so restored and
+started without a key it opens as plain.
+See the [v1.0.0-rc.2 changelog](https://github.com/shokki-engineering/norn/blob/v1.0.0-rc.2/docs/project/changelog.md).
 
 `norn.rb` installs the complete program from these archives and supplies a
 Homebrew service. See the [Homebrew guide](https://github.com/shokki-engineering/norn/blob/main/docs/guides/homebrew.md)

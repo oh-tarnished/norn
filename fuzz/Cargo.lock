@@ -3,6 +3,16 @@
 version = 4
 
 [[package]]
+name = "aead"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1973cfbc1a2daf9cf550e74e1f088c28e7f7d8c1e1418fb6c9dc5184b7e84c99"
+dependencies = [
+ "crypto-common",
+ "inout",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -413,8 +423,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65c35e4b699c7e15ccbe7ee35c005e4fc0a278d22238a2857e6ce2dadeda1b06"
 dependencies = [
  "cfg-if",
+ "cipher",
  "cpufeatures",
  "rand_core",
+ "zeroize",
+]
+
+[[package]]
+name = "chacha20poly1305"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b89e1c441e926b9c82a8d023f6e1b7ae0adcfaa7d621814e4d60789bac751cb"
+dependencies = [
+ "aead",
+ "chacha20",
+ "cipher",
+ "poly1305",
+ "zeroize",
 ]
 
 [[package]]
@@ -430,6 +455,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cipher"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8cf2a2c93cd704877c0858356ed03480ff301ee950b43f1cbe4573b088bfa6c"
+dependencies = [
+ "block-buffer",
+ "crypto-common",
+ "inout",
+]
+
+[[package]]
 name = "clang-sys"
 version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -439,6 +475,12 @@ dependencies = [
  "libc",
  "libloading",
 ]
+
+[[package]]
+name = "cmov"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c9ea0ac24bc397ab3c98583a3c9ba74fa56b09a4449bbe172b9b1ddb016027a"
 
 [[package]]
 name = "cobs"
@@ -521,6 +563,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctutils"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "261af4dc7a06ea8a527a8717d8cbba3417530d6ea14e1edb3de6b67806be474f"
+dependencies = [
+ "cmov",
+]
+
+[[package]]
 name = "darling"
 version = "0.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -597,6 +648,7 @@ dependencies = [
  "block-buffer",
  "const-oid",
  "crypto-common",
+ "ctutils",
 ]
 
 [[package]]
@@ -943,6 +995,24 @@ name = "hermit-abi"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e17592d60ebacc7d5e169f4663c5f84f9161cc90328abcfe8456f41e4dfcb284"
+
+[[package]]
+name = "hkdf"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4aaa26c720c68b866f2c96ef5c1264b3e6f473fe5d4ce61cd44bbe913e553018"
+dependencies = [
+ "hmac",
+]
+
+[[package]]
+name = "hmac"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6303bc9732ae41b04cb554b844a762b4115a61bfaa81e3e83050991eeb56863f"
+dependencies = [
+ "digest",
+]
 
 [[package]]
 name = "http"
@@ -1487,6 +1557,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "inout"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b5cf4372d022092674a83b8febf5865f7a573cc0c5baec5e49c879b6a20978f"
+dependencies = [
+ "hybrid-array",
+]
+
+[[package]]
 name = "itertools"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1676,7 +1755,7 @@ dependencies = [
 
 [[package]]
 name = "norn-adapter"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-ipc",
  "norn-protocol",
@@ -1690,7 +1769,7 @@ dependencies = [
 
 [[package]]
 name = "norn-adapter-csv"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "crc32fast",
  "norn-adapter",
@@ -1699,7 +1778,7 @@ dependencies = [
 
 [[package]]
 name = "norn-adapter-mcap"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "mcap",
  "norn-adapter",
@@ -1709,7 +1788,7 @@ dependencies = [
 
 [[package]]
 name = "norn-adapter-parquet"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "arrow-array",
  "arrow-ipc",
@@ -1723,7 +1802,7 @@ dependencies = [
 
 [[package]]
 name = "norn-adapter-testkit"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-adapter",
  "norn-protocol",
@@ -1733,14 +1812,23 @@ dependencies = [
 
 [[package]]
 name = "norn-codec"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "structured-zstd",
 ]
 
 [[package]]
 name = "norn-core"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
+
+[[package]]
+name = "norn-database"
+version = "1.0.0-rc.2"
+dependencies = [
+ "norn-core",
+ "norn-metadata",
+ "norn-storage",
+]
 
 [[package]]
 name = "norn-fuzz"
@@ -1786,7 +1874,7 @@ dependencies = [
 
 [[package]]
 name = "norn-index"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-core",
  "norn-storage",
@@ -1794,7 +1882,7 @@ dependencies = [
 
 [[package]]
 name = "norn-ipc"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "bytes",
  "futures-core",
@@ -1812,14 +1900,14 @@ dependencies = [
 
 [[package]]
 name = "norn-metadata"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-core",
 ]
 
 [[package]]
 name = "norn-protocol"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "prost",
  "prost-types",
@@ -1830,7 +1918,7 @@ dependencies = [
 
 [[package]]
 name = "norn-query"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-codec",
  "norn-core",
@@ -1840,7 +1928,7 @@ dependencies = [
 
 [[package]]
 name = "norn-replay"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-core",
  "norn-query",
@@ -1849,10 +1937,11 @@ dependencies = [
 
 [[package]]
 name = "norn-runtime"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-codec",
  "norn-core",
+ "norn-database",
  "norn-index",
  "norn-metadata",
  "norn-query",
@@ -1866,7 +1955,7 @@ dependencies = [
 
 [[package]]
 name = "norn-server"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -1874,6 +1963,7 @@ dependencies = [
  "http",
  "http-body",
  "norn-core",
+ "norn-database",
  "norn-ipc",
  "norn-metadata",
  "norn-protocol",
@@ -1900,7 +1990,7 @@ dependencies = [
 
 [[package]]
 name = "norn-shared-memory"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "iceoryx2",
  "iceoryx2-pal-os-api",
@@ -1911,7 +2001,7 @@ dependencies = [
 
 [[package]]
 name = "norn-state"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-core",
  "norn-query",
@@ -1919,15 +2009,20 @@ dependencies = [
 
 [[package]]
 name = "norn-storage"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
+ "chacha20poly1305",
+ "getrandom 0.4.3",
+ "hkdf",
  "norn-codec",
  "norn-core",
+ "sha2",
+ "zeroize",
 ]
 
 [[package]]
 name = "norn-transport"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "tokio",
  "tokio-util",
@@ -2132,6 +2227,16 @@ name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
+
+[[package]]
+name = "poly1305"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e2d0073b297041425c7c3df6eb4792d598a15323fe63346852b092eca02904c"
+dependencies = [
+ "cpufeatures",
+ "universal-hash",
+]
 
 [[package]]
 name = "postcard"
@@ -3331,6 +3436,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca718471876992059f251e33aafc334346ada08042b7661dd1fe313a9bced557"
 
 [[package]]
+name = "universal-hash"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4987bdc12753382e0bec4a65c50738ffaabc998b9cdd1f952fb5f39b0048a96"
+dependencies = [
+ "crypto-common",
+ "ctutils",
+]
+
+[[package]]
 name = "url"
 version = "2.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3669,6 +3784,12 @@ dependencies = [
  "syn 3.0.9",
  "synstructure",
 ]
+
+[[package]]
+name = "zeroize"
+version = "1.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e13084392c5e4bc371903e2935a5eaeed24905a7511356b883835e18a78f6879"
 
 [[package]]
 name = "zerotrie"

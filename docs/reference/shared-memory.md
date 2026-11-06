@@ -68,6 +68,27 @@ Configured but unavailable, it logs a warning and serves the socket alone.
 
 ## How a call runs
 
+```mermaid
+flowchart LR
+    client["Client"]
+    neg["Protocol 1.7, Unix socket,<br/>enabled, client asks, ring free"]
+    shm["iceoryx2 ring<br/>batches only"]
+    sock["gRPC over the local socket or pipe<br/>default and fallback"]
+    acks["Every acknowledgement<br/>on the gRPC call"]
+    norn["norn daemon"]
+
+    client --> neg
+    neg -- "granted" --> shm --> norn
+    neg -- "anything missing" --> sock --> norn
+    norn --> acks --> client
+```
+
+A client takes a ring only when every condition above holds: a daemon speaking
+protocol 1.7 or later, a Unix socket, shared memory enabled, the client asking, and a
+ring free. Anything missing (an older daemon, shared memory off, no ring free, a
+failed attach, or a batch larger than a frame) and the call carries on over the
+socket, on the same call.
+
 1. The client negotiates, asks for a ring and, if granted, attaches as the ring's
    only publisher. The daemon created the service (one publisher, one subscriber,
    two nodes, no history, no overflow), so the client cannot choose a limit.
@@ -151,13 +172,15 @@ other crate that reaches iceoryx2 (`xtask/tests/iceoryx2_gates.rs`).
 
 ```sh
 cargo bench -p norn-server --bench shared_memory
+nornctl append plant entities/dev-01/signals/temperature 21.5 --shared-memory
 nornctl import samples.parquet --ack buffered --timing           # the socket
 nornctl import samples.parquet --ack buffered --shared-memory    # a ring
 ```
 
 An import is safe to repeat, so a second import of the same file sends only what
 is missing: compare the two on fresh daemons. `append --shared-memory` prints
-`plane SHARED_MEMORY` when its sample went through a ring.
+`plane SHARED_MEMORY` when its sample went through a ring, and `import --timing`
+(implied by `--shared-memory`) adds `timing seconds= samples_per_second=`.
 
 The benchmark drives one daemon at 1,000, 10,000 and 100,000 samples a second,
 each load once over the socket and once over a ring, through the same client

@@ -15,7 +15,7 @@ members = ["crates/*", "adapters/*", "xtask"]
 
 [workspace.package]
 license = "AGPL-3.0-or-later"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 edition = "2024"
 # All crates build on Rust 1.99; rust-toolchain.toml pins the patch release.
 rust-version = "1.99"

@@ -103,5 +103,49 @@ agent is editing the files being moved. Norn only.
 | external adapters | the first device-protocol sink over IPC is built and verified end to end in its own repository |
 | 4 | merged: adapters (CSV, Parquet, Arrow, MCAP; `nornctl export`/`import`), built-in MCP, and operations (compaction, retention, verification). Shared memory (stage 12) is out of v0.1 |
 | release | v0.1.0 first release: platform archives, checksums, complete Homebrew package and daemon service; PAT-backed tap updates authored by Walle. See [changelog](changelog.md) and [release setup](../guides/homebrew.md) |
-| 1.0.0-rc.1 | done, unreleased: stage 12, the shared-memory data plane (`norn-shared-memory` over iceoryx2, protocol 1.7, opt-in, Unix only, socket fallback); stability (verify reads the open segment, sealing by open time, shutdown drain of open append calls, macOS `F_FULLFSYNC` documented). See [changelog](changelog.md) |
+| 1.0.0-rc.1 | released 2026-11-03: stage 12, the shared-memory data plane (`norn-shared-memory` over iceoryx2, protocol 1.7, opt-in, Unix only, socket fallback); stability (verify reads the open segment, sealing by open time, shutdown drain of open append calls, macOS `F_FULLFSYNC` documented). See [changelog](changelog.md) |
+| 1.0.0-rc.2 | protocol 1.8: published limits, segment inspection, `nornctl inspect`/`stats`/`benchmark`, end-to-end and crash CI jobs, fuzzing, the benchmark matrix, `norn-sink`, compatibility policy, backup, restore and migrate, security review fixes, experimental encryption at rest, Windows fixes. See [changelog](changelog.md) |
 | next | the open replay issue (a maximum-speed replay of a recent window may stop after `RUNNING`; under investigation), then GGML-accelerated pattern detection (opt-in), then the full benchmark matrix |
+
+## Roadmap
+
+**v0.1.0 and 1.0.0-rc.1 are released.** **1.0.0-rc.2 (protocol 1.8)** is the second
+release candidate: published limits, `nornctl inspect`, `stats` and `benchmark`,
+fuzzing, the benchmark matrix, `norn-sink`, the compatibility policy with backup,
+restore and migrate, the security review's fixes and opt-in, experimental encryption
+at rest ([changelog](changelog.md)). What comes after, in order:
+
+- **The open replay issue.** A maximum-speed replay of a recent window may stop after
+  `RUNNING`; under investigation.
+- **Pattern detection.** GGML-accelerated and opt-in, as a separate program reading
+  through the public API, never in the engine or the default build. Its scope will be
+  discussed later.
+- **The benchmark matrix's full run.** The matrix is built and a quick profile runs in
+  CI; the specification's full range of signal counts and rates has not been measured,
+  on macOS, Linux or Windows ([performance](../performance.md#benchmark-matrix)).
+
+By stage, one row per stage of [the specification](spec.md#48-implementation-order).
+`done` means built and tested: CI builds, lints and tests every push on Linux, macOS
+and Windows, and cross-compiles ARMv7 and AArch64 Linux.
+[The 0.1.0 validation run is green](https://github.com/shokki-engineering/norn/actions/runs/41585788519).
+Tests that need Unix signals or Unix sockets run on Linux and macOS only;
+[operations](../guides/operations.md#platforms) lists them.
+
+| Stage | Subject       | Scope                                                       | State       | Today                                                                                                                                                                      |
+| ----- | ------------- | ----------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Foundation    | workspace, docs, core types, errors, config, gates          | done        |                                                                                                                                                                            |
+| 2 | Protocol | Protobuf, gRPC, buf, AIP lint, versioning | done | 1.6, with `BatchCreateEntities` and `BatchCreateSignals`; 1.7 in 1.0.0-rc.1 adds `SharedMemoryPlane`; 1.8 in 1.0.0-rc.2 adds the published message limits, `GetSegment`, `ListSegments` and `CreateBackup`; `ExportStream` unimplemented by decision: export is client-side |
+| 3     | IPC           | Unix sockets, named pipes, transport, framing               | done        | named pipes run in CI on `windows-latest`: `nornctl` against a real daemon, and the owner-only DACL                                                                        |
+| 4     | Basic daemon  | lifecycle, config, health                                   | done        | Homebrew service; in 1.0.0-rc.1 an open append call or idle connection no longer delays shutdown                                                                                |
+| 5     | Storage       | format, chunks, segments, checksums, recovery               | done        | compaction, retention, `verify` and a clean-start marker run in the daemon; 1.0.0-rc.1 adds sealing by open time and verifying the open segment                                 |
+| 6     | Encoding      | timestamp, integer, float, boolean, enum, zstd              | done        |                                                                                                                                                                            |
+| 7     | Index         | sparse temporal index, rebuild                              | done        | a per-signal summary answers for silent signals                                                                                                                            |
+| 8     | Write path    | append, batch, backpressure, durability                     | done        | live subscribers fed from the commit thread, never waited for                                                                                                              |
+| 9     | Query         | range, latest, aggregates                                   | done        | sees buffered samples; measured at 200 signals, not 16,000                                                                                                                 |
+| 10    | State         | checkpoints, `StateAt`                                      | done        | `StateAt` from the index; checkpoints measured and deferred                                                                                                                |
+| 11    | Replay        | virtual clock, pause, seek, speed                           | done        | sessions in memory, ended by a restart                                                                                                                                     |
+| 12    | Shared memory | ring buffer, fallback                                       | done        | in 1.0.0-rc.1, protocol 1.7: `norn-shared-memory` over iceoryx2, opt-in, Unix sockets only, transparent socket fallback                                                          |
+| 13 | Adapters | device protocols, MCAP, Parquet, others | done | CSV, Parquet, Arrow IPC and MCAP, export and import through `nornctl`; device-protocol adapters are separate programs over IPC, built on `norn-sink` from 1.0.0-rc.2 |
+| 14    | MCP           | MCP server and the rest of `nornctl`                        | done        | MCP inside `norn` (`norn --mcp`): 17 read-only tools, stdio, a socket, a pipe or loopback-only HTTP; `nornctl` adds export, import, compact, verify, retention, `inspect`, `stats`, `benchmark` |
+| 15 | Optimisation | measured defaults, the full benchmark matrix | in progress | write path, storage, index, query and IPC measured once; the benchmark matrix is built and its quick profile runs in CI, but its full run has not been made and the defaults are still picked, not measured |
+| 16 | Hardening | fuzzing, crash, corruption, cross-platform, security review | in progress | crash and corruption tests exist (Unix only: they `kill -9`) and run as their own CI job; CI on Linux, macOS, Windows; 26 fuzz targets, one per untrusted decoder, run nightly; one source review: its medium findings fixed in 1.0.0-rc.2 except F4 and F5, kept by decision and warned of at start; its low findings mostly open ([review](../security/review-2026-11.md)) |

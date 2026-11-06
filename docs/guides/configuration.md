@@ -9,7 +9,7 @@ How to configure the `norn` daemon. Its lifecycle is described in
 [architecture.md](../reference/architecture.md#process-model-exists-stage-4).
 
 ```text
-norn [--config PATH] [--listen ENDPOINT] [--data-dir PATH] [--log-level LEVEL] [--log-format FORMAT]
+norn [--config PATH] [--listen ENDPOINT] [--data-dir PATH] [--mcp TRANSPORT] [--log-level LEVEL] [--log-format FORMAT]
 ```
 
 Each setting comes from the first of: a flag, the file named by `--config`, the
@@ -77,8 +77,9 @@ publishes them through `GetServer`; the rest wait for the subsystems they bound.
 
 `max_entities` and `max_signals` bound `BatchCreateEntities` and `BatchCreateSignals`
 too: a batch that would pass either fails whole with `RESOURCE_EXHAUSTED`. One batch
-holds at most 1,000 requests. That bound is part of protocol 1.6, documented in the
-schema, and not a key: a client must be able to rely on it whatever the daemon's file
+holds at most 1,000 requests. That bound has been part of the protocol since 1.6,
+documented in the schema, is published from 1.8 as `Limits.max_batch_create_requests`,
+and is not a key: a client must be able to rely on it whatever the daemon's file
 says.
 
 **Sealing** (1.0.0-rc.1). A segment seals when it reaches `max_segment_bytes`, when its
@@ -94,9 +95,21 @@ per client; the other half pays for messages being decoded ([architecture.md](..
 
 `listen` takes `unix:<absolute path>`, `pipe:\\.\pipe\<name>` or
 `tcp:<loopback address>:<port>`; [ipc.md](../reference/ipc.md) gives the syntax and the
-security model. TCP has no OS identity check and is meant for tests.
+security model.
+
+**`tcp:` is open to every local user.** It has no OS identity check and no
+authentication: once set, any program of any user on the machine can read and write
+through it, and the daemon only logs a warning at every start. It is meant for
+tests. Use the default Unix socket (owner-only directory) or, on Windows, a named pipe
+(owner-only security descriptor) instead
+([security review](../security/review-2026-11.md), F4).
 
 ## Encryption at rest
+
+**Experimental in 1.0**: opt-in, with no independent review, and its on-disk form may
+change within 1.x, so it is outside the
+[compatibility promise](../reference/compatibility.md#what-1x-promises)
+([storage.md](../reference/storage.md#encryption)).
 
 ```toml
 [storage]
@@ -149,6 +162,13 @@ hosts = []                                          # further Host names loopbac
 `norn --mcp stdio` is all an agent's client needs to launch. Enabled with no
 transport serves stdio. A non-loopback `http:` address is refused. The
 [MCP reference](../reference/mcp.md#running-it) has every rule.
+
+**MCP over `http:` is open to every local user.** It has no authentication: once
+enabled, any program of any user on the machine can read history through the tools,
+and the daemon only logs a warning at every start. Prefer `stdio`, a `unix:` socket
+(held to the same owner-only directory rule as the gRPC socket) or a `pipe:` name
+(created with an owner-only security descriptor)
+([security review](../security/review-2026-11.md), F5).
 
 ## Shared memory
 

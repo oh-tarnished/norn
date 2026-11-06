@@ -104,10 +104,16 @@ fn an_index_with_no_room_is_backpressure_and_the_samples_stay_safe() {
         .unwrap();
     let r = rig(&dir.0, cfg, None);
     r.batch(0..100, AckLevel::Buffered);
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    // The refusal comes once the store thread, which runs on real time, has
+    // sealed a generation and found no index budget. How long that takes is the
+    // machine's business (a slow Windows runner took over 10 s), so the wait is
+    // a count of attempts, not a wall-clock deadline: at least two minutes of
+    // sleeping alone before the test gives up.
+    const ATTEMPTS: usize = 24_000;
     let (mut n, mut admitted) = (100, 100);
     let reason = norn_runtime::ingest::Reason::MemoryExhausted;
-    let refused = loop {
+    let mut refused = None;
+    for _ in 0..ATTEMPTS {
         r.clock.advance(std::time::Duration::from_secs(7200));
         let a = r.batch(n..n + 1, AckLevel::Buffered);
         n += 1;
@@ -115,11 +121,12 @@ fn an_index_with_no_room_is_backpressure_and_the_samples_stay_safe() {
         // A full queue may refuse first, under load: that is backpressure too,
         // but not what this test is waiting for.
         if a.reached.is_none() && a.decision.reason == reason {
-            break a;
+            refused = Some(a);
+            break;
         }
-        assert!(std::time::Instant::now() < deadline, "never refused");
         std::thread::sleep(std::time::Duration::from_millis(5));
-    };
+    }
+    let refused = refused.expect("never refused");
     assert!(refused.decision.retry_delay.is_some());
     r.ingest.close();
     assert_eq!(r.stored(&dir.0).len(), admitted, "every admitted sample");

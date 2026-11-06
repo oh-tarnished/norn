@@ -109,12 +109,19 @@ stderr, never stdout. HTTP is at `/mcp`.
 
 - **No TCP unless named.** A default daemon, and one serving MCP on stdio or a socket,
   opens no TCP port; `mcp_surface.rs` checks the process's sockets with `lsof`.
-- **Loopback only.** `http:` with a non-loopback address is refused at startup. There is
-  no authentication; put a tunnel in front and name it in `hosts`.
+- **Loopback only, and open to every local user.** `http:` with a non-loopback address
+  is refused at startup. There is no authentication: once MCP over HTTP is enabled, any
+  program of any user on the machine can call every tool and read all history, and the
+  daemon only logs a warning at every start. This is kept by the owner's decision
+  ([security review](../security/review-2026-11.md#owner-decision-f4-and-f5), F5). Where
+  other users share the machine, use `stdio`, a `unix:` socket or a `pipe:` name
+  instead. To reach it from elsewhere, put a tunnel in front and name it in `hosts`.
 - **A `Host` allow-list.** `localhost`, `127.0.0.1` and `::1`, any port, plus `hosts`;
   any other `Host` gets 403, which defeats DNS rebinding. tpp-agents enforces it.
-- **Owner-only sockets.** A Unix socket is created 0600 in a 0700 directory, a stale one
-  replaced, a live one or a regular file refused, and removed on stop.
+- **Owner-only sockets and pipes.** A Unix socket is created 0600 in a 0700 directory, a
+  stale one replaced, a live one or a regular file refused, and removed on stop. The
+  daemon checks every MCP socket's directory at start as it does the gRPC one. A named
+  pipe is created by runtime-rs with an owner-only security descriptor.
 
 ## Bounds
 

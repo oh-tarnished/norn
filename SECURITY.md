@@ -14,7 +14,9 @@ acknowledgement before any fix is discussed in public.
 ## What exists today
 
 - **Local IPC only.** A Unix socket inside an owner-only (0700) directory of the
-  daemon's user, or a named pipe whose code has not yet been run on Windows. The
+  daemon's user, or a named pipe whose protected DACL grants only that user. CI runs
+  the daemon and `nornctl` over a named pipe on Windows, and checks that the descriptor
+  names only the current user; refusing another user is not tested. The
   daemon refuses a more open directory, or a symbolic link, for its own socket and
   for every MCP socket. Loopback TCP exists for tests and has no OS identity check.
   [docs/reference/ipc.md](docs/reference/ipc.md#security-model-spec-41) has the model.
@@ -23,13 +25,26 @@ acknowledgement before any fix is discussed in public.
   a client gets a refusal rather than exhausting the daemon.
 - **An owner-only database directory.** Created `0700`, or tightened to it at start
   (Unix), since files inside are created under the umask.
-- **Listeners every local user can reach are named.** `listen = "tcp:..."` and MCP
-  over HTTP have no identity check or authentication; the daemon logs a warning at
-  every start when either is on. MCP over HTTP refuses a browser `Origin` that is
-  not loopback or a configured host.
-- **Opt-in encryption at rest.** ChaCha20-Poly1305 per chunk, pure Rust; it covers
-  sample data and journals, not names, time ranges or the metadata log
-  ([docs/reference/storage.md](docs/reference/storage.md#encryption)).
+- **Two opt-in listeners are open to every local user.** `listen = "tcp:..."` and MCP
+  over HTTP (`--mcp http:...` or an `http:` transport) have no identity check and no
+  authentication. Once an operator turns either on, any program of any user on the
+  machine can use it: TCP gives full read and write through the gRPC API, MCP over
+  HTTP reads all history through the tools. The daemon keeps this behaviour by the
+  owner's decision and only logs a warning at every start
+  ([review](docs/security/review-2026-11.md#owner-decision-f4-and-f5), F4 and F5).
+  Neither is a default. The safe alternatives: for gRPC, the default Unix socket in
+  an owner-only directory or, on Windows, a named pipe with an owner-only security
+  descriptor; for MCP, `stdio`, a Unix socket or a named pipe. MCP over HTTP also
+  refuses a browser `Origin` that is not loopback or a configured host.
+- **Opt-in encryption at rest, experimental in 1.0.** ChaCha20-Poly1305 per chunk,
+  pure Rust; it covers sample data and journals, not names, time ranges or the metadata
+  log ([docs/reference/storage.md](docs/reference/storage.md#encryption)). It has had
+  no independent review: the only review of it is by its author. Its on-disk form may
+  change within 1.x, so it is excluded from the
+  [compatibility promise](docs/reference/compatibility.md#what-1x-promises). A backup of
+  an encrypted store that holds no segment yet does not record that it was encrypted,
+  so restored and started without a key it opens as plain
+  ([storage](docs/reference/storage.md#on-disk)).
 - **Checksummed storage.** Damage is detected and reported, never silently
   discarded ([docs/reference/storage.md](docs/reference/storage.md#recovery)).
 - **Decoders never panic** on malformed input, and allocate only what their input
@@ -37,10 +52,10 @@ acknowledgement before any fix is discussed in public.
 - **Supply chain.** `cargo-deny` checks advisories, licences and sources in CI, and
   `xtask deps` keeps C out of the graph.
 
-## Shared memory (1.0.0-rc.1, off by default)
+## Shared memory (from 1.0.0-rc.1, off by default)
 
 The iceoryx2 data plane ([docs/reference/shared-memory.md](docs/reference/shared-memory.md))
-arrives with Norn 1.0.0-rc.1 and protocol 1.7. It is off unless
+arrived with Norn 1.0.0-rc.1 and protocol 1.7. It is off unless
 `[shared_memory] enabled = true`, offered only on a Unix socket endpoint, whose `0700`
 directory proves the client runs as the daemon's user, and never on Windows, where
 iceoryx2 0.10 cannot make a mapping owner-only.
@@ -92,5 +107,7 @@ user (warned of, not closed), and that there is no disk budget.
 
 ## Not done yet
 
-There is no external audit, and Windows has not been run. Limits on queries, replay
-sessions and subscriptions wait for those subsystems.
+There is no external audit, and no independent review of encryption at rest. No test
+cuts the power: crash tests kill the process. There is no disk budget (review L1). On
+Windows, the database directory relies on its inherited ACL, which has not been
+checked to be owner-only.

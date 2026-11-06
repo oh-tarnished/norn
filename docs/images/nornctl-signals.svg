@@ -1,19 +1,14 @@
-<!--
-SPDX-FileCopyrightText: 2026 Srikanth K
-SPDX-License-Identifier: AGPL-3.0-or-later
--->
-
 <svg xmlns="http://www.w3.org/2000/svg" width="608" height="216" viewBox="0 0 608 216" role="img" aria-label="nornctl signals">
 <rect width="608" height="216" rx="8" fill="#0d1117"/>
 <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" xml:space="preserve">
 <text x="16" y="24" fill="#8b949e">nornctl signals</text>
 <text x="16" y="60" fill="#7ee787">$ nornctl streams create plant</text>
 <text x="16" y="80" fill="#e6edf3">streams/plant</text>
-<text x="16" y="100" fill="#7ee787">$ nornctl entities create ahu-01</text>
-<text x="16" y="120" fill="#e6edf3">entities/ahu-01</text>
-<text x="16" y="140" fill="#7ee787">$ nornctl signals create ahu-01 supply-temp plant double</text>
-<text x="16" y="160" fill="#e6edf3">entities/ahu-01/signals/supply-temp</text>
+<text x="16" y="100" fill="#7ee787">$ nornctl entities create dev-01</text>
+<text x="16" y="120" fill="#e6edf3">entities/dev-01</text>
+<text x="16" y="140" fill="#7ee787">$ nornctl signals create dev-01 temperature plant double</text>
+<text x="16" y="160" fill="#e6edf3">entities/dev-01/signals/temperature</text>
 <text x="16" y="180" fill="#7ee787">$ nornctl signals</text>
-<text x="16" y="200" fill="#e6edf3">entities/ahu-01/signals/supply-temp VALUE_TYPE_DOUBLE streams/plant</text>
+<text x="16" y="200" fill="#e6edf3">entities/dev-01/signals/temperature VALUE_TYPE_DOUBLE streams/plant</text>
 </g>
 </svg>

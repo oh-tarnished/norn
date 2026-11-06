@@ -17,7 +17,7 @@ use norn_protocol::stream::{CreateStreamRequest, Stream};
 use tonic::transport::Channel;
 
 /// The stream every row writes.
-pub const STREAM: &str = "streams/plant";
+pub const STREAM: &str = "streams/dev";
 
 /// The most `BatchCreateSignals` takes at once (protocol 1.6).
 const BATCH: usize = 1_000;
@@ -38,7 +38,7 @@ fn signal(n: usize) -> CreateSignalRequest {
 /// Creates `signals` signals `s0`.. under `entities/dev`; returns their names.
 pub async fn seed(channel: &Channel, signals: usize) -> Arc<Vec<String>> {
     let stream = CreateStreamRequest {
-        stream_id: "plant".into(),
+        stream_id: "dev".into(),
         stream: Some(Stream::default()),
         validate_only: false,
     };

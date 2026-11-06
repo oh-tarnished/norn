@@ -35,7 +35,7 @@ the same program, and it compiles and runs.
 
 ```toml
 [dependencies]
-norn-sink = { git = "https://github.com/shokki-engineering/norn", tag = "..." }
+norn-sink = { git = "https://github.com/shokki-engineering/norn", tag = "v1.0.0-rc.2" }
 tokio = { version = "1", features = ["macros", "rt", "time"] }
 ```
 

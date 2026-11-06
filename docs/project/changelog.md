@@ -5,9 +5,13 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Changelog
 
-## Unreleased (next release candidate)
+## 1.0.0-rc.2
 
-Protocol 1.8.
+Release title: `norn v1.0.0-rc.2`. All workspace crates, including `norn-protocol`,
+are versioned `1.0.0-rc.2`; wire negotiation is at protocol 1.8. Client and daemon agree
+the lower minor, so a 1.8 client and a 1.7 or 1.6 daemon still agree a version.
+
+### Protocol 1.8 and `nornctl`
 
 - Published limits: `Limits.max_message_bytes` (256 KiB) and
   `Limits.max_batch_create_requests` (1000), the values the daemon already enforced, so a
@@ -15,13 +19,6 @@ Protocol 1.8.
   batch create comments said 4 MiB; the limit in force was always 256 KiB.
 - `StreamService.GetSegment` and `ListSegments`: a stream's on-disk layout, read-only.
 - `nornctl inspect`, `stats` and `benchmark`.
-- CI: separate end-to-end (`just e2e`) and crash and corruption (`just crash`) jobs on
-  Linux and macOS.
-
-## Unreleased (1.0.0-rc.1)
-
-Release title: `norn v1.0.0-rc.1`. All workspace crates, including `norn-protocol`,
-are versioned `1.0.0-rc.1`; wire negotiation is at protocol 1.8. Not yet released.
 
 ### Backup, restore, migration, compatibility
 
@@ -33,7 +30,7 @@ are versioned `1.0.0-rc.1`; wire negotiation is at protocol 1.8. Not yet release
 - `<database>/FORMAT` records the store version. The daemon refuses a newer one, one mid-restore
   or mid-migration, or one it must migrate first, saying what to run. A store with no `FORMAT` is
   version 1, read in place, and gets one.
-- Protocol 1.8: `AdminService.CreateBackup`, a long-running operation. `nornctl backup --to DIR`
+- `AdminService.CreateBackup`, a long-running operation. `nornctl backup --to DIR`
   takes a consistent copy while the daemon ingests, and `--incremental-from` copies only new
   sealed segments. `nornctl restore --from DIR --data-dir D` writes one back, offline, checking
   every file. Encrypted segments are opaque bytes to both. See
@@ -44,6 +41,77 @@ are versioned `1.0.0-rc.1`; wire negotiation is at protocol 1.8. Not yet release
 - New crate `norn-database`. The one layer rule this touches: `nornctl` may import it, for the two
   commands that have no daemon to be a client of.
 
+- [What 1.x promises](../reference/compatibility.md#what-1x-promises): protocol major 1,
+  store version 1, segment format 1.0, configuration keys, `nornctl` commands and flags,
+  and the `norn-sink` API; encryption at rest and benchmark output are excluded.
+
+### Device adapters
+
+- New crate `norn-sink`, the protocol-neutral device adapter kit: finding and reconnecting
+  to the daemon, a bounded buffer with a share per signal, batch creation cut to the
+  published message limit, `AppendSamples` with backpressure, acknowledgement levels and
+  resend, and the daemon's drain. An adapter writes only its codec and a mapping. See
+  [writing a device adapter](../guides/device-adapter.md).
+
+### Security
+
+- A first source review, [November 2026](../security/review-2026-11.md), and its fixes:
+  the database directory is created `0700`, or tightened to it (F1); every MCP socket's
+  directory is held to the gRPC socket's checks, and relative socket paths and remote pipe
+  names are refused (F2); MCP over HTTP refuses a browser `Origin` that is not loopback or
+  a configured host (F3); new directories are synced to their parents, so that a power
+  cut should not lose a new stream's directory entries (F6, found by reading and not
+  reproduced); a socket directory that is a symbolic
+  link is refused (F7).
+- `listen = "tcp:..."` and MCP over HTTP stay open to every local user once turned on,
+  by the owner's decision, and the daemon now warns at every start when either is on
+  (F4, F5). See [SECURITY.md](../../SECURITY.md).
+- **Encryption at rest, experimental**: `[storage] encryption = "on"` with a key file or
+  environment variable. ChaCha20-Poly1305 per chunk, journals included, as format 1.1
+  segments; names and time ranges are not encrypted. `nornctl rekey` rotates keys.
+  Opt-in, with no independent review, and its on-disk form may change within 1.x. See
+  [storage](../reference/storage.md#encryption).
+- Fuzzing: 26 cargo-fuzz targets, one for every decoder of untrusted bytes, run by
+  `just fuzz` and a nightly workflow, and five fixes for what they found. Among them, a
+  panic in the `arrow`, `parquet` or `mcap` crates on a hostile file is caught during an
+  import and reported as damage, and the lengths those crates would reserve are checked
+  before they are called.
+
+### Performance and CI
+
+- The benchmark matrix, `just bench-matrix --quick|--full`: SPEC's workload against a
+  real daemon over the socket and over shared memory. A quick profile runs in CI on
+  Linux. Its full run has not been made. See [performance](../performance.md#benchmark-matrix).
+- Separate end-to-end (`just e2e`) and crash and corruption (`just crash`) CI jobs on
+  Linux and macOS.
+
+### Fixes
+
+- A resend of late data after a restart is counted as a duplicate, and queries keep the
+  first-written copy.
+- Shutdown: a held `grpc.health.v1.Health/Watch` stream sends `NOT_SERVING` and
+  ends `UNAVAILABLE` with `ERROR_REASON_SHUTTING_DOWN` when the drain begins,
+  instead of holding the drain until its bound.
+- Windows: a query read that Windows refuses while compaction replaces its segment is
+  retried; `nornctl migrate` opens a file for writing before syncing it, as Windows
+  requires.
+- Windows builds no iceoryx2 at all: `norn-shared-memory` keeps its settings and
+  sizes there, with `Ring` and `SharedMemory` stand-ins that refuse, so the daemon
+  and `nornctl` compile unchanged and stay on the named pipe.
+
+### Known issues
+
+- A maximum-speed replay of a recent window may stop after `RUNNING`; under
+  investigation.
+- A backup of an encrypted store that holds no segment yet does not record that the
+  store was encrypted, so restored and started without a key it opens as plain. See
+  [operations](../guides/operations.md#backup-and-restore).
+
+## 1.0.0-rc.1 — 2026-11-03
+
+Release title: `norn v1.0.0-rc.1`. All workspace crates, including `norn-protocol`,
+are versioned `1.0.0-rc.1`; wire negotiation is at protocol 1.7.
+
 ### Shared memory
 
 - An opt-in shared-memory data plane, `norn-shared-memory`, over iceoryx2 0.10:
@@ -52,9 +120,6 @@ are versioned `1.0.0-rc.1`; wire negotiation is at protocol 1.8. Not yet release
   (`[shared_memory] enabled = false`), offered only on Unix sockets and never on
   Windows. Any call without a ring falls back to the socket transparently, with the
   same acknowledgements, backpressure and errors.
-- Windows builds no iceoryx2 at all: `norn-shared-memory` keeps its settings and
-  sizes there, with `Ring` and `SharedMemory` stand-ins that refuse, so the daemon
-  and `nornctl` compile unchanged and stay on the named pipe.
 - Protocol 1.7: `SharedMemoryPlane`, `NegotiateProtocolResponse.shared_memory`, and the
   metadata keys `norn-data-plane` and `norn-shared-memory-service`.
 - `nornctl append --shared-memory` (prints `plane SHARED_MEMORY` when a ring carried
@@ -78,9 +143,6 @@ are versioned `1.0.0-rc.1`; wire negotiation is at protocol 1.8. Not yet release
 - Shutdown: an `AppendSamples` call held open answers its admitted batches and ends
   with `UNAVAILABLE` and `ERROR_REASON_SHUTTING_DOWN`; an idle connection no longer
   delays the stop.
-- Shutdown: a held `grpc.health.v1.Health/Watch` stream sends `NOT_SERVING` and
-  ends `UNAVAILABLE` with `ERROR_REASON_SHUTTING_DOWN` when the drain begins,
-  instead of holding the drain until its bound.
 - Durability on macOS: `fsync` is `F_FULLFSYNC` through Rust's `std`, now documented
   with its cost.
 

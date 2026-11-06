@@ -85,7 +85,7 @@ pub async fn run(
                 .map(|n| sample(&names, n))
                 .collect();
             let request = AppendSamplesRequest {
-                stream: "streams/plant".into(),
+                stream: "streams/dev".into(),
                 batch_id: id,
                 samples,
                 ack_level: AcknowledgementLevel::Buffered as i32,

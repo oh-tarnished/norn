@@ -109,7 +109,7 @@ pub async fn drive(channel: &Channel, names: &Arc<Vec<String>>, load: Load, base
                 .collect();
             times.lock().unwrap().insert(id + 1, Instant::now());
             let request = AppendSamplesRequest {
-                stream: "streams/plant".into(),
+                stream: "streams/dev".into(),
                 batch_id: id + 1,
                 samples,
                 ack_level: load.level as i32,

@@ -1,37 +1,34 @@
-<!--
-SPDX-FileCopyrightText: 2026 Srikanth K
-SPDX-License-Identifier: AGPL-3.0-or-later
--->
-
-<svg xmlns="http://www.w3.org/2000/svg" width="2319" height="576" viewBox="0 0 2319 576" role="img" aria-label="nornctl status">
-<rect width="2319" height="576" rx="8" fill="#0d1117"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="2319" height="616" viewBox="0 0 2319 616" role="img" aria-label="nornctl status">
+<rect width="2319" height="616" rx="8" fill="#0d1117"/>
 <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" xml:space="preserve">
 <text x="16" y="24" fill="#8b949e">nornctl status</text>
 <text x="16" y="60" fill="#7ee787">$ nornctl status</text>
 <text x="16" y="80" fill="#e6edf3">health: SERVING</text>
-<text x="16" y="100" fill="#e6edf3">server_version: 0.1.0</text>
-<text x="16" y="120" fill="#e6edf3">protocol: 1.4</text>
+<text x="16" y="100" fill="#e6edf3">server_version: 1.0.0-rc.2</text>
+<text x="16" y="120" fill="#e6edf3">protocol: 1.8</text>
 <text x="16" y="140" fill="#e6edf3">capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUERY_RANGE CAPABILITY_QUERY_AGGREGATES CAPABILITY_STATE_AT CAPABILITY_LIVE_SUBSCRIPTION CAPABILITY_REPLAY CAPABILITY_COMPACTION CAPABILITY_RETENTION CAPABILITY_VERIFY CAPABILITY_ACK_DURABLE</text>
-<text x="16" y="160" fill="#e6edf3">start_time: 1793625056.698093000</text>
+<text x="16" y="160" fill="#e6edf3">start_time: 1793951156.433053000</text>
 <text x="16" y="180" fill="#e6edf3">limits.max_batch_samples: 10000</text>
 <text x="16" y="200" fill="#e6edf3">limits.max_batch_bytes: 4194304</text>
-<text x="16" y="220" fill="#e6edf3">limits.max_pending_batches: 256</text>
-<text x="16" y="240" fill="#e6edf3">limits.max_streams: 1024</text>
-<text x="16" y="260" fill="#e6edf3">limits.max_replay_sessions: 16</text>
-<text x="16" y="280" fill="#e6edf3">limits.max_subscriptions: 256</text>
-<text x="16" y="300" fill="#e6edf3">recovery.streams: 0</text>
-<text x="16" y="320" fill="#e6edf3">recovery.events: 0</text>
-<text x="16" y="340" fill="#e6edf3">recovery.corruptions: 0</text>
-<text x="16" y="360" fill="#e6edf3">recovery.replayed_samples: 0</text>
-<text x="16" y="380" fill="#e6edf3">recovery.clean_streams: 0</text>
-<text x="16" y="400" fill="#e6edf3">recovery.verified_segments: 0</text>
-<text x="16" y="420" fill="#e6edf3">recovery.vouched_segments: 0</text>
-<text x="16" y="440" fill="#e6edf3">compaction.runs: 0</text>
-<text x="16" y="460" fill="#e6edf3">compaction.segments: 0</text>
-<text x="16" y="480" fill="#e6edf3">compaction.saved_bytes: 0</text>
-<text x="16" y="500" fill="#e6edf3">compaction.failures: 0</text>
-<text x="16" y="520" fill="#e6edf3">retention.segments: 0</text>
-<text x="16" y="540" fill="#e6edf3">retention.samples: 0</text>
-<text x="16" y="560" fill="#e6edf3">retention.bytes: 0</text>
+<text x="16" y="220" fill="#e6edf3">limits.max_message_bytes: 262144</text>
+<text x="16" y="240" fill="#e6edf3">limits.max_batch_create_requests: 1000</text>
+<text x="16" y="260" fill="#e6edf3">limits.max_pending_batches: 256</text>
+<text x="16" y="280" fill="#e6edf3">limits.max_streams: 1024</text>
+<text x="16" y="300" fill="#e6edf3">limits.max_replay_sessions: 16</text>
+<text x="16" y="320" fill="#e6edf3">limits.max_subscriptions: 256</text>
+<text x="16" y="340" fill="#e6edf3">recovery.streams: 0</text>
+<text x="16" y="360" fill="#e6edf3">recovery.events: 0</text>
+<text x="16" y="380" fill="#e6edf3">recovery.corruptions: 0</text>
+<text x="16" y="400" fill="#e6edf3">recovery.replayed_samples: 0</text>
+<text x="16" y="420" fill="#e6edf3">recovery.clean_streams: 0</text>
+<text x="16" y="440" fill="#e6edf3">recovery.verified_segments: 0</text>
+<text x="16" y="460" fill="#e6edf3">recovery.vouched_segments: 0</text>
+<text x="16" y="480" fill="#e6edf3">compaction.runs: 0</text>
+<text x="16" y="500" fill="#e6edf3">compaction.segments: 0</text>
+<text x="16" y="520" fill="#e6edf3">compaction.saved_bytes: 0</text>
+<text x="16" y="540" fill="#e6edf3">compaction.failures: 0</text>
+<text x="16" y="560" fill="#e6edf3">retention.segments: 0</text>
+<text x="16" y="580" fill="#e6edf3">retention.samples: 0</text>
+<text x="16" y="600" fill="#e6edf3">retention.bytes: 0</text>
 </g>
 </svg>

@@ -196,6 +196,45 @@ Everything from here to the end of this page was measured piece by piece, before
 matrix, under the conditions each section states. None of it comes from the harness
 above.
 
+### At a glance
+
+All figures are from one Apple M3 Max with a local SSD, release builds, client and
+daemon on one machine, over gRPC on a Unix socket. Nothing has been measured on Linux
+or Windows yet. The sections below have the full tables and methods.
+
+| What                               | Result                   | How it was measured                                                                                         |
+| ---------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Sustained append, `DURABLE`        | 16,044 samples/s         | `cargo bench -p norn-server --bench append`: 30 s, 16,000 signals, one call; p50 18.11 ms, p99 29.26 ms     |
+| Burst append, `DURABLE`            | 120,010 samples/s        | same, 15 s; p50 16.34 ms, p99 22.68 ms. The offered rate was met, so this is not a maximum                  |
+| Peak daemon RSS                    | 110 MiB of 512 MiB       | across the four write-path runs, a 21% share of the default budget                                          |
+| Startup, 115 M samples             | 88 to 94 ms              | spawn to first answer after a clean stop, warm page cache; 2.6 s without the marker, 1.19 s after `kill -9` |
+| Storage, compacted                 | 1.200 bytes/sample       | 57.6 million samples: one hour of 16,000 signals at 1 Hz, in an assumed mix of signal shapes                |
+| Storage, before compaction         | 2.195 bytes/sample       | the same hour                                                                                               |
+| A year, compacted                  | about 0.61 TB            | **extrapolated** linearly from that one hour, not a measured year; all-noise signals could reach 3.45 TB    |
+| Index startup, compacted year      | 32.0 ms                  | 16,000 signals, 8,760 segments, 140.2 million chunks; real index files, chunk bodies left out               |
+| Index lookup, one signal, one hour | p50 49.5 µs, p99 6.53 ms | same dataset, empty index cache, single-threaded; locates chunks without reading them                       |
+| gRPC round trip                    | p50 31 µs, p99 45–50 µs  | unary health check, 20,000 calls, two runs                                                                  |
+| Query, one signal, one hour        | p50 1.41 ms, p99 2.29 ms | 3,600 raw samples; 200 signals at 1 Hz for one day, a scaled-down set                                       |
+| Query, one signal, one day         | p50 6.31 ms, p99 6.69 ms | AVERAGE per minute over 86,400 samples; same set                                                            |
+| Query, all signals, latest         | p50 7.22 ms, p99 8.12 ms | LATEST of 200 signals; same set. Not measured at 16,000                                                     |
+| StateAt, all signals               | p50 83.0 ms, p99 349 ms  | 16,000 signals, random instants, all pages; 15 minutes of data, scaled down                                 |
+| StateAt, one signal                | p50 453 µs, p99 791 µs   | same set                                                                                                    |
+| Replay, maximum speed              | 1.15 M samples/s         | 14.4 million samples to one subscriber, three runs                                                          |
+| Export, Parquet                    | 2.17 M samples/s         | `nornctl export`, 1 million samples, median of three; 1.66 bytes/sample                                     |
+| Import, Parquet                    | 365 k samples/s          | `nornctl import` into a fresh daemon at `PERSISTED`, same data, median of three                             |
+
+Caveats:
+
+- **Year figures are extrapolated** from short runs with an assumed signal mix.
+  Measure your own data before sizing disks.
+- **Crash tests cover process death** (`kill -9`), not power loss. `DURABLE` is
+  designed to survive power loss, and on macOS uses `F_FULLFSYNC`, but no test has cut
+  the power.
+- Performance is measured on macOS only. Linux and Windows are tested in CI, not
+  measured.
+- Several results use scaled-down datasets, as noted. The specification's full matrix
+  (1,000 to 100,000 signals, 1 to 100 Hz) has not been run.
+
 ## Write path
 
 `cargo bench -p norn-server --bench append`, release build, Apple M3 Max, a local

@@ -117,7 +117,7 @@ selects signals (`id = "temperature"`), and times are RFC 3339. A paginated read
 ## What the tools cannot do
 
 The surface is read-only by construction: the daemon lists and dispatches only the
-methods the schema hints read-only, 17 of them under protocol 1.6. Writes keep their
+methods the schema hints read-only, 17 of them under protocol 1.8, as under 1.6. Writes keep their
 RPCs and have no tool. That includes `EntityService.BatchCreateEntities` and
 `SignalService.BatchCreateSignals`, added in 1.6 for provisioning: the schema
 annotates them `read_only: false`, so an agent can see them described in the schema

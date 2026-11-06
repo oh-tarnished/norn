@@ -1727,7 +1727,7 @@ dependencies = [
 
 [[package]]
 name = "norn-adapter"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-ipc",
  "norn-protocol",
@@ -1741,7 +1741,7 @@ dependencies = [
 
 [[package]]
 name = "norn-adapter-csv"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "crc32fast",
  "norn-adapter",
@@ -1752,7 +1752,7 @@ dependencies = [
 
 [[package]]
 name = "norn-adapter-mcap"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "mcap",
  "norn-adapter",
@@ -1765,7 +1765,7 @@ dependencies = [
 
 [[package]]
 name = "norn-adapter-parquet"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "arrow-array",
  "arrow-ipc",
@@ -1781,7 +1781,7 @@ dependencies = [
 
 [[package]]
 name = "norn-adapter-testkit"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-adapter",
  "norn-protocol",
@@ -1791,7 +1791,7 @@ dependencies = [
 
 [[package]]
 name = "norn-cli"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-adapter",
  "norn-adapter-csv",
@@ -1815,7 +1815,7 @@ dependencies = [
 
 [[package]]
 name = "norn-codec"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "proptest",
  "structured-zstd",
@@ -1823,14 +1823,14 @@ dependencies = [
 
 [[package]]
 name = "norn-core"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "proptest",
 ]
 
 [[package]]
 name = "norn-database"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-core",
  "norn-metadata",
@@ -1839,7 +1839,7 @@ dependencies = [
 
 [[package]]
 name = "norn-index"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-core",
  "norn-storage",
@@ -1848,7 +1848,7 @@ dependencies = [
 
 [[package]]
 name = "norn-ipc"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "bytes",
  "futures-core",
@@ -1867,14 +1867,14 @@ dependencies = [
 
 [[package]]
 name = "norn-metadata"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-core",
 ]
 
 [[package]]
 name = "norn-protocol"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "prost",
  "prost-types",
@@ -1885,7 +1885,7 @@ dependencies = [
 
 [[package]]
 name = "norn-query"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-codec",
  "norn-core",
@@ -1896,7 +1896,7 @@ dependencies = [
 
 [[package]]
 name = "norn-replay"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-core",
  "norn-index",
@@ -1908,7 +1908,7 @@ dependencies = [
 
 [[package]]
 name = "norn-runtime"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-codec",
  "norn-core",
@@ -1927,7 +1927,7 @@ dependencies = [
 
 [[package]]
 name = "norn-server"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -1965,7 +1965,7 @@ dependencies = [
 
 [[package]]
 name = "norn-shared-memory"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "iceoryx2",
  "iceoryx2-pal-os-api",
@@ -1977,7 +1977,7 @@ dependencies = [
 
 [[package]]
 name = "norn-sink"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-ipc",
  "norn-protocol",
@@ -1994,7 +1994,7 @@ dependencies = [
 
 [[package]]
 name = "norn-state"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "norn-core",
  "norn-index",
@@ -2005,7 +2005,7 @@ dependencies = [
 
 [[package]]
 name = "norn-storage"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "chacha20poly1305",
  "getrandom 0.4.3",
@@ -2019,7 +2019,7 @@ dependencies = [
 
 [[package]]
 name = "norn-transport"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "tokio",
  "tokio-util",
@@ -3722,7 +3722,7 @@ checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
 name = "xtask"
-version = "1.0.0-rc.1"
+version = "1.0.0-rc.2"
 dependencies = [
  "serde_json",
 ]

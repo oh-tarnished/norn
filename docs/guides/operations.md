@@ -9,7 +9,7 @@ Working today: starting, stopping, recovery after a crash, reporting damage,
 compaction, retention and verification. Export and import work: see
 [import and export](import-export.md), and so do backup, restore and migration
 (below). **Not available to an operator yet:** metrics. See the
-[roadmap](../../README.md#roadmap).
+[roadmap](../project/plan.md#roadmap).
 
 Output below is real, from macOS. CI tests Linux and Windows too ([platforms](#platforms)).
 
@@ -49,6 +49,11 @@ INFO ipc drained aborted=0
 INFO runtime stopped aborted=0
 INFO stopped aborted=0
 ```
+
+**Durability on macOS.** `fsync` is `F_FULLFSYNC`, which also flushes the drive's
+cache. It is slower; group commit spreads it, and `[storage] durable_acks = false`
+turns it off where power-loss safety is not needed
+([storage](../reference/storage.md#write-side)).
 
 ## The data directory
 
@@ -184,11 +189,23 @@ prints `buffered=` for samples still in memory, which it cannot examine. `segmen
 counts sealed segments only. It exits 1 when it examined nothing although the stream
 holds samples, and says why ([nornctl](../reference/cli.md#long-running-commands)).
 
+## Segment sealing
+
+A segment is append-only while open and immutable once sealed; only sealed segments
+are compacted, verified and vouched for by the `CLEAN` marker. A segment seals when it
+reaches `max_segment_bytes`, spans `max_segment_age_ms` of sample time, or on a clean
+stop; from 1.0.0-rc.1 also after `max_segment_open_time_ms` of wall-clock time open
+(default one hour), so a quiet stream is sealed without a stop
+([configuration](configuration.md#the-file)). `nornctl compact` says so when nothing
+sealed is waiting.
+
 ## Compaction
 
 Compaction merges each signal's small chunks, picks the smallest of zstd levels 3 to
 6, and replaces neighbouring sealed segments with one. Queries, `StateAt`, replay and
-ingest carry on throughout, and no sample is lost or doubled.
+ingest carry on throughout, and no sample is lost or doubled; a test kills a real
+daemon at every phase of a compaction to check that
+(`crates/server/tests/compaction_kill.rs`).
 
 It runs by itself, every 5 minutes by default, and on demand:
 
@@ -276,6 +293,14 @@ are copied as opaque bytes and no chunk is decoded, so an encrypted segment need
 back up or to restore. The index and clean markers are left out: a restored daemon rebuilds
 them at its first start, which reads every chunk.
 
+**Known gap with encryption.** A backup does not copy the `ENCRYPTION` marker, and a
+restore does not write one. Encrypted segments still refuse to open without the key, and
+the first start with the key writes the marker again. But a backup of an encrypted store
+that holds no segment yet (a catalogue and no stored sample) restores with nothing that
+says it was encrypted: started without a key, it opens as a plain store and stores what
+it is sent unencrypted. Start a restored encrypted store with its key, and check that
+`<database>/ENCRYPTION` exists afterwards ([storage](../reference/storage.md#on-disk)).
+
 **What it costs.** Compaction and retention wait for it, since it runs on the same worker,
 one job at a time; ingest and queries do not. Each backup of a busy stream seals one more
 small segment for compaction to merge. A backup that fails or is cancelled leaves its files
@@ -358,10 +383,10 @@ owner-only; the daemon refuses to start otherwise.
 ## Platforms
 
 CI builds, lints and tests every push on Linux, macOS and Windows. On Windows the
-tests run the daemon and `nornctl` over a named pipe, and so do the `compact`,
-`verify` and `retention` test, which have type-checked for
-Windows but not yet run on a Windows runner. Some tests run on Linux and macOS only,
-and this is why:
+tests run the daemon and `nornctl` over a named pipe, the `compact`, `verify` and
+`retention` command-line test (`crates/cli/tests/upkeep.rs`) included. The end-to-end
+(`just e2e`) and crash and corruption (`just crash`) jobs run on Linux and macOS.
+Some tests run on Linux and macOS only, and this is why:
 
 | Test | Why not on Windows |
 | --- | --- |
@@ -374,5 +399,5 @@ and this is why:
 | `crates/cli/tests/history.rs` | written against a Unix socket; not yet ported to a named pipe |
 | `crates/transport/tests/unix_socket.rs` | Unix sockets themselves; named pipes are tested on Windows instead |
 
-Porting the kill tests is stage 16 work ([roadmap](../../README.md#roadmap)). Every
+Porting the kill tests is stage 16 work ([roadmap](../project/plan.md#roadmap)). Every
 performance figure so far is from macOS.

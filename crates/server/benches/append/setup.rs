@@ -20,7 +20,7 @@ use tonic::transport::Channel;
 /// `signals` signals in one stream, created 64 at a time, sharing fsyncs.
 pub async fn seed(channel: &Channel, signals: usize) -> Arc<Vec<String>> {
     let stream = CreateStreamRequest {
-        stream_id: "plant".into(),
+        stream_id: "dev".into(),
         stream: Some(Stream::default()),
         validate_only: false,
     };
@@ -49,7 +49,7 @@ pub async fn seed(channel: &Channel, signals: usize) -> Arc<Vec<String>> {
                 signal_id: format!("s{n}"),
                 signal: Some(Signal {
                     value_type: ValueType::Double as i32,
-                    stream: "streams/plant".into(),
+                    stream: "streams/dev".into(),
                     ..Signal::default()
                 }),
                 validate_only: false,

@@ -8,6 +8,204 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 What exists is marked **(exists)**; everything else is the design target from
 [spec.md](../project/spec.md) and does not exist yet.
 
+## The system at a glance
+
+How the pieces described below fit together, from a client's call down to the files.
+
+### The whole system
+
+```mermaid
+flowchart TB
+    subgraph clients["Clients"]
+        direction LR
+        ctl["nornctl"]
+        app["Your program<br/>norn-ipc + norn-protocol"]
+        dev["Device adapter<br/>sensor capture, separate program"]
+    end
+
+    subgraph ipc["Local IPC"]
+        sock["Unix socket in a 0700 directory<br/>or named pipe, owner only"]
+    end
+
+    subgraph daemon["norn daemon"]
+        grpc["gRPC API<br/>always on"]
+        mcp["MCP<br/>optional, read-only"]
+        meta["Metadata registry<br/>streams, entities, signals"]
+        write["Write path<br/>admission, budgets, acks"]
+        journal[("Journal")]
+        tail["Tail<br/>samples not yet in chunks"]
+        segs[("Segments and chunks")]
+        index[("Temporal index")]
+        read["Read path<br/>query, StateAt, replay"]
+        maint["Maintenance<br/>compaction, retention, verify"]
+    end
+
+    ctl --> sock
+    app --> sock
+    dev --> sock
+    sock --> grpc
+    mcp -. "in process" .-> grpc
+    grpc --> meta
+    grpc --> write
+    write --> journal
+    write --> tail
+    tail -- "store task" --> segs
+    segs --> index
+    grpc --> read
+    read --> tail
+    read --> index
+    read --> segs
+    maint --> segs
+    maint --> index
+    write -. "live events" .-> read
+```
+
+The daemon is one process. Its runtime owns the IPC server, the health mirror and the
+maintenance worker. `Runtime::new` spawns nothing; `run` owns every task and returns
+only when all have stopped. Details: [process model](#process-model-exists-stage-4).
+
+### Servers: always on and optional
+
+- **gRPC**: Always on. It cannot be disabled. It is the only API. `nornctl`, the adapters and every client use it; while the daemon runs, nothing reaches storage another way. The offline `nornctl restore` and `migrate` are the one exception ([below](#layers-and-the-dependency-table)).
+- **MCP**: Optional and off by default. Served inside `norn` with `norn --mcp TRANSPORT` or `[mcp] enabled = true`, over stdio, a local socket or pipe, or loopback HTTP. No separate MCP executable is needed.
+- **Shared-memory data plane**: Optional and off by default, from 1.0.0-rc.1 (protocol 1.7). Unix sockets only; the socket stays the control plane. See [Shared memory](shared-memory.md).
+- **InfluxDB**: Not used. Norn has no InfluxDB dependency.
+
+### The write path
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant G as gRPC handler
+    participant Q as Admission queue
+    participant J as Commit thread and journal
+    participant S as Store thread
+    participant X as Index
+
+    C->>G: AppendSamples(batch)
+    G->>Q: validate, deduplicate, reserve ingest budget
+    alt budget available
+        Q-->>C: ACCEPT or BUFFER, level BUFFERED
+    else budget short
+        Q-->>C: THROTTLE with a retry delay, or REJECT with a reason
+    end
+    Q->>J: batches in a fixed order
+    J->>J: append to the journal, flush to the OS
+    J->>J: add to per-signal buffers, queryable from here
+    J-->>C: PERSISTED
+    J->>J: group commit: wait up to 5 ms for other DURABLE batches
+    J->>J: one fsync covers them all
+    J-->>C: DURABLE
+    Note over J,S: later, by size or by age (60 s by default)
+    J->>S: seal a generation of buffers, roll the journal
+    S->>S: encode chunks in parallel, append in order, fsync
+    S->>X: record the new chunks
+    S->>J: delete that generation's journal segments
+```
+
+Each batch hears two answers: its admission, then the level it asked for. A failed
+`fsync` poisons the journal writer, every waiting batch gets an error, and the next
+start runs recovery. Details: [ingesting data](../guides/ingesting-data.md),
+[storage](storage.md).
+
+### The read path
+
+```mermaid
+flowchart TD
+    q["QuerySamples<br/>range, filter, aggregate"]
+    s["ComputeState<br/>StateAt T"]
+    r["Replay session<br/>virtual clock"]
+    sel["Select signals<br/>from the metadata registry"]
+    slice["Read one time slice<br/>sized to the query budget"]
+    t1["Copy matching rows from the tail"]
+    t2["Then take an index snapshot and plan chunks"]
+    t3["Read each chunk: verify checksum, decode, clip"]
+    t4["Sort by time, sequence, signal; collapse duplicates"]
+    out["Stream pages to the client"]
+    ev["SubscribeEvents<br/>same event format as live data"]
+    err["DATA_LOSS, never a gap"]
+
+    q --> sel
+    s -- "latest at or before T, per signal" --> sel
+    r -- "pages in time order" --> sel
+    sel --> slice
+    slice --> t1 --> t2 --> t3 --> t4
+    t4 --> out
+    t4 --> ev
+    t3 -- "damaged chunk" --> err
+    t2 -- "compaction moved a file: read again" --> slice
+```
+
+Reading the tail before taking the index snapshot means a sample acknowledged at
+`PERSISTED` is always in one or the other, so a query sees it exactly once. Details:
+[query](query.md), [replay](replay.md).
+
+### Adapters and MCP
+
+```mermaid
+flowchart LR
+    subgraph files["Files"]
+        csv["CSV"]
+        pq["Parquet"]
+        arrow["Arrow IPC"]
+        mcap["MCAP<br/>Foxglove, Lichtblick"]
+    end
+
+    subgraph devices["Device adapter, a separate program"]
+        poll["Reads sensors and devices"]
+        sink["norn-sink<br/>bounded buffer, retries"]
+        poll --> sink
+    end
+
+    subgraph agents["AI agents"]
+        mcpc["MCP client"]
+    end
+
+    ctl["nornctl import and export<br/>adapter crates"]
+    norn["norn daemon<br/>gRPC API"]
+    mcpd["MCP inside norn<br/>17 read-only tools<br/>generated from .proto annotations"]
+
+    files <--> ctl
+    ctl -- "AppendSamples, QuerySamples" --> norn
+    sink -- "norn_ipc::connect, BatchCreateSignals, AppendSamples" --> norn
+    mcpc -.-> mcpd
+    mcpd -.-> norn
+```
+
+Every adapter is a client of the public gRPC API and nothing else. Device-protocol
+adapters live outside this repository and use only Norn's public client crates
+(`norn-ipc`, `norn-protocol`); a device's details become annotations that Norn stores
+and never interprets. Formats and the adapter contract:
+[adapters](adapters.md).
+
+### Storage hierarchy
+
+```mermaid
+flowchart TD
+    db["Database<br/>the data directory"]
+    meta["metadata/<br/>registry of streams, entities, signals"]
+    idx["index/<br/>per-stream summary, rebuildable"]
+    st["Stream<br/>streams/ID/"]
+    jr["journal/<br/>samples not yet in chunks"]
+    seg["Segment<br/>one .nseg file, immutable once sealed"]
+    ch["Chunk<br/>one signal, one time range, CRC-32C"]
+    bl["Block<br/>one column, encoded and compressed"]
+    sa["Sample<br/>time, sequence, value, quality"]
+
+    db --> meta
+    db --> idx
+    db --> st
+    st --> jr
+    st --> seg
+    seg --> ch
+    ch --> bl
+    bl --> sa
+```
+
+A segment is append-only while open and immutable once sealed. A chunk is encoded,
+compressed and checksummed independently of every other chunk, so damage is found
+and reported per chunk. File formats: [storage](storage.md).
+
 ## The domain-independence rule
 
 The core knows Entity, Signal, Stream, Sample, Value, Timestamp, Sequence,
@@ -53,7 +251,15 @@ workspace crate without a row fails the gate. Dev-dependencies are exempt.
 Clients (CLI, adapters, `norn-sink`) reach Norn only through the protocol, and so does MCP: it runs
 inside the daemon but calls the gRPC services through the in-process loopback, never
 the runtime, never the
-storage API (SPEC §47), which is why their rows stop at `ipc`. The adapters are
+storage API (SPEC §47), which is why their rows stop at `ipc`.
+
+**The one exception, on purpose: offline `restore` and `migrate`.** `norn-cli` imports
+`norn-database` so that `nornctl restore` and `nornctl migrate` can work on a data
+directory with no daemon running: there is no daemon for them to be a client of, and
+the daemon refuses to start on a store mid-restore or mid-migration. They take the
+database's lock, so they cannot run beside a daemon on the same directory. Every other
+`nornctl` command, `backup` included, goes through the gRPC API. `xtask arch` allows
+this edge in `norn-cli`'s row only. The adapters are
 clients too: the contract speaks the protocol, and each format knows only the
 contract. The server imports none of them, so `ExportStream` stays unimplemented
 ([adapters.md](adapters.md#exportstream-stays-unimplemented)).

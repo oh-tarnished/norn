@@ -6,9 +6,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 # nornctl
 
 The `nornctl` command, through the public gRPC API only. It never touches storage.
-Output below is real, from `nornctl` 0.1.0 on macOS, except where a section names
-the next release (1.0.0-rc.1, protocol 1.7). `inspect`, `stats` and `benchmark` are newer
-still (protocol 1.8), their output from a debug build.
+Output below is real, from `nornctl` 0.1.0 on macOS, except where a section names a
+later release. `status` and `version` are from 1.0.0-rc.2 (protocol 1.8), and
+`inspect`, `stats` and `benchmark`, new in 1.0.0-rc.2, are from a debug build.
 
 ```text
 usage: nornctl [OPTIONS] COMMAND
@@ -65,10 +65,10 @@ the default. `SIGNAL` is a full name such as `entities/dev-01/signals/temperatur
 ```console
 $ nornctl status
 health: SERVING
-server_version: 0.1.0
-protocol: 1.6
+server_version: 1.0.0-rc.2
+protocol: 1.8
 capabilities: CAPABILITY_APPEND_SAMPLES CAPABILITY_ACK_PERSISTED CAPABILITY_QUERY_RANGE CAPABILITY_QUERY_AGGREGATES CAPABILITY_STATE_AT CAPABILITY_LIVE_SUBSCRIPTION CAPABILITY_REPLAY CAPABILITY_COMPACTION CAPABILITY_RETENTION CAPABILITY_VERIFY CAPABILITY_ACK_DURABLE
-start_time: 1793625130.214140000
+start_time: 1793951202.834031000
 limits.max_batch_samples: 10000
 limits.max_batch_bytes: 4194304
 limits.max_message_bytes: 262144
@@ -100,17 +100,17 @@ the last start: see [operations](../guides/operations.md#crash-recovery).
 
 ```console
 $ nornctl version
-client: nornctl/0.1.0
-client_protocol: 1.6
-server_version: 0.1.0
-agreed_protocol: 1.6
+client: nornctl/1.0.0-rc.2
+client_protocol: 1.8
+server_version: 1.0.0-rc.2
+agreed_protocol: 1.8
 ```
 
 Unlike `status`, this negotiates, so an incompatible daemon fails here with its
 reason.
 
-From 1.0.0-rc.1, `client_protocol` is 1.7, and so is `agreed_protocol` against a 1.0.0-rc.1
-daemon; against a 0.1.0 daemon the agreed version is 1.6, the lower minor. A 1.0.0-rc.1
+In 1.0.0-rc.1, `client_protocol` was 1.7; from 1.0.0-rc.2 it is 1.8. The agreed version is
+the lower minor: 1.7 against a 1.0.0-rc.1 daemon, 1.6 against a 0.1.0 one. A 1.0.0-rc.1
 daemon with shared memory enabled adds `CAPABILITY_SHARED_MEMORY` to `status`'s
 capabilities.
 
@@ -363,7 +363,7 @@ a stopped one, holding its lock, and ignore `--endpoint` and `--timeout`
 ([backup and restore](../guides/operations.md#backup-and-restore),
 [migrating](../guides/operations.md#migrating-to-a-new-store-version)).
 
-In 1.0.0-rc.1:
+From 1.0.0-rc.1:
 
 - `verify` prints `STREAM segments=N chunks=N samples=N bytes=N damaged_chunks=N
   damaged_samples=N buffered=N`. `segments` counts sealed segments; `chunks` and

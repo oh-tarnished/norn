@@ -73,7 +73,7 @@ async fn send(
 ) {
     loop {
         let batch = AppendSamplesRequest {
-            stream: "streams/plant".into(),
+            stream: "streams/dev".into(),
             batch_id: *id,
             samples: samples.to_vec(),
             ack_level: AcknowledgementLevel::Persisted as i32,

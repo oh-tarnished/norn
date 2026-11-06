@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Validate every workspace package's version, then emit the release matrix.
-# Local preview: GITHUB_EVENT_NAME=push GITHUB_REF_NAME=v1.0.0-rc.1 \
+# Local preview: GITHUB_EVENT_NAME=push GITHUB_REF_NAME=v1.0.0-rc.2 \
 #   GITHUB_OUTPUT=/tmp/norn-release-plan just release-plan
 set -euo pipefail
 
