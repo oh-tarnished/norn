@@ -17,7 +17,7 @@
 //! Chosen over rewriting a snapshot per change because a deployment creates 16,000
 //! signals at once: a rewrite per create would be quadratic in bytes and fsyncs.
 
-mod replay;
+pub(crate) mod replay;
 
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufWriter, Read, Seek, SeekFrom, Write};

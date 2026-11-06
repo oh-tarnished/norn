@@ -135,7 +135,7 @@ impl Ingest {
 
 /// Reads every batch of a journal segment into `samples`. Returns false if any
 /// could not be read: recovery reported it, and the segment must then be kept.
-fn read_journal(
+pub(super) fn read_journal(
     path: &Path,
     opts: &StorageOptions,
     samples: &mut Vec<Sample>,

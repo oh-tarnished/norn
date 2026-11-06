@@ -9,6 +9,8 @@ use bytes::{Bytes, BytesMut};
 use http::HeaderMap;
 use http_body::{Body as HttpBody, Frame};
 use norn_protocol::common::ErrorReason;
+use norn_protocol::entity::CreateEntityRequest;
+use norn_protocol::signal::CreateSignalRequest;
 use norn_runtime::{Budget, BudgetError, Reservation};
 use tonic::body::Body;
 use tonic::{Code, Status};
@@ -21,10 +23,16 @@ use crate::status::error_info;
 
 /// gRPC's message prefix: a compressed flag and a big-endian length.
 pub(crate) const PREFIX: usize = 5;
-/// What prost can make of one encoded byte, at worst: a map entry of two empty
-/// strings costs a few bytes on the wire and tens of bytes of `String`s and
-/// table slots.
-const EXPANSION: u64 = 32;
+/// What prost can make of one encoded byte, at worst: an empty element of a batch
+/// create is 2 bytes on the wire and a whole message in memory, and the vector
+/// holding it grows by doubling, so as much as the largest such message per byte.
+/// Above the 32 a map entry costs. `fuzz/fuzz_targets/server_request.rs` holds
+/// every request to this.
+pub(super) const EXPANSION: u64 = {
+    let entity = size_of::<CreateEntityRequest>();
+    let signal = size_of::<CreateSignalRequest>();
+    (if entity > signal { entity } else { signal }) as u64
+};
 /// How long a message waits for decode budget.
 const RESERVE_BOUND: Duration = Duration::from_secs(30);
 

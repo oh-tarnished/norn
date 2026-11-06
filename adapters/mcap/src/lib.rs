@@ -28,6 +28,7 @@
 //! Channel ids are 16 bits, so a file holds at most 65,535 signals; past that the
 //! export fails with [`norn_adapter::AdapterError::Encode`].
 
+mod guard;
 mod records;
 mod sink;
 mod source;

@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 Srikanth K
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Writes fuzz/corpus from Norn's own encoders and writers, so every target starts
+# from inputs its decoder accepts. Not a fuzz target: no sanitizer, no libFuzzer.
+
+[package]
+name = "norn-fuzz-seed"
+version = "0.0.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+
+[dependencies]
+norn-core = { path = "../../crates/core" }
+norn-codec = { path = "../../crates/codec" }
+norn-storage = { path = "../../crates/storage", features = ["fuzzing"] }
+norn-index = { path = "../../crates/index", features = ["fuzzing"] }
+norn-metadata = { path = "../../crates/metadata", features = ["fuzzing"] }
+norn-runtime = { path = "../../crates/runtime", features = ["fuzzing"] }
+norn-protocol = { path = "../../crates/protocol" }
+norn-adapter = { path = "../../adapters/contract" }
+norn-adapter-testkit = { path = "../../adapters/testkit" }
+norn-adapter-csv = { path = "../../adapters/csv" }
+norn-adapter-parquet = { path = "../../adapters/parquet" }
+norn-adapter-mcap = { path = "../../adapters/mcap" }
+prost = "0.14"

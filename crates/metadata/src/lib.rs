@@ -43,6 +43,8 @@
 mod codec;
 mod crc;
 mod error;
+#[cfg(feature = "fuzzing")]
+pub mod fuzzing;
 mod log;
 mod op;
 mod record;

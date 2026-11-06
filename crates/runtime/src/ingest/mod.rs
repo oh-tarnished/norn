@@ -14,6 +14,8 @@ mod commit;
 mod commit_fail;
 mod decision;
 mod dedup;
+#[cfg(feature = "fuzzing")]
+pub mod fuzzing;
 mod indexing;
 mod journal;
 mod layout;

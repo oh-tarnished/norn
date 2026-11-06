@@ -56,6 +56,11 @@ axum = { workspace = true }
 serde_json = { workspace = true }
 prost-reflect = { workspace = true }
 
+# Exposes the request decoding path to the fuzz crate (fuzz/), and to nothing
+# else: no shipped build enables it.
+[features]
+fuzzing = []
+
 [dev-dependencies]
 # Tests read back what the daemon stored; a client never does this.
 norn-storage = { path = "../storage" }

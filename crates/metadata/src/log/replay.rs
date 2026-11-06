@@ -11,7 +11,7 @@ use crate::error::MetadataError;
 use crate::op::Op;
 
 /// The log's fixed header bytes, for the current version.
-pub(super) fn header() -> Vec<u8> {
+pub(crate) fn header() -> Vec<u8> {
     header_of(VERSION)
 }
 
@@ -37,7 +37,7 @@ fn header_of(version: u32) -> Vec<u8> {
 /// together. A log ending inside a batch ends at the batch's marker, so the
 /// whole unacknowledged batch is the torn tail. Holding them costs at most the
 /// log already in memory.
-pub(super) fn scan(
+pub(crate) fn scan(
     bytes: &[u8],
     path: &Path,
     mut apply: impl FnMut(Op),

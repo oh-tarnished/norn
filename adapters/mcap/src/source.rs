@@ -8,12 +8,14 @@ use std::io::Read;
 use mcap::parse_record;
 use mcap::sans_io::linear_reader::{LinearReadEvent, LinearReader, LinearReaderOptions};
 use norn_adapter::{
-    AdapterError, Catalog, DEFAULT_MAX_SIGNALS, Discovery, SampleSource, SourceBatch, value_type_of,
+    AdapterError, Catalog, DEFAULT_MAX_SIGNALS, Discovery, SampleSource, SourceBatch, contained,
+    value_type_of,
 };
 use norn_protocol::common::Sample;
 use prost::Message;
 
 use crate::FORMAT;
+use crate::guard::fits;
 use crate::records::{Directory, Step, failed};
 
 /// Messages a batch holds.
@@ -39,6 +41,15 @@ pub struct McapSource<R> {
     discovery: Discovery,
 }
 
+/// The error for a panic in the mcap crate, read while on message `row`.
+fn gave_up(row: u64) -> impl FnOnce(String) -> AdapterError {
+    move |detail| AdapterError::Corrupt {
+        format: FORMAT,
+        row: Some(row),
+        detail,
+    }
+}
+
 impl<R: Read> McapSource<R> {
     /// A source reading `input`. Reads nothing until [`SampleSource::catalog`].
     #[must_use]
@@ -62,7 +73,9 @@ impl<R: Read> McapSource<R> {
     fn step(&mut self) -> Result<Option<Step>, AdapterError> {
         let row = self.rows + 1;
         loop {
-            let Some(event) = self.reader.next_event() else {
+            let reader = &mut self.reader;
+            let event = contained(move || reader.next_event()).map_err(gave_up(row))?;
+            let Some(event) = event else {
                 return Ok(None);
             };
             match event.map_err(|e| failed(e, row))? {
@@ -73,7 +86,16 @@ impl<R: Read> McapSource<R> {
                     self.reader.notify_read(n);
                 }
                 LinearReadEvent::Record { opcode, data } => {
-                    let record = parse_record(opcode, data).map_err(|e| failed(e, row))?;
+                    if !fits(opcode, data) {
+                        return Err(AdapterError::Corrupt {
+                            format: FORMAT,
+                            row: Some(row),
+                            detail: format!("a string runs past record 0x{opcode:02x}"),
+                        });
+                    }
+                    let record = contained(|| parse_record(opcode, data));
+                    let record = record.map_err(gave_up(row))?;
+                    let record = record.map_err(|e| failed(e, row))?;
                     if let Some(step) = self.directory.absorb(record, row)? {
                         return Ok(Some(step));
                     }

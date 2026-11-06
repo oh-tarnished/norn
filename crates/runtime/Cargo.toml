@@ -34,6 +34,11 @@ tokio-util = { workspace = true }
 # Task failures and lifecycle transitions are logged, never printed.
 tracing = { workspace = true }
 
+# Exposes the journal's readers to the fuzz crate (fuzz/), and to nothing
+# else: no shipped build enables it.
+[features]
+fuzzing = []
+
 [dev-dependencies]
 # The query crate's test rig, shared by path, needs what it needs.
 proptest = { workspace = true }

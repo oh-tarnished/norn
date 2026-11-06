@@ -32,6 +32,14 @@ Every gate also fails when it examined nothing, and every gate has a test in
 `xtask/tests/` proving it bites. Never weaken a gate to pass: fix the code,
 or change the rule in `xtask` deliberately and say why in the commit.
 
+## Fuzzing
+
+`just fuzz [SECONDS] [TARGET]` runs the targets in `fuzz/`, a workspace of its own
+that needs nightly and `cargo install cargo-fuzz --locked`, and which nothing Norn
+ships links. The corpus is regenerated from Norn's own writers. A decoder that gains
+a format gains a target, and a crash gains a regression test in the crate that owns
+it. A nightly workflow runs each target and uploads any crash.
+
 ## CI and releases
 
 Install Rust 1.99.1 (see `rust-toolchain.toml`), `just`, protoc 36.2, Buf 1.75.0,

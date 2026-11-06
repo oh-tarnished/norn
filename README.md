@@ -913,7 +913,7 @@ Tests that need Unix signals or Unix sockets run on Linux and macOS only;
 | 13    | Adapters      | device protocols, MCAP, Parquet, others                     | done        | CSV, Parquet, Arrow IPC and MCAP, export and import through `nornctl`; device-protocol adapters are separate programs over IPC                                             |
 | 14    | MCP           | MCP server and the rest of `nornctl`                        | done        | MCP inside `norn` (`norn --mcp`): 17 read-only tools, stdio, a socket, a pipe or loopback-only HTTP; `nornctl` adds export, import, compact, verify, retention, `inspect`, `stats`, `benchmark` |
 | 15    | Optimisation  | measured defaults, the full benchmark matrix                | planned     | write path, storage, index, query and IPC measured once                                                                                                                    |
-| 16    | Hardening     | fuzzing, crash, corruption, cross-platform, security review | in progress | crash and corruption tests exist (Unix only: they `kill -9`); CI on Linux, macOS, Windows; no fuzzing, no review                                                           |
+| 16    | Hardening     | fuzzing, crash, corruption, cross-platform, security review | in progress | crash and corruption tests exist (Unix only: they `kill -9`); CI on Linux, macOS, Windows; fuzz targets for every decoder, run nightly; no review                         |
 
 ## Contributing
 
@@ -935,8 +935,8 @@ emoji or other pictograph.
 ## Security
 
 Report vulnerabilities privately, through GitHub's private vulnerability reporting:
-see [SECURITY.md](SECURITY.md). No security review has been carried out yet, there is
-no fuzzing, and data at rest is not encrypted.
+see [SECURITY.md](SECURITY.md). Every decoder of untrusted bytes is fuzzed nightly, no
+security review has been carried out yet, and data at rest is not encrypted.
 
 ## Licence
 

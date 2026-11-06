@@ -53,6 +53,8 @@ pub mod config;
 pub mod convert;
 mod daemon;
 mod events;
+#[cfg(feature = "fuzzing")]
+pub mod fuzzing;
 mod health;
 mod info;
 pub mod logging;

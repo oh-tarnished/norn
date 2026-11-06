@@ -8,6 +8,7 @@ use std::io::{Read, Seek, SeekFrom};
 
 use norn_adapter::{
     AdapterError, CATALOG_KEY, Catalog, DEFAULT_MAX_SIGNALS, Discovery, SampleSource, SourceBatch,
+    contained,
 };
 use parquet::arrow::arrow_reader::{
     ArrowReaderMetadata, ArrowReaderOptions, ParquetRecordBatchReader,
@@ -94,11 +95,15 @@ impl ParquetSource {
             return Ok(false);
         }
         let file = (self.file.try_clone()).map_err(AdapterError::io("reading the Parquet file"))?;
-        let reader = ParquetRecordBatchReaderBuilder::new_with_metadata(file, metadata)
-            .with_batch_size(BATCH_ROWS)
-            .with_row_groups(vec![self.group])
-            .build()
-            .map_err(|e| self.corrupt(self.rows + 1, e.to_string()))?;
+        let group = self.group;
+        let built = contained(|| {
+            ParquetRecordBatchReaderBuilder::new_with_metadata(file, metadata)
+                .with_batch_size(BATCH_ROWS)
+                .with_row_groups(vec![group])
+                .build()
+        });
+        let built = built.and_then(|b| b.map_err(|e| e.to_string()));
+        let reader = built.map_err(|e| self.corrupt(self.rows + 1, e))?;
         self.current = Some(reader);
         self.group_first = self.rows + 1;
         Ok(true)
@@ -127,7 +132,12 @@ impl SampleSource for ParquetSource {
     fn catalog(&mut self) -> Result<Catalog, AdapterError> {
         let loaded =
             (self.file.try_clone()).map_err(AdapterError::io("reading the Parquet file"))?;
-        let loaded = ArrowReaderMetadata::load(&loaded, ArrowReaderOptions::new());
+        let loaded = contained(|| ArrowReaderMetadata::load(&loaded, ArrowReaderOptions::new()));
+        let loaded = loaded.map_err(|detail| AdapterError::Corrupt {
+            format: FORMAT,
+            row: None,
+            detail,
+        })?;
         let metadata = loaded.map_err(|e| self.footer_error(&e))?;
         let find = |key: &str| {
             let pairs = metadata.metadata().file_metadata().key_value_metadata()?;
@@ -153,7 +163,9 @@ impl SampleSource for ParquetSource {
             if self.current.is_none() && !self.open_group()? {
                 return Ok(None);
             }
-            let next = self.current.as_mut().and_then(Iterator::next);
+            let current = self.current.as_mut();
+            let next = contained(|| current.and_then(Iterator::next));
+            let next = next.map_err(|e| self.corrupt(self.rows + 1, e))?;
             let Some(batch) = next else {
                 self.close_group()?;
                 continue;

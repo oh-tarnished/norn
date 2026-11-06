@@ -45,6 +45,8 @@ mod crc32c;
 mod error;
 pub mod format;
 mod fsio;
+#[cfg(feature = "fuzzing")]
+pub mod fuzzing;
 mod iter;
 mod layout;
 mod lock;

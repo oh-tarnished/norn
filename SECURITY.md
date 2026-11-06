@@ -53,8 +53,28 @@ Enable shared memory only where every process of that user is trusted.
 **Unsafe.** `norn-shared-memory` is `#![forbid(unsafe_code)]`, and Norn adds no
 `unsafe` for shared memory. iceoryx2's own `unsafe` is not audited by this project.
 
+## Fuzzing
+
+Every decoder that sees untrusted bytes has a cargo-fuzz target in `fuzz/`: the
+codecs, the storage reader and recovery, the index's files, the journal, the
+metadata log, requests through the server's metering and validation, shared-memory
+frames, filters and page tokens, and the CSV, Parquet, Arrow and MCAP readers. Each
+asserts no panic, a bound on the heap it holds and, where an encoder exists, a
+round trip. `just fuzz [SECONDS] [TARGET]` runs them, and
+[a nightly workflow](.github/workflows/fuzz.yml) runs each for a bounded time and
+keeps any crash as an artifact. A fuzz run is evidence about the inputs it tried, not
+a proof.
+
+The `arrow`, `parquet` and `mcap` crates can panic on a hostile file. Norn catches
+that during an import and reports it as damage, and checks the lengths those crates
+would otherwise reserve before calling them; a panic message still reaches stderr.
+
+One bound is not strict: a request's decoding reservation is capped at half of
+`ipc_bytes`, so with the default 32 MiB a 256 KiB batch create of empty elements can
+briefly hold more than it reserved, up to about 50 MiB.
+
 ## Not done yet
 
-No security review has been carried out, and there is no fuzzing (stage 16). Limits
+No security review has been carried out (stage 16). Limits
 on queries, replay sessions and subscriptions wait for those subsystems. Data at
 rest is not encrypted.

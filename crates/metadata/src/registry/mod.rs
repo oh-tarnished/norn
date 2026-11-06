@@ -28,7 +28,7 @@ use std::sync::{Condvar, Mutex, PoisonError, RwLock};
 use norn_core::{Limits, MetadataLimits};
 
 use self::commit::Syncer;
-use self::state::State;
+pub(crate) use self::state::State;
 use crate::error::MetadataError;
 use crate::log::{Log, LogRecovery};
 

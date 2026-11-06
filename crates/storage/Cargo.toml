@@ -10,6 +10,11 @@ edition.workspace = true
 rust-version.workspace = true
 publish = false
 
+# Exposes the chunk decoder and frame encoder to the fuzz crate (fuzz/), and to
+# nothing else: no shipped build enables it.
+[features]
+fuzzing = []
+
 [lints]
 workspace = true
 

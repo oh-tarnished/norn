@@ -3,8 +3,8 @@
 
 //! `norn.telemetry.v1.TelemetryService`: `AppendSamples`.
 
-mod arrive;
-mod batch;
+pub(crate) mod arrive;
+pub(crate) mod batch;
 mod call;
 mod grant;
 mod plane;
