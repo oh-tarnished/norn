@@ -336,8 +336,9 @@ counted and not stored again. In bounded memory, per stream:
   samples admitted (about 6 MiB). It is reserved from the ingest budget when the
   stream opens, at most an eighth of the budget, and halved until it fits; below
   256 entries a stream has marks alone. It is consulted only for a sample below
-  its signal's mark, to tell a resend from late data. Rebuilt at startup from each
-  signal's newest chunks, then the journal.
+  its signal's mark, to tell a resend from late data. Rebuilt at startup from the
+  chunks written last, oldest first, up to the window's size, then the journal: write
+  order, not time, so late data written after a signal's latest sample is in it.
 
 So:
 
@@ -347,8 +348,9 @@ So:
   was stored, so it is in the rebuilt window as long as those fit the window.
 - **Not guaranteed:** a resend older than the window, below the mark. It is
   indistinguishable from late data, and late data is kept (never dropping is the
-  stronger rule, SPEC §18), so that sample is stored twice. Equal rows are
-  identical in every field, and a reader can collapse them.
+  stronger rule, SPEC §18), so that sample is stored twice. A query returns it
+  once: of copies equal in signal, time and sequence, the first written, which
+  compaction keeps in write order, so the answer is the same before and after it.
 - **Known false positive:** a late sample whose fingerprint collides with a
   window entry is counted as a duplicate and not stored: below 2^-46 per late
   sample, and in-order samples never consult the window.

@@ -101,7 +101,7 @@ impl Reader {
         cap: u64,
     ) -> Result<(Vec<Row>, Charge), Attempt> {
         let memory = Arc::clone(&self.engine.memory);
-        let mut rows = Rows::new(Charge::new(Arc::clone(&memory)), filter, cap);
+        let mut rows = Rows::new(Charge::new(Arc::clone(&memory)), filter, cap, (from, to));
         for (index, target) in &selection.targets {
             let mut failed = None;
             let mut visit = |sample: Sample| match rows.offer(*index, sample) {
@@ -127,7 +127,7 @@ impl Reader {
             // `_decoded` pays for the chunk until its rows are copied out.
             let (chunk, _decoded) = self.chunk(&snapshot, &locator, &memory)?;
             if let Some(target) = selection.target_of(chunk.signal()) {
-                rows.take(target, &chunk, from, to).map_err(Attempt::Stop)?;
+                rows.take(target, &chunk, &locator).map_err(Attempt::Stop)?;
             }
         }
         Ok(rows.finish())

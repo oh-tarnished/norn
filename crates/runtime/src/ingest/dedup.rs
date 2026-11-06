@@ -97,6 +97,11 @@ impl Dedup {
         }
     }
 
+    /// How many recent samples the window holds: zero when it has no room.
+    pub(crate) fn capacity(&self) -> usize {
+        self.capacity
+    }
+
     /// Records `s`, returning whether it is new. See docs/reference/storage.md for exactly what
     /// this guarantees.
     pub(crate) fn admit(&mut self, s: &Sample) -> bool {
