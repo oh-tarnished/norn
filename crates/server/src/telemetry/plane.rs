@@ -134,6 +134,13 @@ impl Plane {
             let _held = (slot, charge);
             pump::run(&ring, &plane, &handle, &items, &for_reader);
             ring.reap();
+            #[cfg_attr(
+                windows,
+                expect(
+                    clippy::drop_non_drop,
+                    reason = "Windows' Ring is an uninhabited stand-in; Unix needs the ring released before Done"
+                )
+            )]
             drop(ring);
             let _ = items.blocking_send(Item::Done);
         });
